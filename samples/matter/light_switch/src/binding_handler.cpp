@@ -18,7 +18,7 @@
 
 #include "binding_handler.h"
 #ifdef CONFIG_CHIP_LIB_SHELL
-#include "ShellCommands.h"
+#include "shell_commands.h"
 #endif
 
 #include <logging/log.h>
