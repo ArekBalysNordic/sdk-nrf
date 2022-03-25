@@ -7,7 +7,6 @@
 #include "app_task.h"
 
 #include "led_widget.h"
-#include "light_bulb_publish_service.h"
 #include "lighting_manager.h"
 #include "thread_util.h"
 
@@ -62,8 +61,6 @@ LEDWidget sStatusLED;
 LEDWidget sLightLED;
 LEDWidget sUnusedLED;
 LEDWidget sUnusedLED_1;
-
-LightBulbPublishService sLightBulbPublishService;
 
 bool sIsThreadProvisioned;
 bool sIsThreadEnabled;
@@ -162,12 +159,12 @@ CHIP_ERROR AppTask::Init()
 	SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
 
 #ifdef CONFIG_CHIP_OTA_REQUESTOR
-    sOTAImageProcessor.SetOTADownloader(&sBDXDownloader);
-    sBDXDownloader.SetImageProcessorDelegate(&sOTAImageProcessor);
-    sRequestorStorage.Init(Server::GetInstance().GetPersistentStorage());
-    sOTARequestor.Init(Server::GetInstance(), sRequestorStorage, sOTARequestorDriver, sBDXDownloader);
+	sOTAImageProcessor.SetOTADownloader(&sBDXDownloader);
+	sBDXDownloader.SetImageProcessorDelegate(&sOTAImageProcessor);
+	sRequestorStorage.Init(Server::GetInstance().GetPersistentStorage());
+	sOTARequestor.Init(Server::GetInstance(), sRequestorStorage, sOTARequestorDriver, sBDXDownloader);
 	sOTARequestorDriver.Init(&sOTARequestor, &sOTAImageProcessor);
-    chip::SetRequestorInstance(&sOTARequestor);
+	chip::SetRequestorInstance(&sOTARequestor);
 #endif
 
 	ReturnErrorOnFailure(chip::Server::GetInstance().Init());
@@ -186,8 +183,6 @@ CHIP_ERROR AppTask::Init()
 		LOG_ERR("PlatformMgr().StartEventLoopTask() failed");
 		return err;
 	}
-
-	sLightBulbPublishService.Init();
 
 	return CHIP_NO_ERROR;
 }
@@ -252,7 +247,7 @@ void AppTask::DispatchEvent(const AppEvent &aEvent)
 		break;
 	case AppEvent::Toggle:
 		LightingMgr().InitiateAction(LightingMgr().IsTurnedOn() ? LightingManager::Action::Off :
-									  LightingManager::Action::On,
+										LightingManager::Action::On,
 					     aEvent.LightEvent.Value, aEvent.LightEvent.ChipInitiated);
 		break;
 	case AppEvent::Level:
@@ -282,9 +277,6 @@ void AppTask::DispatchEvent(const AppEvent &aEvent)
 		GetDFUOverSMP().StartBLEAdvertising();
 		break;
 #endif
-	case AppEvent::PublishLightBulbService:
-		sLightBulbPublishService.Publish();
-		break;
 	default:
 		LOG_INF("Unknown event received");
 		break;
@@ -382,8 +374,6 @@ void AppTask::StartThreadHandler()
 	} else {
 		LOG_INF("Device is commissioned to a Thread network");
 	}
-
-	sLightBulbPublishService.Start(10000, 1000);
 }
 
 void AppTask::StartBLEAdvertisingHandler()
