@@ -6,6 +6,7 @@
 
 #include "app_task.h"
 #include "led_widget.h"
+#include "thread_util.h"
 
 #include <platform/CHIPDeviceLayer.h>
 
@@ -147,6 +148,13 @@ CHIP_ERROR AppTask::Init()
 	if (err != CHIP_NO_ERROR) {
 		LOG_ERR("PlatformMgr().StartEventLoopTask() failed");
 		return err;
+	}
+
+	if (!ConnectivityMgr().IsThreadProvisioned()) {
+		StartDefaultThreadNetwork();
+		LOG_INF("Device is not commissioned to a Thread network. Starting with the default configuration");
+	} else {
+		LOG_INF("Device is commissioned to a Thread network");
 	}
 
 	return CHIP_NO_ERROR;
