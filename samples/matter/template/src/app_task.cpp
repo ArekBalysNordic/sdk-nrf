@@ -10,6 +10,7 @@
 
 #include <platform/CHIPDeviceLayer.h>
 
+#include <access/AccessControl.h>
 #include <app/server/OnboardingCodesUtil.h>
 #include <app/server/Server.h>
 #include <credentials/DeviceAttestationCredsProvider.h>
@@ -28,6 +29,7 @@
 
 #include <dk_buttons_and_leds.h>
 #include <logging/log.h>
+#include <settings/settings.h>
 #include <zephyr.h>
 
 using namespace ::chip;
@@ -156,6 +158,29 @@ CHIP_ERROR AppTask::Init()
 	} else {
 		LOG_INF("Device is commissioned to a Thread network");
 	}
+
+	uint8_t ACL_0[] = { 0x15, 0x24, 0x01, 0x01, 0x18 };
+	settings_save_one("mt/acl", ACL_0, sizeof(ACL_0));
+
+	uint8_t ACL_N[] = { 0x15, 0x28, 0x01, 0x24, 0x02, 0x00, 0x24, 0x03, 0x20, 0x24, 0x04, 0x01, 0x36, 0x05, 0x04,
+			    0x00, 0x04, 0x00, 0x04, 0x00, 0x04, 0x00, 0x18, 0x36, 0x06, 0x06, 0xff, 0xff, 0xff, 0xff,
+			    0x06, 0xff, 0xff, 0xff, 0xff, 0x06, 0xff, 0xff, 0xff, 0xff, 0x06, 0xff, 0xff, 0xff, 0xff,
+			    0x06, 0xff, 0xff, 0xff, 0xff, 0x06, 0xff, 0xff, 0xff, 0xff, 0x18, 0x18 };
+	settings_save_one("mt/acl/0", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/1", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/2", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/3", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/4", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/5", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/6", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/7", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/8", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/9", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/a", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/b", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/c", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/d", ACL_N, sizeof(ACL_N));
+	settings_save_one("mt/acl/e", ACL_N, sizeof(ACL_N));
 
 	return CHIP_NO_ERROR;
 }
