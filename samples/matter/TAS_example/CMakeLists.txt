@@ -12,8 +12,6 @@ set(mcuboot_KCONFIG_ROOT ${MATTER_MODULE_ROOT}/config/nrfconnect/chip-module/Kco
 set(CONF_FILE ${CMAKE_CURRENT_SOURCE_DIR}/configuration/${BOARD}/prj.conf)
 set(PM_STATIC_YML_FILE ${CMAKE_CURRENT_SOURCE_DIR}/configuration/${BOARD}/pm_static_dfu.yml)
 
-
-
 find_package(Zephyr REQUIRED HINTS $ENV{ZEPHYR_BASE})
 project(app)
 
