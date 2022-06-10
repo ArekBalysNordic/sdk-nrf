@@ -6,6 +6,8 @@
 
 cmake_minimum_required(VERSION 3.20.0)
 
+set(ZEPHYR_EXTRA_MODULES ${CMAKE_CURRENT_LIST_DIR})
+
 get_filename_component(MATTER_MODULE_ROOT $ENV{ZEPHYR_BASE}/../modules/lib/matter REALPATH)
 set(mcuboot_KCONFIG_ROOT ${MATTER_MODULE_ROOT}/config/nrfconnect/chip-module/Kconfig.mcuboot.root)
 
