@@ -103,7 +103,7 @@ if (CONFIG_NCS_SAMPLE_REMOTE_SHELL_CHILD_IMAGE)
 endif()
 
 if (CONFIG_NCS_INCLUDE_RPMSG_CHILD_IMAGE)
-
+  
   if (CONFIG_NCS_SAMPLE_MULTIPROTOCOL_RPMSG_CHILD_IMAGE)
     set(CHILD_IMAGE_NAME "multiprotocol_rpmsg")
     set(CHILD_IMAGE_PATH "${NRF_DIR}/samples/nrf5340/multiprotocol_rpmsg")
@@ -119,7 +119,6 @@ if (CONFIG_NCS_INCLUDE_RPMSG_CHILD_IMAGE)
   elseif (CONFIG_NCS_SAMPLE_RPC_HOST_CHILD_IMAGE)
     set(CHILD_IMAGE_NAME "rpc_host")
     set(CHILD_IMAGE_PATH "${NRF_DIR}/samples/bluetooth/rpc_host")
-
   else()
     # If we get here, something is wrong with the Kconfig resolution
     message(WARNING "CONFIG_NCS_INCLUDE_RPMSG_CHILD_IMAGE is set but "

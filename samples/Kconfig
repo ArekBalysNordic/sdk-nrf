@@ -26,9 +26,14 @@ config NCS_SAMPLE_EMPTY_APP_CORE_CHILD_IMAGE
 	  Add empty_app_core as a child image (application core).
 	  Used by samples that run on the network core only.
 
+config EMPTY_NET_CORE
+	bool "Use empty RPMsg net core image"
+	help
+	  Uses empty RPMsg net core image to be add to build system.
+
 config NCS_INCLUDE_RPMSG_CHILD_IMAGE
 	bool "Include RPMsg sample on netcore"
-	depends on SOC_NRF5340_CPUAPP && (BT_RPMSG || NRF_802154_SER_HOST || BT_RPC)
+	depends on SOC_NRF5340_CPUAPP && (BT_RPMSG || NRF_802154_SER_HOST || BT_RPC || EMPTY_NET_CORE)
 	select PARTITION_MANAGER_ENABLED
 	default y if BT_RPMSG || NRF_802154_SER_HOST || BT_RPC
 	help
@@ -57,9 +62,13 @@ config NCS_SAMPLE_REMOTE_SHELL_CHILD_IMAGE
 
 if NCS_INCLUDE_RPMSG_CHILD_IMAGE
 
+config NCS_SAMPLE_EMPTY_NETCORE
+	bool "Use sample with empty netcore"
+	depends on EMPTY_NET_CORE
+	default y
+
 config NCS_SAMPLE_MULTIPROTOCOL_RPMSG_CHILD_IMAGE
-	bool
-	depends on BT_RPMSG && NRF_802154_SER_HOST && !BT_RPC
+	bool "Use sample with empty netcore"
 	default y
 	help
 	  multiprotocol_rpmsg sample as a child image (network core).
