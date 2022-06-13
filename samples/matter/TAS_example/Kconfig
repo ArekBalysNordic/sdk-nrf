@@ -9,9 +9,35 @@ source "Kconfig.zephyr"
 source "${ZEPHYR_BASE}/../modules/lib/matter/config/nrfconnect/chip-module/Kconfig.features"
 source "${ZEPHYR_BASE}/../modules/lib/matter/config/nrfconnect/chip-module/Kconfig.defaults"
 
-config INCLUDE_NET_CORE_IMAGE
-	bool "Include net image as sub image"
-	depends on SOC_NRF5340_CPUAPP
-	default y if (BOARD_NRF5340DK_NRF5340_CPUAPP || BOARD_NRF5340DK_NRF5340_CPUAPPNS)
-	select PARTITION_MANAGER_ENABLED
-	select BOARD_ENABLE_CPUNET
+# default configs are set for lock example
+config CHIP_DEVICE_VENDOR_ID
+	int "Vendor id"
+	default 65521
+	help
+	  By default product ID is set to 65521.
+	  This is lock app vendor ID
+
+config CHIP_DEVICE_PRODUCT_ID
+	int "Product id"
+	default 32774
+	help
+	  By default product ID is set to 32774.
+	  This is lock app product ID
+
+# by default software version is set to 5
+config CHIP_DEVICE_SOFTWARE_VERSION
+	int "software version"
+	default 5
+	help
+	  By default software version is equal to 5
+
+config CHIP_DEVICE_SOFTWARE_VERSION_STRING
+	string "software version string"
+	default "v5.0"
+	help
+	  This value is needed to generate OTA image, but not to perform OTA.
+
+config CHIP_OTA_IMAGE_FILE_NAME
+	string "default filename for OTA"
+	default "matter.ota"
+
