@@ -11,7 +11,20 @@
 #include <platform/CHIPDeviceLayer.h>
 #include <platform/internal/DeviceNetworkInfo.h>
 
+#ifdef CONFIG_MPSL_FEM
+#include <openthread/platform/radio.h>
+#include <platform/OpenThread/OpenThreadUtils.h>
+#endif
+
 #include <zephyr/zephyr.h>
+
+#ifdef CONFIG_MPSL_FEM
+#ifndef CONFIG_FEM_802_15_4_DEFAULT_TX_POWER
+#define CONFIG_FEM_802_15_4_DEFAULT_TX_POWER 20
+#endif
+constexpr static int8_t kMinThreadOutputPower = -40;
+constexpr static int8_t kMaxThreadOutputPower = 20;
+#endif
 
 void StartDefaultThreadNetwork(uint64_t datasetTimestamp)
 {
@@ -43,3 +56,21 @@ void StartDefaultThreadNetwork(uint64_t datasetTimestamp)
 	chip::app::DnssdServer::Instance().StartServer();
 #endif
 }
+
+#ifdef CONFIG_MPSL_FEM
+CHIP_ERROR SetDefaultThreadOutputPower()
+{
+	CHIP_ERROR err;
+	/* set output power when FEM is active */
+	if (CONFIG_FEM_802_15_4_DEFAULT_TX_POWER != 0 &&
+	    CONFIG_FEM_802_15_4_DEFAULT_TX_POWER >= kMinThreadOutputPower &&
+	    CONFIG_FEM_802_15_4_DEFAULT_TX_POWER <= kMaxThreadOutputPower) {
+		err = chip::DeviceLayer::Internal::MapOpenThreadError(
+			otPlatRadioSetTransmitPower(chip::DeviceLayer::ThreadStackMgrImpl().OTInstance(),
+						    static_cast<int8_t>(CONFIG_FEM_802_15_4_DEFAULT_TX_POWER)));
+	} else {
+		return CHIP_ERROR_INVALID_INTEGER_VALUE;
+	}
+	return err;
+}
+#endif

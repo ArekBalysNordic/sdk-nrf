@@ -14,6 +14,22 @@ config STATE_LEDS
 	  the device into a network or the factory reset initiation. Note that setting this option to
 	  'n' does not disable the LED indicating the state of the simulated bolt.
 
+if MPSL_FEM
+
+config FEM_802_15_4_DEFAULT_TX_POWER
+	int "Set the default 802.15.4 output power (dBm) for device with FEM"
+	default 20
+	help
+	  Use this setting to set the default Thread (802.15.4) output power for device that
+	  uses FEM. This value has a unit in dBm and represents the Tx power at Antenna port of FEM device.
+
+if FEM_802_15_4_DEFAULT_TX_POWER != 0
+
+config MPSL_FEM_NRF21540_TX_GAIN_DB
+	default 20
+endif
+endif
+
 source "${ZEPHYR_BASE}/../modules/lib/matter/config/nrfconnect/chip-module/Kconfig.features"
 source "${ZEPHYR_BASE}/../modules/lib/matter/config/nrfconnect/chip-module/Kconfig.defaults"
 source "Kconfig.zephyr"

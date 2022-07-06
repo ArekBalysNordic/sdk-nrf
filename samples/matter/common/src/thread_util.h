@@ -7,5 +7,10 @@
 #pragma once
 
 #include <cstdint>
+#include <core/CHIPError.h>
 
 void StartDefaultThreadNetwork(uint64_t datasetTimestamp = 0);
+
+#ifdef CONFIG_MPSL_FEM
+CHIP_ERROR SetDefaultThreadOutputPower();
+#endif
