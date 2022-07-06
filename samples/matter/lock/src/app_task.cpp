@@ -30,6 +30,8 @@
 #endif
 
 #include <dk_buttons_and_leds.h>
+#include <openthread/platform/radio.h>
+#include <platform/OpenThread/OpenThreadUtils.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/zephyr.h>
 
@@ -47,6 +49,7 @@ namespace
 constexpr size_t kAppEventQueueSize = 10;
 constexpr uint32_t kFactoryResetTriggerTimeout = 3000;
 constexpr uint32_t kFactoryResetCancelWindow = 3000;
+constexpr int kThreadTxPower = 10;
 constexpr EndpointId kLockEndpointId = 1;
 
 K_MSGQ_DEFINE(sAppEventQueue, sizeof(AppEvent), kAppEventQueueSize, alignof(AppEvent));
@@ -86,6 +89,9 @@ CHIP_ERROR AppTask::Init()
 		LOG_ERR("ThreadStackMgr().InitThreadStack() failed");
 		return err;
 	}
+
+	err = Internal::MapOpenThreadError(
+		otPlatRadioSetTransmitPower(DeviceLayer::ThreadStackMgrImpl().OTInstance(), kThreadTxPower));
 
 #ifdef CONFIG_OPENTHREAD_MTD_SED
 	err = ConnectivityMgr().SetThreadDeviceType(ConnectivityManager::kThreadDeviceType_SleepyEndDevice);
