@@ -106,10 +106,10 @@ CHIP_ERROR AppTask::Init()
 		return err;
 	}
 
-#ifdef CONFIG_MPSL_FEM
+#ifdef CONFIG_OPENTHREAD_DEFAULT_TX_POWER
 	err = SetDefaultThreadOutputPower();
 	if (err != CHIP_NO_ERROR) {
-		LOG_ERR("Can not set Default Thread output power");
+		LOG_ERR("Cannot set default Thread output power");
 		return err;
 	}
 #endif

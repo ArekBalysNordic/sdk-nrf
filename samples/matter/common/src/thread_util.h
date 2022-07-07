@@ -11,6 +11,6 @@
 
 void StartDefaultThreadNetwork(uint64_t datasetTimestamp = 0);
 
-#ifdef CONFIG_MPSL_FEM
+#ifdef CONFIG_OPENTHREAD_DEFAULT_TX_POWER
 CHIP_ERROR SetDefaultThreadOutputPower();
 #endif
