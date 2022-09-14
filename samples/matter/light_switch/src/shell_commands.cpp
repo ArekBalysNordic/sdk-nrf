@@ -22,7 +22,12 @@ using Shell::shell_command_t;
 using Shell::streamer_get;
 using Shell::streamer_printf;
 
+constexpr static EndpointId kLightSwitchEndpointId = 1;
+constexpr static ClusterId kOnOffClusterId = 6;
+constexpr static ClusterId kLevelControlClusterId = 8;
+
 Engine sShellSwitchSubCommands;
+Engine sShellSwitchBindSubCommands;
 Engine sShellSwitchOnOffSubCommands;
 Engine sShellSwitchGroupsSubCommands;
 Engine sShellSwitchGroupsOnOffSubCommands;
@@ -31,6 +36,27 @@ static CHIP_ERROR SwitchHelpHandler(int argc, char **argv)
 {
 	sShellSwitchSubCommands.ForEachCommand(Shell::PrintCommandHelp, nullptr);
 	return CHIP_NO_ERROR;
+}
+
+static CHIP_ERROR FindDevicesHandler(int argc, char **argv)
+{
+	DeviceLayer::PlatformMgr().ScheduleWork(BindingHandler::LookForDevices, 0);
+
+	return CHIP_NO_ERROR;
+}
+
+static CHIP_ERROR SwitchBindHelpHandler(int argc, char **argv)
+{
+	sShellSwitchBindSubCommands.ForEachCommand(Shell::PrintCommandHelp, nullptr);
+	return CHIP_NO_ERROR;
+}
+
+static CHIP_ERROR SwitchBindCommandHandler(int argc, char **argv)
+{
+	if (argc == 0) {
+		return SwitchBindHelpHandler(argc, argv);
+	}
+	return sShellSwitchBindSubCommands.ExecCommand(argc, argv);
 }
 
 static CHIP_ERROR SwitchCommandHandler(int argc, char **argv)
@@ -61,6 +87,34 @@ namespace Unicast
 			return OnOffHelpHandler(argc, argv);
 		}
 		return sShellSwitchOnOffSubCommands.ExecCommand(argc, argv);
+	}
+
+	static CHIP_ERROR OnBindHandler(int argc, char **argv)
+	{
+		if(argc < 3){
+			sShellSwitchBindSubCommands.ForEachCommand(Shell::PrintCommandHelp, nullptr);
+			return CHIP_ERROR_INVALID_ARGUMENT;
+		}
+
+		EmberBindingTableEntry * entry = Platform::New<EmberBindingTableEntry>();
+		entry->type                    = EMBER_UNICAST_BINDING;
+		entry->fabricIndex             = atoi(argv[0]);
+		entry->nodeId                  = atoi(argv[1]);
+		entry->local                   = kLightSwitchEndpointId;
+		entry->remote                  = atoi(argv[2]);
+		entry->clusterId.SetValue(kOnOffClusterId);
+		DeviceLayer::PlatformMgr().ScheduleWork(BindingHandler::BindingWorkerFunction, reinterpret_cast<intptr_t>(entry));
+
+		entry = Platform::New<EmberBindingTableEntry>();
+		entry->type                    = EMBER_UNICAST_BINDING;
+		entry->fabricIndex             = atoi(argv[0]);
+		entry->nodeId                  = atoi(argv[1]);
+		entry->local                   = kLightSwitchEndpointId;
+		entry->remote                  = atoi(argv[2]);
+		entry->clusterId.SetValue(kLevelControlClusterId);
+		DeviceLayer::PlatformMgr().ScheduleWork(BindingHandler::BindingWorkerFunction, reinterpret_cast<intptr_t>(entry));
+
+		return CHIP_NO_ERROR;
 	}
 
 	static CHIP_ERROR OnCommandHandler(int argc, char **argv)
@@ -115,6 +169,34 @@ namespace Group
 		}
 
 		return sShellSwitchGroupsSubCommands.ExecCommand(argc, argv);
+	}
+
+	static CHIP_ERROR OnBindHandler(int argc, char **argv)
+	{
+		if(argc < 2){
+			sShellSwitchBindSubCommands.ForEachCommand(Shell::PrintCommandHelp, nullptr);
+			return CHIP_ERROR_INVALID_ARGUMENT;
+		}
+
+		// set binding to onoff cluster
+		EmberBindingTableEntry * entry = Platform::New<EmberBindingTableEntry>();
+		entry->type                    = EMBER_MULTICAST_BINDING;
+		entry->fabricIndex             = atoi(argv[0]);
+		entry->groupId                 = atoi(argv[1]);
+		entry->local                   = kLightSwitchEndpointId;
+		entry->clusterId.SetValue(kOnOffClusterId);      
+		DeviceLayer::PlatformMgr().ScheduleWork(BindingHandler::BindingWorkerFunction, reinterpret_cast<intptr_t>(entry));
+
+		// set binding to levelcontrol cluster
+		entry = Platform::New<EmberBindingTableEntry>();
+		entry->type                    = EMBER_MULTICAST_BINDING;
+		entry->fabricIndex             = atoi(argv[0]);
+		entry->groupId                 = atoi(argv[1]);
+		entry->local                   = kLightSwitchEndpointId;
+		entry->clusterId.SetValue(kLevelControlClusterId);      
+		DeviceLayer::PlatformMgr().ScheduleWork(BindingHandler::BindingWorkerFunction, reinterpret_cast<intptr_t>(entry));
+
+		return CHIP_NO_ERROR;
 	}
 
 	static CHIP_ERROR OnOffHelpHandler(int argc, char **argv)
@@ -177,9 +259,17 @@ void RegisterSwitchCommands()
 {
 	static const shell_command_t sSwitchSubCommands[] = {
 		{ &SwitchHelpHandler, "help", "Switch commands" },
+		{ &FindDevicesHandler, "find",
+		  "Scan within a Fabric to find devices that can be bound with light-switch" },
 		{ &Unicast::OnOffCommandHandler, "onoff", "Usage: switch onoff [on|off|toggle]" },
 		{ &Group::SwitchCommandHandler, "groups", "Usage: switch groups onoff [on|off|toggle]" },
+		{ &SwitchBindCommandHandler, "bind", "Bind to the device. Usage: switch bind [group, unicast]" },
 		{ &TableCommandHelper, "table", "Print a binding table" }
+	};
+
+	static const shell_command_t sSwitchBindCommands[] {
+		{&Unicast::OnBindHandler, "unicast", "Bind single device to make unicast connection. Usage: switch unicast [fabricId] [nodeId] [endpoint]"},
+		{&Group::OnBindHandler, "group", "Bind the Light Switch to the given group. UsageL switch group [fabricId] [groupId]"}
 	};
 
 	static const shell_command_t sSwitchOnOffSubCommands[] = {
@@ -202,11 +292,12 @@ void RegisterSwitchCommands()
 	};
 
 	static const shell_command_t sSwitchCommand = { &SwitchCommandHandler, "switch",
-							"Light-switch commands. Usage: switch [onoff|groups]" };
+							"Light-switch commands. Usage: switch [onoff|groups|find|table|bind]" };
 
 	sShellSwitchGroupsOnOffSubCommands.RegisterCommands(sSwichGroupsOnOffSubCommands,
 							    ArraySize(sSwichGroupsOnOffSubCommands));
 	sShellSwitchOnOffSubCommands.RegisterCommands(sSwitchOnOffSubCommands, ArraySize(sSwitchOnOffSubCommands));
+	sShellSwitchBindSubCommands.RegisterCommands(sSwitchBindCommands, ArraySize(sSwitchBindCommands));
 	sShellSwitchGroupsSubCommands.RegisterCommands(sSwitchGroupsSubCommands, ArraySize(sSwitchGroupsSubCommands));
 	sShellSwitchSubCommands.RegisterCommands(sSwitchSubCommands, ArraySize(sSwitchSubCommands));
 

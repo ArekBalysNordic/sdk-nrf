@@ -11,6 +11,7 @@
 #include <app/clusters/bindings/BindingManager.h>
 #include <controller/InvokeInteraction.h>
 #include <platform/CHIPDeviceLayer.h>
+#include <lib/core/NodeId.h>
 
 class BindingHandler {
 public:
@@ -27,6 +28,8 @@ public:
 	bool IsGroupBound();
 
 	static void SwitchWorkerHandler(intptr_t);
+	static void BindingWorkerFunction(intptr_t);
+	static void LookForDevices(intptr_t aContext);
 	static void OnInvokeCommandFailure(BindingData &aBindingData, CHIP_ERROR aError);
 
 	static BindingHandler &GetInstance()

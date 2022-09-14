@@ -9,7 +9,9 @@
 #include "shell_commands.h"
 #endif
 
+#include <app/clusters/bindings/bindings.h>
 #include <zephyr/logging/log.h>
+
 LOG_MODULE_DECLARE(app, CONFIG_MATTER_LOG_LEVEL);
 
 using namespace chip;
@@ -283,4 +285,21 @@ void BindingHandler::SwitchWorkerHandler(intptr_t aContext)
 	LOG_INF("Notify Bounded Cluster | endpoint: %d cluster: %d", data->EndpointId, data->ClusterId);
 	BindingManager::GetInstance().NotifyBoundClusterChanged(data->EndpointId, data->ClusterId,
 								static_cast<void *>(data));
+}
+
+void BindingHandler::BindingWorkerFunction(intptr_t context)
+{
+    VerifyOrReturn(context != 0, ChipLogError(NotSpecified, "Invalid new binding data"));
+
+	LOG_INF("Adding a new binding entry...");
+
+    EmberBindingTableEntry * entry = reinterpret_cast<EmberBindingTableEntry *>(context);
+    AddBindingEntry(*entry);
+
+    Platform::Delete(entry);
+}
+
+void BindingHandler::LookForDevices(intptr_t aContext)
+{
+	LOG_INF("Looking for Controllable devices...");
 }
