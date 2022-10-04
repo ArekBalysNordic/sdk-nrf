@@ -9,7 +9,10 @@
 #include "app_config.h"
 #include "led_util.h"
 #include "pwm_device.h"
+
+#ifdef CONFIG_NET_L2_OPENTHREAD
 #include "thread_util.h"
+#endif
 
 #include <platform/CHIPDeviceLayer.h>
 
@@ -24,6 +27,11 @@
 #include <lib/support/CHIPMem.h>
 #include <lib/support/CodeUtils.h>
 #include <system/SystemError.h>
+
+#ifdef CONFIG_CHIP_WIFI
+#include <app/clusters/network-commissioning/network-commissioning.h>
+#include <platform/nrfconnect/wifi/NrfWiFiDriver.h>
+#endif
 
 #ifdef CONFIG_CHIP_OTA_REQUESTOR
 #include "ota_util.h"
@@ -82,6 +90,11 @@ namespace StatusLed
 } /* namespace StatusLed */
 } /* namespace LedConsts */
 
+#ifdef CONFIG_CHIP_WIFI
+app::Clusters::NetworkCommissioning::Instance
+	sWiFiCommissioningInstance(0, &(NetworkCommissioning::NrfWiFiDriver::Instance()));
+#endif
+
 CHIP_ERROR AppTask::Init()
 {
 	/* Initialize CHIP stack */
@@ -99,6 +112,7 @@ CHIP_ERROR AppTask::Init()
 		return err;
 	}
 
+#if defined(CONFIG_NET_L2_OPENTHREAD)
 	err = ThreadStackMgr().InitThreadStack();
 	if (err != CHIP_NO_ERROR) {
 		LOG_ERR("ThreadStackMgr().InitThreadStack() failed: %s", ErrorStr(err));
@@ -118,7 +132,11 @@ CHIP_ERROR AppTask::Init()
 		LOG_ERR("Cannot set default Thread output power");
 		return err;
 	}
-#endif
+#endif /* CONFIG_OPENTHREAD_DEFAULT_TX_POWER */
+#elif defined(CONFIG_CHIP_WIFI)
+	sWiFiCommissioningInstance.Init();
+#else
+#endif /* CONFIG_NET_L2_OPENTHREAD */
 
 	/* Initialize LEDs */
 	LEDWidget::InitGpio();
@@ -414,15 +432,27 @@ void AppTask::ChipEventHandler(const ChipDeviceEvent *event, intptr_t /* arg */)
 		sHaveBLEConnections = ConnectivityMgr().NumBLEConnections() != 0;
 		UpdateStatusLED();
 		break;
+#if defined(CONFIG_NET_L2_OPENTHREAD)
+	case DeviceEventType::kDnssdPlatformInitialized:
+#if CONFIG_CHIP_OTA_REQUESTOR
+		InitBasicOTARequestor();
+#endif /* CONFIG_CHIP_OTA_REQUESTOR */
+	break;
 	case DeviceEventType::kThreadStateChange:
 		sIsNetworkProvisioned = ConnectivityMgr().IsThreadProvisioned();
 		sIsNetworkEnabled = ConnectivityMgr().IsThreadEnabled();
 		UpdateStatusLED();
-		break;
-	case DeviceEventType::kDnssdPlatformInitialized:
+#elif defined(CONFIG_CHIP_WIFI)
+	case DeviceEventType::kWiFiConnectivityChange:
+		sIsNetworkProvisioned = ConnectivityMgr().IsWiFiStationProvisioned();
+		sIsNetworkEnabled = ConnectivityMgr().IsWiFiStationEnabled();
 #if CONFIG_CHIP_OTA_REQUESTOR
-		InitBasicOTARequestor();
-#endif
+		if (event->WiFiConnectivityChange.Result == kConnectivity_Established) {
+			InitBasicOTARequestor();
+		}
+#endif /* CONFIG_CHIP_OTA_REQUESTOR */
+#endif /* CONFIG_CHIP_WIFI */
+		UpdateStatusLED();
 		break;
 	default:
 		break;
