@@ -930,6 +930,11 @@ Matter
 
 .. rst-class:: v2-2-0 v2-1-2 v2-1-1
 
+KRKNWK-15913: The "user" field of the Factory Data set is not parsed properly on a device.
+  The issue is with the type of that field, which is a BSTR type, whereas it should be a MAP type.
+
+  **Workaround:** Manually cherry-pick and apply commit with fix to ``sdk-connectedhomeip`` from upstream ``connectedhomeip`` repository (commit hash: ``xxx``).
+
 KRKNWK-15846: Android CHIP Tool crashes when subscribing in the :guilabel:`LIGHT ON/OFF & LEVEL CLUSTER`
   The Android CHIP Tool crashes when attempting to start the subscription after typing minimum and maximum subscription interval values.
   Also, the Subscription window in the :guilabel:`LIGHT ON/OFF & LEVEL CLUSTER` contains faulty GUI layout (overlapping captions) used when passing minimum and maximum subscription interval values.
