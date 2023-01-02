@@ -11,7 +11,8 @@ Matter: Door lock
 This door lock sample demonstrates the usage of the :ref:`Matter <ug_matter>` application layer to build a door lock device with one basic bolt.
 This device works as a Matter accessory device, meaning it can be paired and controlled remotely over a Matter network built on top of a low-power 802.15.4 Thread or Wi-Fi network.
 Support for both Thread and Wi-Fi is mutually exclusive and depends on the hardware platform, so only one protocol can be supported for a specific lock device.
-In case of Thread, this device works as a Thread :ref:`Sleepy End Device <thread_ot_device_types>`.
+In case of Thread, this device works as a Thread :ref:`Sleepy End Device <thread_ot_device_types>`. 
+In case of Wi-Fi, this device works in ``legacy power save mode`` that means the device sleeps most of the time, and wakes up on each DTIM interval.
 You can use this sample as a reference for creating your application.
 
 Requirements

@@ -77,6 +77,16 @@ config CHIP_ENABLE_SLEEPY_END_DEVICE_SUPPORT
 
 endif # NET_L2_OPENTHREAD
 
+if CHIP_WIFI
+
+# Enable Legacy Power Save mode by default.
+# The device sleeps most of the time and wakes up on each DTIM interval.
+config NRF_WIFI_LOW_POWER
+	bool
+	default y
+
+endif # CHIP_WIFI
+
 if MPSL_FEM
 
 config OPENTHREAD_DEFAULT_TX_POWER
