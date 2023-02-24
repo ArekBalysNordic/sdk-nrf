@@ -66,6 +66,9 @@ private:
 
 	void SetState(State state, OperationSource source);
 
+	static void NUSLockCallback(void* context);
+	static void NUSUnlockCallback(void* context);
+
 	static void ActuatorTimerEventHandler(k_timer *timer);
 	static void ActuatorAppEventHandler(const AppEvent &aEvent);
 	friend BoltLockManager &BoltLockMgr();

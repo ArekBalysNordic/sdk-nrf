@@ -6,6 +6,10 @@
 
 #include "bolt_lock_manager.h"
 
+#ifdef CONFIG_CHIP_NUS
+#include "bt_nus_service.h"
+#endif
+
 #include "app_event.h"
 #include "app_task.h"
 
@@ -13,9 +17,50 @@ using namespace chip;
 
 BoltLockManager BoltLockManager::sLock;
 
+#ifdef CONFIG_CHIP_NUS
+namespace
+{
+constexpr uint16_t kAdvertisingIntervalMin = 400;
+constexpr uint16_t kAdvertisingIntervalMax = 500;
+constexpr uint8_t kLockNUSPriority = 2;
+constexpr char kLockNUSName[] = "MatterLock_NUS";
+} // namespace
+
+void BoltLockManager::NUSLockCallback(void *context)
+{
+	ChipLogProgress(Zcl, "Received LOCK command from NUS");
+	if (BoltLockMgr().mState == State::kLockingCompleted || BoltLockMgr().mState == State::kLockingInitiated) {
+		ChipLogProgress(Zcl, "Device is already locked");
+	} else {
+		BoltLockMgr().Lock(BoltLockManager::OperationSource::kProprietaryRemote);
+	}
+}
+
+void BoltLockManager::NUSUnlockCallback(void *context)
+{
+	ChipLogProgress(Zcl, "Received UNLOCK command from NUS");
+	if (BoltLockMgr().mState == State::kUnlockingCompleted || BoltLockMgr().mState == State::kUnlockingInitiated) {
+		ChipLogProgress(Zcl, "Device is already unlocked");
+	} else {
+		BoltLockMgr().Unlock(BoltLockManager::OperationSource::kProprietaryRemote);
+		
+	}
+}
+#endif
+
 void BoltLockManager::Init(StateChangeCallback callback)
 {
 	mStateChangeCallback = callback;
+
+#ifdef CONFIG_CHIP_NUS
+	if (CHIP_NO_ERROR != GetNUSService().Init(kLockNUSName, sizeof(kLockNUSName) - 1, kLockNUSPriority,
+						  kAdvertisingIntervalMin, kAdvertisingIntervalMax)) {
+		ChipLogError(Zcl, "Cannot initialize NUS service");
+	}
+	GetNUSService().RegisterCommand("Lock", sizeof("Lock"), NUSLockCallback, nullptr);
+	GetNUSService().RegisterCommand("UnLock", sizeof("UnLock"), NUSUnlockCallback, nullptr);
+	GetNUSService().StartServer();
+#endif
 
 	k_timer_init(&mActuatorTimer, &BoltLockManager::ActuatorTimerEventHandler, nullptr);
 	k_timer_user_data_set(&mActuatorTimer, this);
@@ -174,9 +219,15 @@ void BoltLockManager::ActuatorAppEventHandler(const AppEvent &event)
 	switch (lock->mState) {
 	case State::kLockingInitiated:
 		lock->SetState(State::kLockingCompleted, lock->mActuatorOperationSource);
+#ifdef CONFIG_CHIP_NUS
+		GetNUSService().SendData("Locked", sizeof("Locked"));
+#endif
 		break;
 	case State::kUnlockingInitiated:
 		lock->SetState(State::kUnlockingCompleted, lock->mActuatorOperationSource);
+#ifdef CONFIG_CHIP_NUS
+		GetNUSService().SendData("Unlocked", sizeof("Unlocked"));
+#endif
 		break;
 	default:
 		break;
