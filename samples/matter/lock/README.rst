@@ -98,16 +98,16 @@ The Thread and Wi-Fi switching also supports :ref:`dedicated Device Firmware Upg
 
 .. _matter_lock_sample_ble_nus:
 
-Matter BLE NUS (Nordic UART Service)
+Matter Bluetooth LE NUS (Nordic UART Service)
 =========================================
 
 .. matter_door_lock_sample_lock_nus_desc_start
 
-The Matter BLE NUS is an simple implementation of Nordic UART Service that allows to declare specific commands for a Matter sample and use them to control device remotely via BLE.
-This service is only an example of how to implement additional BLE service within a Matter sample and use it to specific purpose.
-You can create own proprietary service and add it to BLE Advertising Arbiter to use it with a Matter sample.
-You can enable this feature by setting the ``-DCONFIG_CHIP_NUS_SERVICE=y`` kconfig.
-Matter BLE NUS requires a secure connection with your mobile phone.
+The Matter Bluetooth LE NUS is an simple implementation of Nordic UART Service that allows to declare specific commands for a Matter sample and use them to control device remotely via Bluetooth LE.
+This service is only an example of how to implement additional Bluetooth LE service within a Matter sample and use it to specific purpose.
+You can create own proprietary service and add it to Bluetooth LE Advertising Arbiter to use it with a Matter sample.
+You can enable this feature by setting the ``-DCONFIG_CHIP_NUS=y`` kconfig.
+Matter Bluetooth LE NUS requires a secure connection with your mobile phone.
 Depending on build types (``debug`` or ``release``) a PIN code will be different:
    
 * In the ``debug`` build type the secure PIN code is generated randomly and printed in log console in the following way:
@@ -510,7 +510,7 @@ Complete the following steps to generate the Matter OTA combined image file:
 .. note::
     Keep the order in which the files are passed to the script, given that the Thread variant image file must be passed in front of the Wi-Fi variant image.
 
-Testing Lock BLE Nordic UART Service
+Testing Lock Bluetooth LE Nordic UART Service
 ====================================
 
 To test this feature, complete the following steps:
@@ -521,7 +521,7 @@ To test this feature, complete the following steps:
 
    .. code-block:: console
 
-      west build -b nrf52840dk_nrf52840 -- -DCONFIG_CHIP_NUS_SERVICE=y 
+      west build -b nrf52840dk_nrf52840 -- -DCONFIG_CHIP_NUS=y 
 
 #. Program the application to the kit using the following command:
 
@@ -545,7 +545,7 @@ To test this feature, complete the following steps:
 
    * Read a randomly generated passkey from the console logs (Search the device's logs to find ``PROVIDE THE FOLLOWING CODE IN YOUR MOBILE APP:`` phrase) and enter the passcode on your phone.
 
-#. Wait for a while to establish the BLE connection between a phone and a nRF board.
+#. Wait for a while to establish the Bluetooth LE connection between a phone and a nRF board.
 
 #. In the app record two macros:
 
@@ -555,8 +555,8 @@ To test this feature, complete the following steps:
 
 #. Tap on generated macros and observe the ``LED 2`` on the nRF board.
 
-You can also use Matter Lock BLE NUS when the device is connected to the Thread network.
-The BLE connection between a phone and an nRF board will be suspended when the commissioning to Matter network is in progress or there is an active session of BLE DFU.
+You can use Matter Lock Bluetooth LE NUS when the device is connected to the Thread network.
+The Bluetooth LE connection between a phone and an nRF board will be suspended when the commissioning to Matter network is in progress or there is an active session of SMP DFU.
 
 Dependencies
 ************
