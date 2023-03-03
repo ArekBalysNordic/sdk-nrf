@@ -118,6 +118,7 @@ Depending on build types (``debug`` or ``release``) a PIN code will be different
 
 * In the ``release`` build type the secure PIN is set to ``123456`` due to lack of a different way of showing it on nRF boards than via log console.
 
+You can setup the secure PIN and enable it by adding 
 .. matter_door_lock_sample_lock_nus_desc_end
 
 In the Door Lock sample there were two commands implemented.
@@ -511,13 +512,14 @@ Complete the following steps to generate the Matter OTA combined image file:
     Keep the order in which the files are passed to the script, given that the Thread variant image file must be passed in front of the Wi-Fi variant image.
 
 Testing Lock Bluetooth LE Nordic UART Service
-====================================
+=============================================
 
 To test this feature, complete the following steps:
 
 #. Install `nRF Toolbox <https://www.nordicsemi.com/Products/Development-tools/nrf-toolbox>`_ on Android or iOS phone.
 
-#. Build the door lock application for Matter over Thread:
+#. Build the door lock application for Matter over Thread with the ``CONFIG_CHIP_NUS`` kconfig enabled.
+In this example we use the nRF52840 board, but you can build also for nrf5340 board:
 
    .. code-block:: console
 
@@ -529,11 +531,11 @@ To test this feature, complete the following steps:
 
       west flash --erase
 
-#. If you are built the sample in ``debug`` build type, connect the board to your favorite UART console to see the LOGs from the device.
+#. If you built the sample in ``debug`` build type, connect the board to your favorite UART console to see the LOGs from the device.
 
 #. Select ``Universal Asynchronous Receiver/Transmitter UART`` from the list in the nRF Toolbox application.
 
-#. Tap on ``Connect`` and uncheck ``Filter by Service UUID`` in iOS app or ``UUID`` field in Android app.
+#. Tap on ``Connect``
 
 #. Select ``MatterLock_NUS`` from the list of available device.
 
@@ -545,7 +547,7 @@ To test this feature, complete the following steps:
 
    * Read a randomly generated passkey from the console logs (Search the device's logs to find ``PROVIDE THE FOLLOWING CODE IN YOUR MOBILE APP:`` phrase) and enter the passcode on your phone.
 
-#. Wait for a while to establish the Bluetooth LE connection between a phone and a nRF board.
+#. Wait for a while to establish the Bluetooth LE connection between a phone and an nRF board.
 
 #. In the app record two macros:
 

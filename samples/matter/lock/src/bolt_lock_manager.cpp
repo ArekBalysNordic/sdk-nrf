@@ -23,7 +23,6 @@ namespace
 constexpr uint16_t kAdvertisingIntervalMin = 400;
 constexpr uint16_t kAdvertisingIntervalMax = 500;
 constexpr uint8_t kLockNUSPriority = 2;
-constexpr char kLockNUSName[] = "MatterLock_NUS";
 } // namespace
 
 void BoltLockManager::NUSLockCallback(void *context)
@@ -43,7 +42,6 @@ void BoltLockManager::NUSUnlockCallback(void *context)
 		ChipLogProgress(Zcl, "Device is already unlocked");
 	} else {
 		BoltLockMgr().Unlock(BoltLockManager::OperationSource::kProprietaryRemote);
-		
 	}
 }
 #endif
@@ -53,8 +51,7 @@ void BoltLockManager::Init(StateChangeCallback callback)
 	mStateChangeCallback = callback;
 
 #ifdef CONFIG_CHIP_NUS
-	if (CHIP_NO_ERROR != GetNUSService().Init(kLockNUSName, sizeof(kLockNUSName) - 1, kLockNUSPriority,
-						  kAdvertisingIntervalMin, kAdvertisingIntervalMax)) {
+	if (!GetNUSService().Init(kLockNUSPriority, kAdvertisingIntervalMin, kAdvertisingIntervalMax)) {
 		ChipLogError(Zcl, "Cannot initialize NUS service");
 	}
 	GetNUSService().RegisterCommand("Lock", sizeof("Lock"), NUSLockCallback, nullptr);
