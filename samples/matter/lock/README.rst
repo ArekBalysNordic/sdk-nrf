@@ -36,6 +36,8 @@ This requires additional hardware depending on the setup you choose.
 .. note::
     |matter_gn_required_note|
 
+If you want to enable and test :ref:`matter_lock_sample_ble_nus`, you also need a smartphone with either Android or iOS.
+
 IPv6 network support
 ====================
 
@@ -98,41 +100,34 @@ The Thread and Wi-Fi switching also supports :ref:`dedicated Device Firmware Upg
 
 .. _matter_lock_sample_ble_nus:
 
-Matter Bluetooth LE NUS (Nordic UART Service)
-=========================================
+Extended Matter Bluetooth LE with Nordic UART Service
+=====================================================
 
 .. matter_door_lock_sample_lock_nus_desc_start
 
-The Matter Bluetooth LE NUS is an simple implementation of Nordic UART Service that allows to declare specific commands for a Matter sample and use them to control device remotely via Bluetooth LE.
-This service is only an example of how to implement additional Bluetooth LE service within a Matter sample and use it to specific purpose.
-You can create own proprietary service and add it to Bluetooth LE Advertising Arbiter to use it with a Matter sample.
-You can enable this feature by setting the ``-DCONFIG_CHIP_NUS=y`` kconfig.
-Matter Bluetooth LE NUS requires a secure connection with your mobile phone.
-Depending on build types (``debug`` or ``release``) a PIN code will be different:
-   
-* In the ``debug`` build type the secure PIN code is generated randomly and printed in log console in the following way:
+Matter over Thread lets you can integrate an additional Bluetooth LE service with any Matter application.
+The Matter door lock sample demonstrates this integration by providing a basic implementation of the Matter Bluetooth LE with :ref:`Nordic UART Service <nus_service_readme>`.
+Thanks to this solution, you can declare commands specific to a Matter sample and use them to control the device remotely through Bluetooth LE.
 
-   .. code-block:: console
-
-      PROVIDE THE FOLLOWING CODE IN YOUR MOBILE APP: 165768
-
-* In the ``release`` build type the secure PIN is set to ``123456`` due to lack of a different way of showing it on nRF boards than via log console.
-
-You can setup the secure PIN and enable it by adding 
 .. matter_door_lock_sample_lock_nus_desc_end
 
-In the Door Lock sample there were two commands implemented.
+In the door lock sample, you can use the following commands with the Bluetooth LE with NUS:
 
-   * ``Lock`` - To lock the door of the connected device.
+* ``Lock`` - To lock the door of the connected device.
+* ``Unlock`` - To unlock the door of the connected device.
 
-   * ``UnLock`` - To unlock the door of the connected device.
+If the device is already connected to the Matter network, the notification about changing the lock state will be send to Matter controller.
 
-If the device is already connected to the matter network, the notification about changing lock state will be send to Matter Controller.
+See `Enabling Matter Bluetooth LE with Nordic UART Service`_ and `Testing door lock using Bluetooth LE with Nordic UART Service`_ for more information about how to configure and test this feature with this sample.
+
+.. _matter_lock_sample_configuration:
 
 Configuration
 *************
 
 |config|
+
+.. _matter_lock_sample_configuration_build_types:
 
 Matter door lock build types
 ============================
@@ -164,6 +159,8 @@ This sample supports the following build types, depending on the selected board:
     The ``debug`` build type is used by default if no build type is explicitly selected.
 
 .. matter_door_lock_sample_configuration_file_types_end
+
+.. _matter_lock_sample_configuration_dfu:
 
 Device Firmware Upgrade support
 ===============================
@@ -206,10 +203,32 @@ For example:
 
 .. matter_door_lock_sample_build_with_dfu_end
 
+.. _matter_lock_sample_configuration_fem:
+
 FEM support
 ===========
 
 .. include:: /includes/sample_fem_support.txt
+
+.. _matter_lock_sample_configuration_nus:
+
+Enabling Matter Bluetooth LE with Nordic UART Service
+=====================================================
+
+You can enable the :ref:`matter_lock_sample_ble_nus` feature by setting the :kconfig:option:`CONFIG_CHIP_NUS` Kconfig option to ``y``.
+
+Matter Bluetooth LE NUS requires a secure connection with a smartphone, which is established using a security PIN code.
+The PIN code is different depending on the build type:
+
+* In the ``debug`` build type, the secure PIN code is generated randomly and printed in the log console in the following way:
+
+  .. code-block:: console
+
+     PROVIDE THE FOLLOWING CODE IN YOUR MOBILE APP: 165768
+
+* In the ``release`` build type, the secure PIN is set to ``123456`` due to lack of a different way of showing it on nRF boards than in the log console.
+
+See `Testing door lock using Bluetooth LE with Nordic UART Service`_ for more information about how to test this feature.
 
 User interface
 **************
@@ -511,19 +530,18 @@ Complete the following steps to generate the Matter OTA combined image file:
 .. note::
     Keep the order in which the files are passed to the script, given that the Thread variant image file must be passed in front of the Wi-Fi variant image.
 
-Testing Lock Bluetooth LE Nordic UART Service
-=============================================
+Testing door lock using Bluetooth LE with Nordic UART Service
+=============================================================
 
-To test this feature, complete the following steps:
+To test the :ref:`matter_lock_sample_ble_nus` feature, complete the following steps:
 
-#. Install `nRF Toolbox <https://www.nordicsemi.com/Products/Development-tools/nrf-toolbox>`_ on Android or iOS phone.
-
-#. Build the door lock application for Matter over Thread with the ``CONFIG_CHIP_NUS`` kconfig enabled.
-In this example we use the nRF52840 board, but you can build also for nrf5340 board:
+#. Install `nRF Toolbox`_ on your Android or iOS smartphone.
+#. Build the door lock application for Matter over Thread with the :kconfig:option:`CONFIG_CHIP_NUS` set to ``y``.
+   For example, if you build from command line for the ``nrf52840dk_nrf52840``, you use the following command:
 
    .. code-block:: console
 
-      west build -b nrf52840dk_nrf52840 -- -DCONFIG_CHIP_NUS=y 
+      west build -b nrf52840dk_nrf52840 -- -DCONFIG_CHIP_NUS=y
 
 #. Program the application to the kit using the following command:
 
@@ -531,34 +549,33 @@ In this example we use the nRF52840 board, but you can build also for nrf5340 bo
 
       west flash --erase
 
-#. If you built the sample in ``debug`` build type, connect the board to your favorite UART console to see the LOGs from the device.
+#. If you built the sample with the ``debug`` build type, connect the board to an UART console to see the log entries from the device.
+#. Open the nRF Toolbox application on your smartphone.
+#. Select :guilabel:`Universal Asynchronous Receiver/Transmitter UART` from the list in the nRF Toolbox application.
+#. Tap on :guilabel:`Connect`.
+   The application connects to the devices connected through UART.
+#. Select :guilabel:`MatterLock_NUS` from the list of available devices.
+   The Bluetooth Pairing Request with an input field for passkey appears on the screen (on iOS) or as an notification (on Android).
+#. Depending on the build type you are using:
 
-#. Select ``Universal Asynchronous Receiver/Transmitter UART`` from the list in the nRF Toolbox application.
+   * For the ``release`` build type: Enter the passkey ``123456``.
+   * For the ``debug`` build type, complete the following steps:
 
-#. Tap on ``Connect``
+     1. Search the device's logs to find ``PROVIDE THE FOLLOWING CODE IN YOUR MOBILE APP:`` phrase.
+     #. Read the randomly generated passkey from the console logs.
+     #. Enter the passcode on your smartphone.
 
-#. Select ``MatterLock_NUS`` from the list of available device.
+#. Wait for the Bluetooth LE connection to be established between the smartphone and the nRF board.
+#. In the nRF Toolbox application, add the following macros as :
 
-#. The Bluetooth Pairing Request with an input field for passkey should appear on the screen (iOS) or as an notification (Android).
+   * ``Lock`` as the Command value type ``Text`` and any image.
 
-#. Depending on build type:
+   * ``Unlock`` as the Command value type ``Text`` and any image.
 
-   * Enter the passkey ``123456``  if the build type is ``release``.
+#. Tap on the generated macros and observe the **LED 2** on the nRF board.
 
-   * Read a randomly generated passkey from the console logs (Search the device's logs to find ``PROVIDE THE FOLLOWING CODE IN YOUR MOBILE APP:`` phrase) and enter the passcode on your phone.
-
-#. Wait for a while to establish the Bluetooth LE connection between a phone and an nRF board.
-
-#. In the app record two macros:
-
-   * ``Lock`` as Command value type ``Text`` and any image.
-
-   * ``UnLock`` as Command value type ``Text`` and any image.
-
-#. Tap on generated macros and observe the ``LED 2`` on the nRF board.
-
-You can use Matter Lock Bluetooth LE NUS when the device is connected to the Thread network.
-The Bluetooth LE connection between a phone and an nRF board will be suspended when the commissioning to Matter network is in progress or there is an active session of SMP DFU.
+You can use the Matter door lock Bluetooth LE NUS only when the device is connected to a Matter over Thread network.
+The Bluetooth LE connection between a phone and the nRF board will be suspended when the commissioning to the Matter network is in progress or there is an active session of SMP DFU.
 
 Dependencies
 ************
