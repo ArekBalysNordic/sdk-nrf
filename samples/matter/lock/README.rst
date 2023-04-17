@@ -581,6 +581,9 @@ To test the :ref:`matter_lock_sample_ble_nus` feature, complete the following st
 
 The Bluetooth LE connection between a phone and the DK will be suspended when the commissioning to the Matter network is in progress or there is an active session of SMP DFU.
 
+To read the current door lock state from the device, read RX Bluetooth LE characteristics.
+The new lock state is updated after changing the state from any of the following source: NUS, buttons, Matter stack.
+
 Dependencies
 ************
 

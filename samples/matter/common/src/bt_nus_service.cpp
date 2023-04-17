@@ -60,7 +60,7 @@ bool NUSService::Init(uint8_t priority, uint16_t minInterval, uint16_t maxInterv
 
 	mAdvertisingRequest.onStarted = [](int rc) {
 		if (rc == 0) {
-			LOG_INF("NUS BLE advertising started");
+			LOG_DBG("NUS BLE advertising started");
 		} else {
 			LOG_ERR("Failed to start NUS BLE advertising: %d", rc);
 		}
@@ -95,7 +95,7 @@ void NUSService::StartServer()
 		return;
 	}
 	mIsStarted = true;
-	LOG_INF("NUS service started");
+	LOG_DBG("NUS service started");
 }
 
 void NUSService::StopServer()
@@ -111,7 +111,7 @@ void NUSService::StopServer()
 	PlatformMgr().UnlockChipStack();
 
 	mIsStarted = false;
-	LOG_INF("NUS service stopped");
+	LOG_DBG("NUS service stopped");
 }
 
 void NUSService::RxCallback(bt_conn *conn, const uint8_t *const data, uint16_t len)
@@ -171,12 +171,12 @@ void NUSService::Connected(bt_conn *conn, uint8_t err)
 	GetNUSService().mBTConnection = conn;
 	bt_conn_set_security(conn, BT_SECURITY_L3);
 
-	LOG_INF("NUS BT Connected to %s", LogAddress(conn));
+	LOG_DBG("NUS BT Connected to %s", LogAddress(conn));
 }
 
 void NUSService::Disconnected(bt_conn *conn, uint8_t reason)
 {
-	LOG_INF("NUS BT Disconnected from %s (reason %u)", LogAddress(conn), reason);
+	LOG_DBG("NUS BT Disconnected from %s (reason %u)", LogAddress(conn), reason);
 	GetNUSService().mBTConnection = nullptr;
 }
 
