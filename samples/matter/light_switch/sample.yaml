@@ -12,6 +12,7 @@ tests:
     platform_allow: nrf52840dk_nrf52840 nrf5340dk_nrf5340_cpuapp nrf7002dk_nrf5340_cpuapp
   sample.matter.light_switch.debug:
     build_only: true
+    extra_args: CONFIG_CHIP_MEMORY_PROFILING=y
     integration_platforms:
       - nrf52840dk_nrf52840
       - nrf5340dk_nrf5340_cpuapp
@@ -20,7 +21,7 @@ tests:
   # Sample to execute load tests
   sample.matter.light_switch.persistent_subscriptions:
     build_only: true
-    extra_args: CONFIG_CHIP_PERSISTENT_SUBSCRIPTIONS=y
+    extra_args: CONFIG_CHIP_PERSISTENT_SUBSCRIPTIONS=y CONFIG_CHIP_MEMORY_PROFILING=y
     platform_allow: nrf52840dk_nrf52840 nrf5340dk_nrf5340_cpuapp nrf7002dk_nrf5340_cpuapp
     integration_platforms:
       - nrf52840dk_nrf52840
