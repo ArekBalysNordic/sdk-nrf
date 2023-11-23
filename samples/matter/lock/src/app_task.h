@@ -57,10 +57,6 @@ private:
 	static void UpdateLedStateEventHandler(const AppEvent &event);
 
 	static void ChipEventHandler(const chip::DeviceLayer::ChipDeviceEvent *event, intptr_t arg);
-	static void ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged);
-	static void LEDStateUpdateHandler(LEDWidget &ledWidget);
-	static void FunctionTimerTimeoutCallback(k_timer *timer);
-	static void UpdateStatusLED();
 
 	static void LockStateChanged(BoltLockManager::State state, BoltLockManager::OperationSource source);
 
