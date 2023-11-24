@@ -220,18 +220,18 @@ CHIP_ERROR AppTask::StartApp()
 
 void AppTask::IdentifyStartHandler(Identify *)
 {
-	// AppEvent event;
-	// event.Type = AppEventType::IdentifyStart;
-	// event.Handler = [](const AppEvent &) { sLockLED.Blink(LedConsts::kIdentifyBlinkRate_ms); };
-	// PostEvent(event);
+	AppEvent event;
+	event.Type = AppEventType::IdentifyStart;
+	event.Handler = [](const AppEvent &) { UserInterface::Instance().Identify(); };
+	PostEvent(event);
 }
 
 void AppTask::IdentifyStopHandler(Identify *)
 {
-	// AppEvent event;
-	// event.Type = AppEventType::IdentifyStop;
-	// event.Handler = [](const AppEvent &) { sLockLED.Set(BoltLockMgr().IsLocked()); };
-	// PostEvent(event);
+	AppEvent event;
+	event.Type = AppEventType::IdentifyStop;
+	event.Handler = [](const AppEvent &) { UserInterface::Instance().IdentifyStop(BoltLockMgr().IsLocked()); };
+	PostEvent(event);
 }
 
 void AppTask::LockActionEventHandler(const AppEvent &event)

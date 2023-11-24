@@ -9,8 +9,6 @@
 #include "led_util.h"
 #include "led_widget.h"
 
-#include <dk_buttons_and_leds.h>
-
 namespace FactoryResetConsts
 {
 constexpr uint32_t kFactoryResetTriggerTimeout = 3000;
@@ -45,6 +43,8 @@ namespace StatusLed
 } /* namespace LedConsts */
 
 class UserInterface {
+	using LedState = bool;
+
 public:
 	enum class DeviceState : uint8_t { kDeviceDisconnected, kDeviceConnectedBLE, kDeviceProvisioned };
 
@@ -55,7 +55,21 @@ public:
 	}
 
 	bool Init();
-	LEDWidget &FunctionalLed() { return mFunctionalLED; }
+
+	/* LEDS */
+	LEDWidget &ApplicationLed() { return mApplicationLED; }
+
+	void Identify()
+	{
+		mStateBeforeIdentify = mApplicationLED.GetState();
+		mApplicationLED.Blink(LedConsts::kIdentifyBlinkRate_ms);
+	}
+
+	void IdentifyStop(bool currentState = Instance().mStateBeforeIdentify)
+	{
+		mApplicationLED.Set(currentState);
+	}
+
 	void ChangeDeviceState(DeviceState newState)
 	{
 		mState = newState;
@@ -72,7 +86,8 @@ private:
 
 	/* Leds */
 	LEDWidget mStatusLED;
-	LEDWidget mFunctionalLED;
+	LEDWidget mApplicationLED;
+	LedState mStateBeforeIdentify;
 	k_timer mFunctionTimer;
 	DeviceState mState = DeviceState::kDeviceDisconnected;
 #if NUMBER_OF_LEDS == 4
