@@ -6,44 +6,42 @@
 
 #pragma once
 
-#include <cstdint>
+#include "event_manager.h"
 
-#include "event_types.h"
+enum class AppEventType : uint8_t { None = 0, NUSCommand, LockEvent, ThreadWiFiSwitch };
 
-class LEDWidget;
+struct AppEvent : public Event {
+	AppEvent()
+		: Event(EventSource::Application, static_cast<uint8_t>(AppEventType::None), nullptr, this,
+			sizeof(*this))
+	{
+	}
+	AppEvent(AppEventType type, EventHandler handler = nullptr)
+		: Event(EventSource::Application, static_cast<uint8_t>(type), handler, this, sizeof(*this))
+	{
+	}
 
-enum class AppEventType : uint8_t {
-	None = 0,
-	Button,
-	ButtonPushed,
-	ButtonReleased,
-	Timer,
-	UpdateLedState,
-	IdentifyStart,
-	IdentifyStop,
-	NUSCommand,
-};
+	/**
+	 * @brief Construct a new App Event object from context
+	 *
+	 * User must ensure that context exists, is defined and has the same size as the AppEvent class,
+	 * if the context does not exist The AppEvent will not be updated with any data.
+	 *
+	 * @param context serialized context of the AppEvent
+	 */
+	AppEvent(const void *context)
+	{
+		if (context) {
+			memcpy(this, context, sizeof(*this));
+		}
+	}
 
-enum class FunctionEvent : uint8_t { NoneSelected = 0, SoftwareUpdate = 0, FactoryReset, AdvertisingStart };
-
-struct AppEvent {
 	union {
 		struct {
-			uint8_t PinNo;
-			uint8_t Action;
-		} ButtonEvent;
-		struct {
 			void *Context;
-		} TimerEvent;
-		struct {
-			uint8_t Action;
-			int32_t Actor;
 		} LockEvent;
 		struct {
-			LEDWidget *LedWidget;
-		} UpdateLedStateEvent;
+			uint8_t ButtonAction;
+		} ThreadWiFiSwitchEvent;
 	};
-
-	AppEventType Type{ AppEventType::None };
-	EventHandler Handler;
 };
