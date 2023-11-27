@@ -7,4 +7,4 @@
 #pragma once
 
 struct AppEvent; /* needs to be implemented in the application code */
-using EventHandler = void (*)(const AppEvent &);
+

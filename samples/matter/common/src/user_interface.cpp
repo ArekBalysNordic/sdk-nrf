@@ -10,13 +10,15 @@
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
 
+UserInterface UserInterface::sInstance;
+
 bool UserInterface::Init()
 {
 	/* Initialize LEDs */
 	LEDWidget::InitGpio();
 	LEDWidget::SetStateUpdateCallback(LEDStateUpdateHandler);
-	Instance().mStatusLED.Init(DK_LED1);
-	Instance().mFunctionalLED.Init(DK_LED2);
+	Instance().mStatusLED.Init(SYSTEM_STATE_LED);
+	Instance().mApplicationLED.Init(APPLICATION_STATE_LED);
 
 	/* Initialize buttons */
 	int ret = dk_buttons_init(ButtonEventHandler);

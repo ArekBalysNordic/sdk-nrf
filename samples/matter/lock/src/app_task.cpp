@@ -130,7 +130,7 @@ CHIP_ERROR AppTask::Init()
 	return CHIP_ERROR_INTERNAL;
 #endif /* CONFIG_NET_L2_OPENTHREAD */
 
-	if (!UserInterface::Instance().Init()) {
+	if (!GetUserInterface().Init()) {
 		LOG_ERR("User interface initialization failed.");
 		return CHIP_ERROR_INCORRECT_STATE;
 	}
@@ -222,7 +222,7 @@ void AppTask::IdentifyStartHandler(Identify *)
 {
 	AppEvent event;
 	event.Type = AppEventType::IdentifyStart;
-	event.Handler = [](const AppEvent &) { UserInterface::Instance().Identify(); };
+	event.Handler = [](const AppEvent &) { GetUserInterface().Identify(); };
 	PostEvent(event);
 }
 
@@ -230,7 +230,7 @@ void AppTask::IdentifyStopHandler(Identify *)
 {
 	AppEvent event;
 	event.Type = AppEventType::IdentifyStop;
-	event.Handler = [](const AppEvent &) { UserInterface::Instance().IdentifyStop(BoltLockMgr().IsLocked()); };
+	event.Handler = [](const AppEvent &) { GetUserInterface().IdentifyStop(BoltLockMgr().IsLocked()); };
 	PostEvent(event);
 }
 
@@ -350,7 +350,7 @@ void AppTask::ChipEventHandler(const ChipDeviceEvent *event, intptr_t /* arg */)
 		}
 #endif
 		if (ConnectivityMgr().NumBLEConnections() != 0) {
-			UserInterface::Instance().ChangeDeviceState(UserInterface::DeviceState::kDeviceConnectedBLE);
+			GetUserInterface().ChangeDeviceState(UserInterface::DeviceState::kDeviceConnectedBLE);
 		}
 		break;
 #if defined(CONFIG_NET_L2_OPENTHREAD)
@@ -361,13 +361,13 @@ void AppTask::ChipEventHandler(const ChipDeviceEvent *event, intptr_t /* arg */)
 		break;
 	case DeviceEventType::kThreadStateChange:
 		if (ConnectivityMgr().IsThreadProvisioned() && ConnectivityMgr().IsThreadEnabled()) {
-			UserInterface::Instance().ChangeDeviceState(UserInterface::DeviceState::kDeviceProvisioned);
+			GetUserInterface().ChangeDeviceState(UserInterface::DeviceState::kDeviceProvisioned);
 		}
 #elif defined(CONFIG_CHIP_WIFI)
 	case DeviceEventType::kWiFiConnectivityChange:
 		if(ConnectivityMgr().IsWiFiStationProvisioned() && ConnectivityMgr().IsWiFiStationEnabled())
 		{
-			UserInterface::Instance().ChangeDeviceState(UserInterface::DeviceState::kDeviceProvisioned);
+			GetUserInterface().ChangeDeviceState(UserInterface::DeviceState::kDeviceProvisioned);
 		}
 #if CONFIG_CHIP_OTA_REQUESTOR
 		if (event->WiFiConnectivityChange.Result == kConnectivity_Established) {
@@ -398,21 +398,21 @@ void AppTask::LockStateChanged(BoltLockManager::State state, BoltLockManager::Op
 	switch (state) {
 	case BoltLockManager::State::kLockingInitiated:
 		LOG_INF("Lock action initiated");
-		UserInterface::Instance().FunctionalLed().Blink(50, 50);
+		GetUserInterface().GetApplicationLed().Blink(50, 50);
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("locking", sizeof("locking"));
 #endif
 		break;
 	case BoltLockManager::State::kLockingCompleted:
 		LOG_INF("Lock action completed");
-		UserInterface::Instance().FunctionalLed().Set(true);
+		GetUserInterface().GetApplicationLed().Set(true);
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("locked", sizeof("locked"));
 #endif
 		break;
 	case BoltLockManager::State::kUnlockingInitiated:
 		LOG_INF("Unlock action initiated");
-		UserInterface::Instance().FunctionalLed().Blink(50, 50);
+		GetUserInterface().GetApplicationLed().Blink(50, 50);
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("unlocking", sizeof("unlocking"));
 #endif
@@ -422,7 +422,7 @@ void AppTask::LockStateChanged(BoltLockManager::State state, BoltLockManager::Op
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("unlocked", sizeof("unlocked"));
 #endif
-		UserInterface::Instance().FunctionalLed().Set(false);
+		GetUserInterface().GetApplicationLed().Set(false);
 		break;
 	}
 
@@ -437,7 +437,7 @@ void AppTask::PostEvent(const AppEvent &event)
 	}
 }
 
-void AppTask::DispatchEvent(const AppEvent &event)
+void AppTask::DispatchEvent(const Event &event)
 {
 	if (event.Handler) {
 		event.Handler(event);

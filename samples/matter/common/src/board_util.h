@@ -18,28 +18,49 @@
 #define NUMBER_OF_LEDS (0 DT_FOREACH_CHILD(LEDS_NODE_ID, INCREMENT_BY_ONE))
 #define NUMBER_OF_BUTTONS (0 DT_FOREACH_CHILD(BUTTONS_NODE_ID, INCREMENT_BY_ONE))
 
+/* User configurable BUTTONS */
 #ifndef FUNCTION_BUTTON
 #define FUNCTION_BUTTON DK_BTN1
 #endif
-#ifndef FUNCTION_BUTTON_MASK
-#define FUNCTION_BUTTON_MASK DK_BTN1_MSK
-#endif
-
-#if NUMBER_OF_BUTTONS == 2
-#define BLE_ADVERTISEMENT_START_AND_APPLICATION_BUTTON DK_BTN2
-#define BLE_ADVERTISEMENT_START_AND_APPLICATION_BUTTON_MASK DK_BTN2_MSK
-#else
+#ifndef APPLICATION_BUTTON
 #define APPLICATION_BUTTON DK_BTN2
-#define APPLICATION_BUTTON_MASK DK_BTN2_MSK
+#endif
+/* User buttons 1 & 2 are available only on DKs that have 4 buttons located on the board */
+#if NUMBER_OF_BUTTONS == 4
+#ifndef USER_BUTTON_1
 #define USER_BUTTON_1 DK_BTN3
-#define USER_BUTTON_1_MASK DK_BTN3_MSK
+#endif
+#ifndef USER_BUTTON_2
 #define USER_BUTTON_2 DK_BTN4
-#define USER_BUTTON_2_MASK DK_BTN4_MSK
+#endif
 #endif
 
+/* User configurable LEDS */
+#ifndef SYSTEM_STATE_LED
 #define SYSTEM_STATE_LED DK_LED1
+#endif
+#ifndef APPLICATION_STATE_LED
 #define APPLICATION_STATE_LED DK_LED2
+#endif 
+/* User leds 1 & 2 are available only on DKs that have 4 buttons located on the board */
 #if NUMBER_OF_LEDS == 4
+#ifndef USER_LED_1
 #define USER_LED_1 DK_LED3
+#endif
+#ifdef USER_LED_2
 #define USER_LED_2 DK_LED4
 #endif
+#endif
+
+/* Non-configurable Buttons */
+#if NUMBER_OF_BUTTONS == 4
+#define BLUETOOTH_ADV_BUTTON USER_BUTTON_2
+#define BLUETOOTH_ADV_BUTTON_MASK USER_BUTTON_2_MASK
+#else
+#ifndef BLUETOOTH_ADV_BUTTON APPLICATION_BUTTON
+#define BLUETOOTH_ADV_BUTTON_MASK APPLICATION_BUTTON_MASK
+#endif
+#endif
+
+
+

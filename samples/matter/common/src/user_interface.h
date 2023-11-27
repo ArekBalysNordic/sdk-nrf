@@ -5,7 +5,7 @@
  */
 
 #pragma once
-#include "board_util.h"
+#include "app_config.h"
 #include "led_util.h"
 #include "led_widget.h"
 
@@ -48,16 +48,10 @@ class UserInterface {
 public:
 	enum class DeviceState : uint8_t { kDeviceDisconnected, kDeviceConnectedBLE, kDeviceProvisioned };
 
-	static UserInterface &Instance()
-	{
-		static UserInterface userInterface;
-		return userInterface;
-	}
-
 	bool Init();
 
 	/* LEDS */
-	LEDWidget &ApplicationLed() { return mApplicationLED; }
+	LEDWidget &GetApplicationLed() { return mApplicationLED; }
 
 	void Identify()
 	{
@@ -65,10 +59,7 @@ public:
 		mApplicationLED.Blink(LedConsts::kIdentifyBlinkRate_ms);
 	}
 
-	void IdentifyStop(bool currentState = Instance().mStateBeforeIdentify)
-	{
-		mApplicationLED.Set(currentState);
-	}
+	void IdentifyStop(bool currentState = Instance().mStateBeforeIdentify) { mApplicationLED.Set(currentState); }
 
 	void ChangeDeviceState(DeviceState newState)
 	{
@@ -78,10 +69,8 @@ public:
 
 private:
 	UserInterface() {}
+	friend UserInterface &GetUserInterface();
 
-	static void FunctionTimerTimeoutCallback(k_timer *timer);
-	static void ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged);
-	static void LEDStateUpdateHandler(LEDWidget &ledWidget);
 	void UpdateStatusLED();
 
 	/* Leds */
@@ -93,4 +82,11 @@ private:
 #if NUMBER_OF_LEDS == 4
 	FactoryResetLEDsWrapper<2> mFactoryResetLEDs{ { DK_LED3, DK_LED4 } };
 #endif
+
+	UserInterface sInstance;
 };
+
+inline UserInterface &GetUserInterface()
+{
+	return UserInterface::sInstance;
+}
