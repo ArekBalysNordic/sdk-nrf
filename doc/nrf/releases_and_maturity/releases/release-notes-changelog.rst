@@ -93,6 +93,8 @@ Matter
 ------
 
 * Updated the page about :ref:`ug_matter_device_low_power_configuration` with the information about Intermittently Connected Devices (ICD) configuration.
+* Added experimental support for PSA Crypto API for devices that use Matter over Thread.
+  It can be enabled by setting the :kconfig:option:`CONFIG_CHIP_CRYPTO_PSA` Kconfig option to ``y``.
 
 Matter fork
 +++++++++++
