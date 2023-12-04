@@ -19,12 +19,13 @@ constexpr size_t kEventQueueSize = 10;
 
 K_MSGQ_DEFINE(sEventQueue, sizeof(Event), kEventQueueSize, alignof(Event));
 
-void EventManager::PostEvent(Event &event)
+CHIP_ERROR EventManager::PostEvent(Event &event)
 {
 	/* Allocate context on the Heap */
 	void* context = chip::DeviceLayer::Malloc::Malloc(event.mContextSize);
 	if(!context){
-		LOG_INF("Failed to store context in Heap");
+		LOG_ERR("Failed to store context in Heap");
+		return CHIP_ERROR_NO_MEMORY;
 	}
 	memcpy(context, event.mContext, event.mContextSize);
 
@@ -32,8 +33,11 @@ void EventManager::PostEvent(Event &event)
 	event.mContext = context;
 	
 	if (k_msgq_put(&sEventQueue, &event, K_NO_WAIT) != 0) {
-		LOG_INF("Failed to post event to app task event queue");
+		LOG_ERR("Failed to post event to app task event queue");
+		return CHIP_ERROR_NO_MEMORY;
 	}
+
+	return CHIP_NO_ERROR;
 }
 
 void EventManager::DispatchEvent()

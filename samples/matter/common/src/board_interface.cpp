@@ -186,7 +186,7 @@ void BoardInterface::FunctionTimerEventHandler(const void *context)
 
 	/* If we reached here, the button was held past kFactoryResetTriggerTimeout, initiate factory reset */
 	if (sInstance.mFunction == SystemEventType::SoftwareUpdate) {
-		LOG_INF("Factory Reset Triggered. Release button within %ums to cancel.",
+		LOG_INF("Factory reset has been triggered. Release button within %ums to cancel.",
 			FactoryResetConsts::kFactoryResetTriggerTimeout);
 
 		/* Start timer for kFactoryResetCancelWindowTimeout to allow user to cancel, if required. */
@@ -220,7 +220,7 @@ void BoardInterface::FunctionTimerEventHandler(const void *context)
 void BoardInterface::ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged)
 {
 	SystemEvent buttonEvent;
-	bool iSAppButtonEvent = false;
+	bool isAppButtonEvent = false;
 	ButtonActions action;
 	DeviceButtons source;
 
@@ -249,24 +249,24 @@ void BoardInterface::ButtonEventHandler(uint32_t buttonState, uint32_t hasChange
 		source = DeviceButtons::kAppButton;
 		action = (APPLICATION_BUTTON_MASK & buttonState) ? ButtonActions::kButtonPressed :
 								   ButtonActions::kButtonReleased;
-		iSAppButtonEvent = true;
+		isAppButtonEvent = true;
 	}
 
 	if (USER_BUTTON_1_MASK & hasChanged) {
 		source = DeviceButtons::kUserButton1;
 		action = (USER_BUTTON_1_MASK & buttonState) ? ButtonActions::kButtonPressed :
 							      ButtonActions::kButtonReleased;
-		iSAppButtonEvent = true;
+		isAppButtonEvent = true;
 	}
 	if (USER_BUTTON_2_MASK & hasChanged) {
 		source = DeviceButtons::kUserButton2;
 		action = (USER_BUTTON_2_MASK & buttonState) ? ButtonActions::kButtonPressed :
 							      ButtonActions::kButtonReleased;
-		iSAppButtonEvent = true;
+		isAppButtonEvent = true;
 	}
 #endif
 
-	if (iSAppButtonEvent && sInstance.mButtonCallback) {
+	if (isAppButtonEvent && sInstance.mButtonCallback) {
 		sInstance.mButtonCallback(source, action);
 	}
 }
@@ -279,8 +279,9 @@ void BoardInterface::FunctionHandler(const void *context)
 
 	SystemEvent event(context);
 
-	if (event.ButtonEvent.PinNo != FUNCTION_BUTTON)
+	if (event.ButtonEvent.PinNo != FUNCTION_BUTTON) {
 		return;
+	}
 
 	if (event.ButtonEvent.Action == static_cast<uint8_t>(SystemEventType::ButtonPushed)) {
 		if (!sInstance.mFunctionTimerActive && sInstance.mFunction == SystemEventType::None) {
@@ -303,7 +304,7 @@ void BoardInterface::FunctionHandler(const void *context)
 			sInstance.CancelTimer();
 			sInstance.UpdateStatusLED();
 			sInstance.mFunction = SystemEventType::None;
-			LOG_INF("Factory Reset has been Canceled");
+			LOG_INF("Factory reset has been canceled");
 		}
 	}
 }

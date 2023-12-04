@@ -10,6 +10,8 @@
 #include <cstdlib>
 #include <cstring>
 
+#include <lib/core/CHIPError.h>
+
 enum class EventSource : uint8_t { Undefined, Application, System };
 
 struct Event {
@@ -41,7 +43,7 @@ class EventManager {
 public:
 
 	/**
-	 * @brief Dispatch en event from the event queue and call associated handler.
+	 * @brief Dispatch an event from the event queue and call associated handler.
 	 * 
 	 * This method should be run in the while loop within the application thread.
 	 * 
@@ -55,6 +57,8 @@ public:
 	 * It should be called from the Zephyr's thread.
 	 * 
 	 * @param event event to be posted.
+	 * @return CHIP_ERROR_NO_MEMORY if there is no memory to post new Event
+	 * @return CHIP_NO_ERROR if the Event has been posted
 	 */
-	static void PostEvent(Event &event);
+	static CHIP_ERROR PostEvent(Event &event);
 };
