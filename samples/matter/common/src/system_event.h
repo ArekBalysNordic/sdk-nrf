@@ -18,8 +18,6 @@ enum class SystemEventType : uint8_t {
 	ButtonReleased,
 	Timer,
 	UpdateLedState,
-	IdentifyStart,
-	IdentifyStop,
 	SoftwareUpdate,
 	FactoryReset,
 	AdvertisingStart

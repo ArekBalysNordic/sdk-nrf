@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "board_interface.h"
+#include "board.h"
 #include "event_manager.h"
 
 #ifdef CONFIG_MCUMGR_TRANSPORT_BT
@@ -18,12 +18,9 @@
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
 
-BoardInterface BoardInterface::sInstance;
+Board Board::sInstance;
 
-Identify sIdentify = { IDENTIFY_ENDPOINT, BoardInterface::IdentifyStartHandler, BoardInterface::IdentifyStopHandler,
-		       chip::app::Clusters::Identify::IdentifyTypeEnum::kVisibleIndicator };
-
-bool BoardInterface::Init(ButtonHandler buttonCallback)
+bool Board::Init(ButtonHandler buttonCallback)
 {
 	mButtonCallback = buttonCallback;
 
@@ -53,13 +50,13 @@ bool BoardInterface::Init(ButtonHandler buttonCallback)
 	return true;
 }
 
-void BoardInterface::UpdateDeviceState(DeviceState state)
+void Board::UpdateDeviceState(DeviceState state)
 {
 	mState = state;
 	UpdateStatusLED();
 }
 
-void BoardInterface::ResetAllLeds()
+void Board::ResetAllLeds()
 {
 	sInstance.mStatusLED.Set(false);
 	sInstance.mApplicationLED.Set(false);
@@ -69,7 +66,7 @@ void BoardInterface::ResetAllLeds()
 #endif
 }
 
-void BoardInterface::LEDStateUpdateHandler(LEDWidget &ledWidget)
+void Board::LEDStateUpdateHandler(LEDWidget &ledWidget)
 {
 	CHIP_ERROR err = chip::DeviceLayer::PlatformMgr().ScheduleWork(
 		[](intptr_t context) {
@@ -82,7 +79,7 @@ void BoardInterface::LEDStateUpdateHandler(LEDWidget &ledWidget)
 		reinterpret_cast<intptr_t>(&ledWidget));
 }
 
-void BoardInterface::UpdateLedStateEventHandler(const void *context)
+void Board::UpdateLedStateEventHandler(const void *context)
 {
 	if (!context) {
 		return;
@@ -94,7 +91,7 @@ void BoardInterface::UpdateLedStateEventHandler(const void *context)
 	}
 }
 
-void BoardInterface::UpdateStatusLED()
+void Board::UpdateStatusLED()
 {
 	/* Update the status LED.
 	 *
@@ -120,7 +117,7 @@ void BoardInterface::UpdateStatusLED()
 	}
 }
 
-LEDWidget &BoardInterface::GetLED(DeviceLeds led)
+LEDWidget &Board::GetLED(DeviceLeds led)
 {
 	switch (led) {
 #if NUMBER_OF_LEDS == 4
@@ -135,33 +132,19 @@ LEDWidget &BoardInterface::GetLED(DeviceLeds led)
 	}
 }
 
-void BoardInterface::IdentifyStartHandler(Identify *)
-{
-	SystemEvent event(SystemEventType::IdentifyStart,
-			  [](const void *) { sInstance.mStatusLED.Blink(LedConsts::kIdentifyBlinkRate_ms); });
-	EventManager::PostEvent(event);
-}
-
-void BoardInterface::IdentifyStopHandler(Identify *)
-{
-	SystemEvent event(SystemEventType::IdentifyStop,
-			  [](const void *) { sInstance.mStatusLED.Set(sInstance.mStateBeforeIdentify); });
-	EventManager::PostEvent(event);
-}
-
-void BoardInterface::CancelTimer()
+void Board::CancelTimer()
 {
 	k_timer_stop(&mFunctionTimer);
 	mFunctionTimerActive = false;
 }
 
-void BoardInterface::StartTimer(uint32_t timeoutInMs)
+void Board::StartTimer(uint32_t timeoutInMs)
 {
 	k_timer_start(&mFunctionTimer, K_MSEC(timeoutInMs), K_NO_WAIT);
 	mFunctionTimerActive = true;
 }
 
-void BoardInterface::FunctionTimerTimeoutCallback(k_timer *timer)
+void Board::FunctionTimerTimeoutCallback(k_timer *timer)
 {
 	if (!timer) {
 		return;
@@ -177,7 +160,7 @@ void BoardInterface::FunctionTimerTimeoutCallback(k_timer *timer)
 		reinterpret_cast<intptr_t>(timer));
 }
 
-void BoardInterface::FunctionTimerEventHandler(const void *context)
+void Board::FunctionTimerEventHandler(const void *context)
 {
 	if (!context) {
 		return;
@@ -217,7 +200,7 @@ void BoardInterface::FunctionTimerEventHandler(const void *context)
 	}
 }
 
-void BoardInterface::ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged)
+void Board::ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged)
 {
 	SystemEvent buttonEvent;
 	bool isAppButtonEvent = false;
@@ -271,7 +254,7 @@ void BoardInterface::ButtonEventHandler(uint32_t buttonState, uint32_t hasChange
 	}
 }
 
-void BoardInterface::FunctionHandler(const void *context)
+void Board::FunctionHandler(const void *context)
 {
 	if (!context) {
 		return;
@@ -309,7 +292,7 @@ void BoardInterface::FunctionHandler(const void *context)
 	}
 }
 
-void BoardInterface::StartBLEAdvertisementHandler(const void *context)
+void Board::StartBLEAdvertisementHandler(const void *context)
 {
 	if (!context) {
 		return;
@@ -339,7 +322,7 @@ void BoardInterface::StartBLEAdvertisementHandler(const void *context)
 #endif
 }
 
-void BoardInterface::StartBLEAdvertisement()
+void Board::StartBLEAdvertisement()
 {
 	if (chip::Server::GetInstance().GetFabricTable().FabricCount() != 0) {
 		LOG_INF("Matter service BLE advertising not started - device is already commissioned");

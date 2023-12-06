@@ -48,7 +48,7 @@ target_sources(app PRIVATE
     src/zap-generated/IMClusterCommandHandler.cpp
     ${COMMON_ROOT}/src/led_widget.cpp
     ${COMMON_ROOT}/src/event_manager.cpp
-    ${COMMON_ROOT}/src/board_interface.cpp
+    ${COMMON_ROOT}/src/board.cpp
 )
 
 if(CONFIG_CHIP_OTA_REQUESTOR OR CONFIG_MCUMGR_TRANSPORT_BT)

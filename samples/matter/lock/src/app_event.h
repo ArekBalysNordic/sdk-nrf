@@ -8,7 +8,7 @@
 
 #include "event_manager.h"
 
-enum class AppEventType : uint8_t { None = 0, NUSCommand, LockEvent, ThreadWiFiSwitch };
+enum class AppEventType : uint8_t { None = 0, NUSCommand, LockEvent, ThreadWiFiSwitch,	IdentifyStart, IdentifyStop };
 
 struct AppEvent : public Event {
 	AppEvent()

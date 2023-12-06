@@ -7,7 +7,6 @@
 #include "app_task.h"
 #include "app_event.h"
 
-#include "board_interface.h"
 #include "bolt_lock_manager.h"
 #include "fabric_table_delegate.h"
 
@@ -83,6 +82,9 @@ bool sIsNetworkEnabled = false;
 bool sHaveBLEConnections = false;
 } /* namespace */
 
+Identify sIdentify = { kLockEndpointId, AppTask::IdentifyStartHandler, AppTask::IdentifyStopHandler,
+		       Clusters::Identify::IdentifyTypeEnum::kVisibleIndicator };
+
 #ifdef CONFIG_CHIP_WIFI
 app::Clusters::NetworkCommissioning::Instance
 	sWiFiCommissioningInstance(0, &(NetworkCommissioning::NrfWiFiDriver::Instance()));
@@ -128,7 +130,7 @@ CHIP_ERROR AppTask::Init()
 	return CHIP_ERROR_INTERNAL;
 #endif /* CONFIG_NET_L2_OPENTHREAD */
 
-	if (!GetBoardInterface().Init(ButtonEventHandler)) {
+	if (!GetBoard().Init(ButtonEventHandler)) {
 		LOG_ERR("User interface initialization failed.");
 		return CHIP_ERROR_INCORRECT_STATE;
 	}
@@ -211,6 +213,22 @@ CHIP_ERROR AppTask::StartApp()
 	}
 
 	return CHIP_NO_ERROR;
+}
+
+void AppTask::IdentifyStartHandler(Identify *)
+{
+	AppEvent event;
+	event.mType = static_cast<uint8_t>(AppEventType::IdentifyStart);
+	event.mHandler = [](const void*) { GetBoard().GetLED(DeviceLeds::kAppLED).Blink(LedConsts::kIdentifyBlinkRate_ms); };
+	EventManager::PostEvent(event);
+}
+
+void AppTask::IdentifyStopHandler(Identify *)
+{
+	AppEvent event;
+	event.mType = static_cast<uint8_t>(AppEventType::IdentifyStop);
+	event.mHandler = [](const void*) { GetBoard().GetLED(DeviceLeds::kAppLED).Set(BoltLockMgr().IsLocked()); };
+	EventManager::PostEvent(event);
 }
 
 void AppTask::ButtonEventHandler(DeviceButtons source, ButtonActions action)
@@ -315,7 +333,7 @@ void AppTask::ChipEventHandler(const ChipDeviceEvent *event, intptr_t /* arg */)
 #endif
 		sHaveBLEConnections = ConnectivityMgr().NumBLEConnections() != 0;
 		if (sHaveBLEConnections) {
-			GetBoardInterface().UpdateDeviceState(DeviceState::kDeviceConnectedBLE);
+			GetBoard().UpdateDeviceState(DeviceState::kDeviceConnectedBLE);
 		}
 		break;
 #if defined(CONFIG_NET_L2_OPENTHREAD)
@@ -338,9 +356,9 @@ void AppTask::ChipEventHandler(const ChipDeviceEvent *event, intptr_t /* arg */)
 #endif /* CONFIG_CHIP_OTA_REQUESTOR */
 #endif
 		if (sIsNetworkEnabled && sIsNetworkProvisioned) {
-			GetBoardInterface().UpdateDeviceState(DeviceState::kDeviceProvisioned);
+			GetBoard().UpdateDeviceState(DeviceState::kDeviceProvisioned);
 		} else {
-			GetBoardInterface().UpdateDeviceState(DeviceState::kDeviceDisconnected);
+			GetBoard().UpdateDeviceState(DeviceState::kDeviceDisconnected);
 		}
 		break;
 	default:
@@ -353,21 +371,21 @@ void AppTask::LockStateChanged(BoltLockManager::State state, BoltLockManager::Op
 	switch (state) {
 	case BoltLockManager::State::kLockingInitiated:
 		LOG_INF("Lock action initiated");
-		GetBoardInterface().GetLED(DeviceLeds::kAppLED).Blink(50, 50);
+		GetBoard().GetLED(DeviceLeds::kAppLED).Blink(50, 50);
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("locking", sizeof("locking"));
 #endif
 		break;
 	case BoltLockManager::State::kLockingCompleted:
 		LOG_INF("Lock action completed");
-		GetBoardInterface().GetLED(DeviceLeds::kAppLED).Set(true);
+		GetBoard().GetLED(DeviceLeds::kAppLED).Set(true);
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("locked", sizeof("locked"));
 #endif
 		break;
 	case BoltLockManager::State::kUnlockingInitiated:
 		LOG_INF("Unlock action initiated");
-		GetBoardInterface().GetLED(DeviceLeds::kAppLED).Blink(50, 50);
+		GetBoard().GetLED(DeviceLeds::kAppLED).Blink(50, 50);
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("unlocking", sizeof("unlocking"));
 #endif
@@ -377,7 +395,7 @@ void AppTask::LockStateChanged(BoltLockManager::State state, BoltLockManager::Op
 #ifdef CONFIG_CHIP_NUS
 		GetNUSService().SendData("unlocked", sizeof("unlocked"));
 #endif
-		GetBoardInterface().GetLED(DeviceLeds::kAppLED).Set(false);
+		GetBoard().GetLED(DeviceLeds::kAppLED).Set(false);
 		break;
 	}
 

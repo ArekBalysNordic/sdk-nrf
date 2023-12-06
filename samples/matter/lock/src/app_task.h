@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "board_interface.h"
+#include "board.h"
 #include "bolt_lock_manager.h"
 #include "led_widget.h"
 
@@ -27,7 +27,6 @@ struct Identify;
 
 class AppTask {
 public:
-
 	static AppTask &Instance()
 	{
 		static AppTask sAppTask;
@@ -37,6 +36,8 @@ public:
 	CHIP_ERROR StartApp();
 
 	void UpdateClusterState(BoltLockManager::State state, BoltLockManager::OperationSource source);
+	static void IdentifyStartHandler(Identify *);
+	static void IdentifyStopHandler(Identify *);
 
 private:
 	CHIP_ERROR Init();

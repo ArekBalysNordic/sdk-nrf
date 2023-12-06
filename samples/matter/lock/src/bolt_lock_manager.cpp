@@ -20,7 +20,7 @@ void BoltLockManager::Init(StateChangeCallback callback)
 	k_timer_user_data_set(&mActuatorTimer, this);
 
 	/* Set the default state */
-	GetBoardInterface().GetLED(DeviceLeds::kAppLED).Set(IsLocked());
+	GetBoard().GetLED(DeviceLeds::kAppLED).Set(IsLocked());
 }
 
 bool BoltLockManager::GetUser(uint16_t userIndex, EmberAfPluginDoorLockUserInfo &user) const
