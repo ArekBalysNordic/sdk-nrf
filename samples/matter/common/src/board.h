@@ -37,7 +37,7 @@ private:
 	/* LEDs */
 	void UpdateStatusLED();
 	static void LEDStateUpdateHandler(LEDWidget &ledWidget);
-	static void UpdateLedStateEventHandler(const void *ctx);
+	static void UpdateLedStateEventHandler(const SystemEvent& event);
 	void ResetAllLeds();
 
 	LEDWidget mStatusLED;
@@ -53,15 +53,15 @@ private:
 	void CancelTimer();
 	void StartTimer(uint32_t timeoutInMs);
 	static void FunctionTimerTimeoutCallback(k_timer *timer);
-	static void FunctionTimerEventHandler(const void *ctx);
+	static void FunctionTimerEventHandler(const SystemEvent& event);
 
 	bool mFunctionTimerActive = false;
 	SystemEventType mFunction;
 
 	/* Buttons */
 	static void ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged);
-	static void FunctionHandler(const void *ctx);
-	static void StartBLEAdvertisementHandler(const void *ctx);
+	static void FunctionHandler(const SystemEvent& event);
+	static void StartBLEAdvertisementHandler(const SystemEvent& event);
 	static void StartBLEAdvertisement();
 
 	ButtonHandler mButtonCallback = nullptr;

@@ -5,6 +5,7 @@
  */
 
 #include "bolt_lock_manager.h"
+#include "task_executor.h"
 
 #include "app_task.h"
 
@@ -159,23 +160,13 @@ void BoltLockManager::ActuatorTimerEventHandler(k_timer *timer)
 	 * context of the application thread.
 	 */
 
-	chip::DeviceLayer::PlatformMgr().ScheduleWork(
-		[](intptr_t context) {
-			auto ctx = k_timer_user_data_get(reinterpret_cast<k_timer *>(context));
-			AppEvent event(AppEventType::LockEvent, BoltLockManager::ActuatorAppEventHandler);
-			event.LockEvent.Context = ctx;
-			EventManager::PostEvent(event);
-		},
-		reinterpret_cast<intptr_t>(timer));
+	AppEvent event(AppEventType::LockEvent);
+	event.LockEvent.Context = static_cast<BoltLockManager *>(k_timer_user_data_get(timer));
+	TaskExecutor::PostTask([event] { ActuatorAppEventHandler(event); });
 }
 
-void BoltLockManager::ActuatorAppEventHandler(const void *context)
+void BoltLockManager::ActuatorAppEventHandler(const AppEvent &event)
 {
-	if (!context) {
-		return;
-	}
-
-	AppEvent event(context);
 	BoltLockManager *lock = reinterpret_cast<BoltLockManager *>(event.LockEvent.Context);
 
 	switch (lock->mState) {

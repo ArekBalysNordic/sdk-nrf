@@ -42,16 +42,16 @@ public:
 private:
 	CHIP_ERROR Init();
 
-	static void LockActionEventHandler(const void *context);
+	static void LockActionEventHandler();
 	static void ButtonEventHandler(DeviceButtons source, ButtonActions action);
 	static void ChipEventHandler(const chip::DeviceLayer::ChipDeviceEvent *event, intptr_t arg);
 	static void LockStateChanged(BoltLockManager::State state, BoltLockManager::OperationSource source);
 
 #ifdef CONFIG_THREAD_WIFI_SWITCHING
 	static void SwitchImagesDone();
-	static void SwitchImagesTriggerHandler(const void *context);
+	static void SwitchImagesTriggerHandler(const AppEvent &event);
 	static void SwitchImagesTimerTimeoutCallback(k_timer *timer);
-	static void SwitchImagesEventHandler(const void *context);
+	static void SwitchImagesEventHandler();
 
 	bool mSwitchImagesTimerActive = false;
 #endif

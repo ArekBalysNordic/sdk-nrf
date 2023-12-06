@@ -6,6 +6,7 @@
 
 #include "app_task.h"
 #include "app_event.h"
+#include "task_executor.h"
 
 #include "bolt_lock_manager.h"
 #include "fabric_table_delegate.h"
@@ -209,7 +210,7 @@ CHIP_ERROR AppTask::StartApp()
 	ReturnErrorOnFailure(Init());
 
 	while (true) {
-		EventManager::DispatchEvent();
+		TaskExecutor::DispatchNextTask();
 	}
 
 	return CHIP_NO_ERROR;
@@ -217,38 +218,30 @@ CHIP_ERROR AppTask::StartApp()
 
 void AppTask::IdentifyStartHandler(Identify *)
 {
-	AppEvent event;
-	event.mType = static_cast<uint8_t>(AppEventType::IdentifyStart);
-	event.mHandler = [](const void*) { GetBoard().GetLED(DeviceLeds::kAppLED).Blink(LedConsts::kIdentifyBlinkRate_ms); };
-	EventManager::PostEvent(event);
+	TaskExecutor::PostTask([] { GetBoard().GetLED(DeviceLeds::kAppLED).Blink(LedConsts::kIdentifyBlinkRate_ms); });
 }
 
 void AppTask::IdentifyStopHandler(Identify *)
 {
-	AppEvent event;
-	event.mType = static_cast<uint8_t>(AppEventType::IdentifyStop);
-	event.mHandler = [](const void*) { GetBoard().GetLED(DeviceLeds::kAppLED).Set(BoltLockMgr().IsLocked()); };
-	EventManager::PostEvent(event);
+	TaskExecutor::PostTask([] { GetBoard().GetLED(DeviceLeds::kAppLED).Set(BoltLockMgr().IsLocked()); });
 }
 
 void AppTask::ButtonEventHandler(DeviceButtons source, ButtonActions action)
 {
 	if (DeviceButtons::kAppButton == source && ButtonActions::kButtonPressed == action) {
-		AppEvent event(AppEventType::LockEvent, LockActionEventHandler);
-		EventManager::PostEvent(event);
+		TaskExecutor::PostTask([] { LockActionEventHandler(); });
 	}
 
 #ifdef CONFIG_THREAD_WIFI_SWITCHING
 	if (DeviceButtons::kUserButton1 == source) {
-		AppEvent event(AppEventType::ThreadWiFiSwitch, SwitchImagesTriggerHandler);
-		LOG_INF("Action %d", static_cast<uint8_t>(action));
+		AppEvent event(AppEventType::ThreadWiFiSwitch);
 		event.ThreadWiFiSwitchEvent.ButtonAction = static_cast<uint8_t>(action);
-		EventManager::PostEvent(event);
+		TaskExecutor::PostTask([event] { SwitchImagesTriggerHandler(event); });
 	}
 #endif
 }
 
-void AppTask::LockActionEventHandler(const void *context)
+void AppTask::LockActionEventHandler()
 {
 	if (BoltLockMgr().IsLocked()) {
 		BoltLockMgr().Unlock(BoltLockManager::OperationSource::kButton);
@@ -264,7 +257,7 @@ void AppTask::SwitchImagesDone()
 	chip::Server::GetInstance().ScheduleFactoryReset();
 }
 
-void AppTask::SwitchImagesEventHandler(const void *context)
+void AppTask::SwitchImagesEventHandler()
 {
 	LOG_INF("Switching application from " CONFIG_APPLICATION_LABEL " to " CONFIG_APPLICATION_OTHER_LABEL);
 
@@ -282,23 +275,12 @@ void AppTask::SwitchImagesEventHandler(const void *context)
 
 void AppTask::SwitchImagesTimerTimeoutCallback(k_timer *timer)
 {
-	chip::DeviceLayer::PlatformMgr().ScheduleWork(
-		[](intptr_t context) {
-			Instance().mSwitchImagesTimerActive = false;
-			AppEvent event(AppEventType::ThreadWiFiSwitch, SwitchImagesEventHandler);
-			EventManager::PostEvent(event);
-		},
-		0);
+	Instance().mSwitchImagesTimerActive = false;
+	TaskExecutor::PostTask([] { SwitchImagesEventHandler() };);
 }
 
-void AppTask::SwitchImagesTriggerHandler(const void *context)
+void AppTask::SwitchImagesTriggerHandler(const AppEvent &event)
 {
-	if (!context) {
-		return;
-	}
-
-	AppEvent event(context);
-
 	if (event.ThreadWiFiSwitchEvent.ButtonAction == static_cast<uint8_t>(ButtonActions::kButtonPressed) &&
 	    !Instance().mSwitchImagesTimerActive) {
 		k_timer_start(&sSwitchImagesTimer, K_MSEC(kSwitchImagesTimeout), K_NO_WAIT);
@@ -440,7 +422,7 @@ void AppTask::UpdateClusterState(BoltLockManager::State state, BoltLockManager::
 void AppTask::RegisterSwitchCliCommand()
 {
 	static const shell_command_t sSwitchCommand = { [](int, char **) {
-							       AppTask::Instance().SwitchImagesEventHandler(AppEvent{});
+							       AppTask::Instance().SwitchImagesEventHandler();
 							       return CHIP_NO_ERROR;
 						       },
 							"switch_images",
@@ -457,10 +439,8 @@ void AppTask::NUSLockCallback(void *context)
 	    BoltLockMgr().mState == BoltLockManager::State::kLockingInitiated) {
 		LOG_INF("Device is already locked");
 	} else {
-		AppEvent nusEvent;
-		nus_event.Type = AppEventType::NUSCommand;
-		nus_event.Handler = LockActionEventHandler;
-		EventManager::PostEvent(nusEvent);
+		AppEvent nusEvent(AppEventType::NUSCommand);
+		TaskExecutor::PostTask([nusEvent] { LockActionEventHandler(nusEvent) };);
 	}
 }
 
@@ -471,10 +451,8 @@ void AppTask::NUSUnlockCallback(void *context)
 	    BoltLockMgr().mState == BoltLockManager::State::kUnlockingInitiated) {
 		LOG_INF("Device is already unlocked");
 	} else {
-		AppEvent nus_event;
-		nus_event.Type = AppEventType::NUSCommand;
-		nus_event.Handler = LockActionEventHandler;
-		EventManager::PostEvent(nus_event);
+		AppEvent nusEvent(AppEventType::NUSCommand);
+		TaskExecutor::PostTask([nusEvent] { LockActionEventHandler(nusEvent) };);
 	}
 }
 #endif

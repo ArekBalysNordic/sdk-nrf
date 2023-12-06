@@ -6,35 +6,11 @@
 
 #pragma once
 
-#include "event_manager.h"
+enum class AppEventType : uint8_t { None = 0, NUSCommand, LockEvent, ThreadWiFiSwitch };
 
-enum class AppEventType : uint8_t { None = 0, NUSCommand, LockEvent, ThreadWiFiSwitch,	IdentifyStart, IdentifyStop };
-
-struct AppEvent : public Event {
-	AppEvent()
-		: Event(EventSource::Application, static_cast<uint8_t>(AppEventType::None), nullptr, this,
-			sizeof(*this))
-	{
-	}
-	AppEvent(AppEventType type, EventHandler handler = nullptr)
-		: Event(EventSource::Application, static_cast<uint8_t>(type), handler, this, sizeof(*this))
-	{
-	}
-
-	/**
-	 * @brief Construct a new App Event object from context
-	 *
-	 * User must ensure that context exists, is defined and has the same size as the AppEvent class,
-	 * if the context does not exist The AppEvent will not be updated with any data.
-	 *
-	 * @param context serialized context of the AppEvent
-	 */
-	AppEvent(const void *context)
-	{
-		if (context) {
-			memcpy(this, context, sizeof(*this));
-		}
-	}
+struct AppEvent {
+	AppEvent(AppEventType type) { mType = type; }
+	AppEvent() = default;
 
 	union {
 		struct {
@@ -44,4 +20,6 @@ struct AppEvent : public Event {
 			uint8_t ButtonAction;
 		} ThreadWiFiSwitchEvent;
 	};
+
+	AppEventType mType;
 };

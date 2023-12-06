@@ -8,7 +8,6 @@
 
 #include <cstdint>
 
-#include "event_manager.h"
 #include "led_widget.h"
 
 enum class SystemEventType : uint8_t {
@@ -23,29 +22,9 @@ enum class SystemEventType : uint8_t {
 	AdvertisingStart
 };
 
-struct SystemEvent : public Event {
-	SystemEvent()
-		: Event(EventSource::System, static_cast<uint8_t>(SystemEventType::None), nullptr, this, sizeof(*this))
-	{
-	}
-	SystemEvent(SystemEventType type, EventHandler handler = nullptr)
-		: Event(EventSource::System, static_cast<uint8_t>(type), handler, this, sizeof(*this))
-	{
-	}
-	/**
-	 * @brief Construct a new System Event object from context
-	 *
-	 * User must ensure that context exists, is defined and has the same size as the SystemEvent class,
-	 * if the context does not exist The SystemEvent will not be updated with any data.
-	 *
-	 * @param context serialized context of the SystemEvent
-	 */
-	SystemEvent(const void *context)
-	{
-		if (context) {
-			memcpy(this, context, sizeof(*this));
-		}
-	}
+struct SystemEvent {
+	SystemEvent(SystemEventType type) { mType = type; }
+	SystemEvent() = default;
 
 	union {
 		struct {
@@ -59,4 +38,6 @@ struct SystemEvent : public Event {
 			LEDWidget *LedWidget;
 		} UpdateLedStateEvent;
 	};
+
+	SystemEventType mType;
 };

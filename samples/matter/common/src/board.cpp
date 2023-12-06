@@ -5,7 +5,7 @@
  */
 
 #include "board.h"
-#include "event_manager.h"
+#include "task_executor.h"
 
 #ifdef CONFIG_MCUMGR_TRANSPORT_BT
 #include "dfu_over_smp.h"
@@ -68,25 +68,13 @@ void Board::ResetAllLeds()
 
 void Board::LEDStateUpdateHandler(LEDWidget &ledWidget)
 {
-	CHIP_ERROR err = chip::DeviceLayer::PlatformMgr().ScheduleWork(
-		[](intptr_t context) {
-			auto ctx = reinterpret_cast<LEDWidget *>(context);
-			SystemEvent ledEvent(SystemEventType::UpdateLedState);
-			ledEvent.mHandler = UpdateLedStateEventHandler;
-			ledEvent.UpdateLedStateEvent.LedWidget = ctx;
-			EventManager::PostEvent(ledEvent);
-		},
-		reinterpret_cast<intptr_t>(&ledWidget));
+	SystemEvent ledEvent(SystemEventType::UpdateLedState);
+	TaskExecutor::PostTask([ledEvent] { UpdateLedStateEventHandler(ledEvent); });
 }
 
-void Board::UpdateLedStateEventHandler(const void *context)
+void Board::UpdateLedStateEventHandler(const SystemEvent &event)
 {
-	if (!context) {
-		return;
-	}
-	SystemEvent event(context);
-
-	if (static_cast<SystemEventType>(event.mType) == SystemEventType::UpdateLedState) {
+	if (event.mType == SystemEventType::UpdateLedState) {
 		event.UpdateLedStateEvent.LedWidget->UpdateState();
 	}
 }
@@ -146,27 +134,13 @@ void Board::StartTimer(uint32_t timeoutInMs)
 
 void Board::FunctionTimerTimeoutCallback(k_timer *timer)
 {
-	if (!timer) {
-		return;
-	}
-
-	chip::DeviceLayer::PlatformMgr().ScheduleWork(
-		[](intptr_t context) {
-			auto ctx = reinterpret_cast<k_timer *>(context);
-			SystemEvent timerEvent(SystemEventType::Timer, FunctionTimerEventHandler);
-			timerEvent.TimerEvent.Timer = ctx;
-			EventManager::PostEvent(timerEvent);
-		},
-		reinterpret_cast<intptr_t>(timer));
+	SystemEvent timerEvent(SystemEventType::Timer);
+	timerEvent.TimerEvent.Timer = timer;
+	TaskExecutor::PostTask([timerEvent] { FunctionTimerEventHandler(timerEvent); });
 }
 
-void Board::FunctionTimerEventHandler(const void *context)
+void Board::FunctionTimerEventHandler(const SystemEvent &event)
 {
-	if (!context) {
-		return;
-	}
-	SystemEvent event(context);
-
 	/* If we reached here, the button was held past kFactoryResetTriggerTimeout, initiate factory reset */
 	if (sInstance.mFunction == SystemEventType::SoftwareUpdate) {
 		LOG_INF("Factory reset has been triggered. Release button within %ums to cancel.",
@@ -202,20 +176,17 @@ void Board::FunctionTimerEventHandler(const void *context)
 
 void Board::ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged)
 {
-	SystemEvent buttonEvent;
+	SystemEvent buttonEvent(SystemEventType::Button);
 	bool isAppButtonEvent = false;
 	ButtonActions action;
 	DeviceButtons source;
-
-	buttonEvent.mType = static_cast<uint8_t>(SystemEventType::Button);
 
 	if (BLUETOOTH_ADV_BUTTON_MASK & hasChanged) {
 		buttonEvent.ButtonEvent.PinNo = BLUETOOTH_ADV_BUTTON;
 		buttonEvent.ButtonEvent.Action = static_cast<uint8_t>((BLUETOOTH_ADV_BUTTON_MASK & buttonState) ?
 									      SystemEventType::ButtonPushed :
 									      SystemEventType::ButtonReleased);
-		buttonEvent.mHandler = StartBLEAdvertisementHandler;
-		EventManager::PostEvent(buttonEvent);
+		TaskExecutor::PostTask([buttonEvent] { StartBLEAdvertisementHandler(buttonEvent); });
 	}
 
 	if (FUNCTION_BUTTON_MASK & hasChanged) {
@@ -223,8 +194,7 @@ void Board::ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged)
 		buttonEvent.ButtonEvent.Action =
 			static_cast<uint8_t>((FUNCTION_BUTTON_MASK & buttonState) ? SystemEventType::ButtonPushed :
 										    SystemEventType::ButtonReleased);
-		buttonEvent.mHandler = FunctionHandler;
-		EventManager::PostEvent(buttonEvent);
+		TaskExecutor::PostTask([buttonEvent] { FunctionHandler(buttonEvent); });
 	}
 
 #if NUMBER_OF_BUTTONS == 4
@@ -254,14 +224,8 @@ void Board::ButtonEventHandler(uint32_t buttonState, uint32_t hasChanged)
 	}
 }
 
-void Board::FunctionHandler(const void *context)
+void Board::FunctionHandler(const SystemEvent &event)
 {
-	if (!context) {
-		return;
-	}
-
-	SystemEvent event(context);
-
 	if (event.ButtonEvent.PinNo != FUNCTION_BUTTON) {
 		return;
 	}
@@ -292,14 +256,8 @@ void Board::FunctionHandler(const void *context)
 	}
 }
 
-void Board::StartBLEAdvertisementHandler(const void *context)
+void Board::StartBLEAdvertisementHandler(const SystemEvent &event)
 {
-	if (!context) {
-		return;
-	}
-
-	SystemEvent event(context);
-
 #if NUMBER_OF_BUTTONS == 4
 	if (event.ButtonEvent.Action == static_cast<uint8_t>(SystemEventType::ButtonPushed)) {
 		StartBLEAdvertisement();
