@@ -24,19 +24,6 @@ config CHIP_DEVICE_PRODUCT_ID
 	  By default product ID is set to 32774.
 	  This is lock app product ID
 
-# by default software version is set to 5
-config CHIP_DEVICE_SOFTWARE_VERSION
-	int "software version"
-	default 5
-	help
-	  By default software version is equal to 5
-
-config CHIP_DEVICE_SOFTWARE_VERSION_STRING
-	string "software version string"
-	default "v5.0"
-	help
-	  This value is needed to generate OTA image, but not to perform OTA.
-
 config CHIP_OTA_IMAGE_FILE_NAME
 	string "default filename for OTA"
 	default "matter.ota"
