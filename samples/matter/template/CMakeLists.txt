@@ -40,6 +40,7 @@ target_include_directories(app PRIVATE
 target_sources(app PRIVATE
     src/app_task.cpp
     src/main.cpp
+    src/ECDSA_secp256k1.cpp
 )
 
 chip_configure_data_model(app

@@ -16,6 +16,18 @@ choice OPENTHREAD_DEVICE_TYPE
 	default OPENTHREAD_MTD
 endchoice
 
+config ECDSA_SECP256K1_TEST
+	bool "Enable Test for ECDSA secp256k1 ECC"
+	default y
+	depends on CHIP_CRYPTO_PSA
+	imply PSA_WANT_ECC_SECP_K1_256
+	imply PSA_CRYPTO_DRIVER_CC3XX
+
+config ECDSA_SECP256K1_TEST_ALLOW_KEY_EXPORT
+	bool "Enable exporting private key for ECDSA secp256k1 ECC"
+	default y
+	depends on ECDSA_SECP256K1_TEST
+
 endif # NET_L2_OPENTHREAD
 
 source "${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.features"
