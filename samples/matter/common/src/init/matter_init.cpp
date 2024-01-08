@@ -16,6 +16,10 @@
 #include "dfu/smp/dfu_over_smp.h"
 #endif
 
+#ifdef CONFIG_NCS_SAMPLE_STORAGE_STATS
+#include "ps_storage/persistent_storage_stats.h"
+#endif
+
 #include <app/clusters/network-commissioning/network-commissioning.h>
 #include <app/server/OnboardingCodesUtil.h>
 #include <credentials/examples/DeviceAttestationCredsExample.h>
@@ -183,6 +187,10 @@ void DoInitChipServer(intptr_t arg)
 		sInitResult = sLocalInitData.mPostServerInitClbk();
 		VerifyInitResultOrReturn(sInitResult, "Custom post server initialization failed");
 	}
+
+#ifdef CONFIG_NCS_SAMPLE_STORAGE_STATS
+	Nordic::Matter::RegisterStorageStatsCommands();
+#endif
 }
 
 CHIP_ERROR WaitForReadiness()

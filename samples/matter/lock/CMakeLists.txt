@@ -76,6 +76,10 @@ if(CONFIG_THREAD_WIFI_SWITCHING)
     target_compile_options(..__nrf__modules__hostap PRIVATE -flto)
 endif()
 
+if(CONFIG_NCS_SAMPLE_STORAGE_STATS)
+    target_sources(app PRIVATE ${COMMON_ROOT}/src/ps_storage/persistent_storage_stats.cpp)
+endif()
+
 chip_configure_data_model(app
     INCLUDE_SERVER
     BYPASS_IDL

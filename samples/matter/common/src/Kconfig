@@ -16,3 +16,12 @@ config NCS_SAMPLE_MATTER_CUSTOM_BLUETOOTH_ADVERTISING
 	help
 	  Disable the default Bluetooth advertising start which is defined in the board.cpp file and
 	  allow to use the custom one.
+
+config NCS_SAMPLE_STORAGE_STATS
+	bool "Enable statistics for settings storage"
+	depends on CHIP_LIB_SHELL
+	depends on LOG
+	help
+	  Prints the current free space in bytes on each user or credential being stored
+	  permanently in the FLASH. If enabled together with LOCK_ENABLE_DEBUG, it can be used
+	  to check the free storage with command line.
