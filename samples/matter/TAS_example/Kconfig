@@ -1,15 +1,13 @@
 #
-# Copyright (c) 2022 Nordic Semiconductor ASA
+# Copyright (c) 2023 Nordic Semiconductor ASA
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
 source "Kconfig.zephyr"
-
 source "${ZEPHYR_BASE}/../modules/lib/matter/config/nrfconnect/chip-module/Kconfig.features"
 source "${ZEPHYR_BASE}/../modules/lib/matter/config/nrfconnect/chip-module/Kconfig.defaults"
 
-# default configs are set for lock example
 config CHIP_DEVICE_VENDOR_ID
 	int "Vendor id"
 	default 65521
@@ -24,7 +22,10 @@ config CHIP_DEVICE_PRODUCT_ID
 	  By default product ID is set to 32774.
 	  This is lock app product ID
 
+config BOARD_ENABLE_CPUNET
+	bool
+	default y if (BOARD_NRF5340DK_NRF5340_CPUAPP || BOARD_NRF7002DK_NRF5340_CPUAPP)
+
 config CHIP_OTA_IMAGE_FILE_NAME
 	string "default filename for OTA"
 	default "matter.ota"
-

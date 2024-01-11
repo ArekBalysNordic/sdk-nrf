@@ -83,7 +83,7 @@ config NCS_SAMPLE_EMPTY_NETCORE
 
 config NCS_SAMPLE_MULTIPROTOCOL_RPMSG_CHILD_IMAGE
 	bool "Use sample with empty netcore"
-	default y
+	default n
 	help
 	  multiprotocol_rpmsg sample as a child image (network core).
 
