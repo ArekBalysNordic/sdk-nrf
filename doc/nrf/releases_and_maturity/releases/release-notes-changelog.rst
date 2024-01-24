@@ -140,6 +140,9 @@ Matter
     To change the default reaction, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_FACTORY_RESET_ON_KEY_MIGRATION_FAILURE` Kconfig option to ``n``.
 
   * Documentation page about :ref:`ug_matter_gs_matter_api`.
+  * Diagnostic logs provider that collects the diagnostic logs and sends them to the Matter controller.
+    To enable diagnostic logs support, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` Kconfig option to ``y``.
+    To learn more about the diagnostic logs module see :ref:`ug_matter_configuration_diagnostic_logs`.
 
 Matter fork
 +++++++++++

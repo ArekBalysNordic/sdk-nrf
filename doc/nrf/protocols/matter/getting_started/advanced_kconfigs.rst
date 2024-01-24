@@ -150,3 +150,22 @@ Read Client functionality
 The Read Client functionality is used for reading attributes from another device in the Matter network.
 This functionality is disabled by default for Matter samples in the |NCS|, except for ones that need to read attributes from the bound devices, such as the :ref:`matter_light_switch_sample` and :ref:`matter_thermostat_sample` samples, and the :ref:`matter_bridge_app` application.
 Enable the feature if your device needs to be able to access attributes from a different device within the Matter network using, for example, bindings.
+
+.. _ug_matter_configuration_diagnostic_logs:
+
+Diagnostic logs
+===============
+
+The diagnostic logs module implements all functionalities needed for the Matter controller to obtain logs.
+The controller obtains the logs from the connected Matter devices according to the chosen intent.
+
+To use the diagnostic logs module, add the ``Diagnostic Logs`` cluster as ``server`` in the ZAP configuration.
+To learn how to add a new cluster to the ZAP configuration, see the :ref:`ug_matter_gs_adding_cluster` page.
+
+To enable diagnostic logs support, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` Kconfig option to ``y``.
+
+Currently, the following intents are defined within the ``IntentEnum`` enumerator in the Matter stack:
+
+  * ``kEndUserSupport`` - Logs created by the product maker to be used for end-user support.
+  * ``kNetworkDiag``- Logs created by the network layer to be used for network diagnostic.
+  * ``kCrashLogs`` - Logs created during a device crash, to be obtained from the node.
