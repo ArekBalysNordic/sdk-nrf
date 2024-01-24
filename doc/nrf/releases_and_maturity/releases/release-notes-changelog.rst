@@ -127,6 +127,10 @@ Matter
     In |NCS| Matter samples, the default reaction to migration failure is a factory reset of the device.
     To change the default reaction, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_FACTORY_RESET_ON_KEY_MIGRATION_FAILURE` Kconfig option to ``n``.
 
+  * Diagnostic logs provider that collects the diagnostic logs and sends them to the Matter controller.
+    To enable diagnostic logs support, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` Kconfig option to ``y``.
+    To learn more about the diagnostic logs module see :ref:`ug_matter_configuration_diagnostic_logs`.
+
 Matter fork
 +++++++++++
 

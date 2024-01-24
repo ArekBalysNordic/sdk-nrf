@@ -87,6 +87,11 @@ if(CONFIG_MCUMGR_TRANSPORT_BT)
     target_sources(app PRIVATE ${COMMON_ROOT}/src/dfu/smp/dfu_over_smp.cpp)
 endif()
 
+if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS)
+    target_sources(app PRIVATE ${COMMON_ROOT}/src/diagnostic/diagnostic_logs_provider.cpp)
+    target_sources(app PRIVATE ${COMMON_ROOT}/src/persistent_storage/persistent_storage_util.cpp)
+endif()
+
 if(CONFIG_THREAD_WIFI_SWITCHING)
     target_sources(app PRIVATE src/thread_wifi_switch.cpp)
 
