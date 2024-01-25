@@ -8,6 +8,7 @@
 
 #include "binding/binding_handler.h"
 #include "bridge_util.h"
+#include "util/finite_map.h"
 #include "bridged_device_data_provider.h"
 #include "matter_bridged_device.h"
 
