@@ -150,6 +150,12 @@ CHIP_ERROR AppTask::Init()
 	OtaConfirmNewImage();
 #endif
 
+#ifdef CONFIG_MCUMGR_TRANSPORT_BT
+	/* Initialize DFU over SMP */
+	GetDFUOverSMP().Init();
+	GetDFUOverSMP().ConfirmNewImage();
+#endif
+
 	/* Initialize CHIP server */
 #if CONFIG_CHIP_FACTORY_DATA
 	ReturnErrorOnFailure(mFactoryDataProvider.Init());
@@ -227,15 +233,27 @@ void AppTask::FunctionTimerTimeoutCallback(k_timer *timer)
 	PostEvent(event);
 }
 
-void AppTask::FunctionTimerEventHandler(const AppEvent &)
+void AppTask::FunctionTimerEventHandler(const AppEvent & event)
 {
-	if (Instance().mFunction == FunctionEvent::FactoryReset) {
+	if (event.Type != AppEventType::Timer) {
+		return;
+	}
+
+	/* If we reached here, the button was held past kFactoryResetTriggerTimeout, initiate factory reset */
+	if (Instance().mFunction == FunctionEvent::SoftwareUpdate) {
+		LOG_INF("Factory Reset Triggered. Release button within %ums to cancel.", kFactoryResetTriggerTimeout);
+
+		/* Start timer for kFactoryResetCancelWindowTimeout to allow user to cancel, if required. */
+		Instance().StartTimer(kFactoryResetTriggerTimeout);
+		Instance().mFunction = FunctionEvent::FactoryReset;
+
+		/* Turn off all LEDs before starting blink to make sure blink is co-ordinated. */
+		sStatusLED.Set(false);
+		sFactoryResetLEDs.Set(false);
+
+	} else if (Instance().mFunction == FunctionEvent::FactoryReset) {
+		/* Actually trigger Factory Reset */
 		Instance().mFunction = FunctionEvent::NoneSelected;
-		LOG_INF("Factory Reset triggered");
-
-		sStatusLED.Set(true);
-		sFactoryResetLEDs.Set(true);
-
 		chip::Server::GetInstance().ScheduleFactoryReset();
 	}
 }
@@ -245,11 +263,29 @@ void AppTask::FunctionHandler(const AppEvent &event)
 	if (event.ButtonEvent.PinNo != FUNCTION_BUTTON)
 		return;
 
+	/* To trigger software update: press the FUNCTION_BUTTON button briefly (< kFactoryResetTriggerTimeout)
+	 * To initiate factory reset: press the FUNCTION_BUTTON for kFactoryResetTriggerTimeout +
+	 * kFactoryResetCancelWindowTimeout All LEDs start blinking after kFactoryResetTriggerTimeout to signal factory
+	 * reset has been initiated. To cancel factory reset: release the FUNCTION_BUTTON once all LEDs start blinking
+	 * within the kFactoryResetCancelWindowTimeout.
+	 */
 	if (event.ButtonEvent.Action == static_cast<uint8_t>(AppEventType::ButtonPushed)) {
-		Instance().StartTimer(kFactoryResetTriggerTimeout);
-		Instance().mFunction = FunctionEvent::FactoryReset;
-	} else if (event.ButtonEvent.Action == static_cast<uint8_t>(AppEventType::ButtonReleased)) {
-		if (Instance().mFunction == FunctionEvent::FactoryReset) {
+		if (!Instance().mFunctionTimerActive && Instance().mFunction == FunctionEvent::NoneSelected) {
+			Instance().StartTimer(kFactoryResetTriggerTimeout);
+			Instance().mFunction = FunctionEvent::SoftwareUpdate;
+		}
+	} else {
+		/* If the button was released before factory reset got initiated, trigger a software update. */
+		if (Instance().mFunctionTimerActive && Instance().mFunction == FunctionEvent::SoftwareUpdate) {
+			Instance().CancelTimer();
+			Instance().mFunction = FunctionEvent::NoneSelected;
+
+#ifdef CONFIG_MCUMGR_TRANSPORT_BT
+			GetDFUOverSMP().StartServer();
+#else
+			LOG_INF("Software update is disabled");
+#endif
+		} else if (Instance().mFunctionTimerActive && Instance().mFunction == FunctionEvent::FactoryReset) {
 			sFactoryResetLEDs.Set(false);
 			UpdateStatusLED();
 			Instance().CancelTimer();
