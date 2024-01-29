@@ -48,6 +48,21 @@ target_sources(app PRIVATE
     src/zcl_callbacks.cpp
 )
 
+if(CONFIG_CHIP_ICD_LIT_SUPPORT)
+    target_include_directories(app PRIVATE
+        src/lit
+    )
+    
+    target_sources(app PRIVATE
+        src/lit/zap-generated/callback-stub.cpp
+        src/lit/zap-generated/IMClusterCommandHandler.cpp
+    )
+    else()
+    target_include_directories(app PRIVATE
+        src/sit
+    )
+endif()    
+
 if(CONFIG_THREAD_WIFI_SWITCHING)
     target_sources(app PRIVATE src/thread_wifi_switch.cpp
         # TODO: Remove the following lines once there is LTO support for the Zephyr library
@@ -60,10 +75,19 @@ if(CONFIG_THREAD_WIFI_SWITCHING)
     target_compile_options(..__nrf__modules__hostap PRIVATE -flto)
 endif()
 
+if(CONFIG_CHIP_ICD_LIT_SUPPORT)
 chip_configure_data_model(app
     INCLUDE_SERVER
     BYPASS_IDL
-    GEN_DIR src/zap-generated
+    GEN_DIR src/lit/zap-generated
+    ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/lock-lit.zap
+)
+else()
+chip_configure_data_model(app
+    INCLUDE_SERVER
+    BYPASS_IDL
+    GEN_DIR src/sit/zap-generated
     ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/lock.zap
 )
+endif()
 # NORDIC SDK APP END
