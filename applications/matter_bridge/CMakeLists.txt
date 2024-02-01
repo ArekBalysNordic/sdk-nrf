@@ -9,6 +9,7 @@ cmake_minimum_required(VERSION 3.20.0)
 # Set Kconfig root files that will be processed as a first Kconfig for used child images.
 set(mcuboot_KCONFIG_ROOT "\\\${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.mcuboot.root")
 set(hci_ipc_KCONFIG_ROOT "\\\${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.hci_ipc.root")
+list(APPEND SNIPPET_ROOT "../samples/matter/common")
 
 # For prj.conf the CONF_FILE is empty. In other case extract the exact file name from the path string.
 if(CONF_FILE)

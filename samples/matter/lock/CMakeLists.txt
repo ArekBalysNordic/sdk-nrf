@@ -10,6 +10,7 @@ cmake_minimum_required(VERSION 3.20.0)
 set(mcuboot_KCONFIG_ROOT "\\\${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.mcuboot.root")
 set(multiprotocol_rpmsg_KCONFIG_ROOT "\\\${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.multiprotocol_rpmsg.root")
 set(hci_ipc_KCONFIG_ROOT "\\\${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.hci_ipc.root")
+list(APPEND SNIPPET_ROOT "../common")
 
 # For prj.conf the CONF_FILE is empty. In other case extract the exact file name from the path string.
 if(CONF_FILE)
@@ -89,7 +90,12 @@ endif()
 
 if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS)
     target_sources(app PRIVATE ${COMMON_ROOT}/src/diagnostic/diagnostic_logs_provider.cpp)
+if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS)
+    # Wrap z_fatal_error to allow injecting crash data into the retention memory.
+    target_link_options(app INTERFACE -Wl,--wrap=z_fatal_error)
     target_sources(app PRIVATE ${COMMON_ROOT}/src/persistent_storage/persistent_storage_util.cpp)
+    target_sources(app PRIVATE ${COMMON_ROOT}/src/diagnostic/diagnostic_logs_crash.cpp)
+endif()
 endif()
 
 if(CONFIG_THREAD_WIFI_SWITCHING)
