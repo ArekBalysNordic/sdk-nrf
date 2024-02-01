@@ -169,3 +169,47 @@ Currently, the following intents are defined within the ``IntentEnum`` enumerato
   * ``kEndUserSupport`` - Logs created by the product maker to be used for end-user support.
   * ``kNetworkDiag``- Logs created by the network layer to be used for network diagnostic.
   * ``kCrashLogs`` - Logs created during a device crash, to be obtained from the node.
+
+Crash logs
+----------
+
+The crash logs module is a part of the diagnostic log module and contains the data of the most recent device crash.
+When a crash occurs, the device saves the crash data to the defined retained RAM partition.
+Because it uses the retained RAM partition, the :ref:`ug_matter_diagnostic_logs_snippet` must be added to the build to enable crash log support.
+
+Only the last crash data will be stored in the device's memory, meaning that if another crash occurs, the previous data will be overwritten.
+After receiving the read request from the Matter controller, the device reads the crash data and creates human readable logs at runtime.
+Finally, the device sends converted logs to the Matter controller as a response.
+
+By default, the :ref:`ug_matter_diagnostic_logs_snippet` enables copying the crash data to Zephyr's settings storage at the first boot after a crash.
+This operation allows the device to keep crash data even if a power breakdown occurs, but it will use some space within the settings storage partition and you need to take it into account while setting the partition size.
+If the new crash data is the same as the previous one, the entry will not be updated.
+You can disable saving crash data to the settings storage by setting the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_SAVE_CRASH_TO_SETTINGS` Kconfig option to ``n``.
+
+After the crash data is successfully read, it will be removed and further read attempts will notify the user that there is no available data to read.
+To keep the crash log in the memory after reading it, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_REMOVE_CRASH_AFTER_READ` Kconfig option to ``n``.
+
+.. _ug_matter_diagnostic_logs_snippet:
+
+Diagnostic logs snippet
+-----------------------
+
+The diagnostic logs snippet enables the set of configurations needed for full diagnostic logs support, such as crash logs.
+The configuration set consist of devicetree overlays for each supported target board, and a config file that enables all diagnostic logs features by default.
+The devicetree overlays add a new RAM partition which is configured as retained to keep the crash data.
+They also reduce the SRAM size according to the size of the retained partition.
+The snippet sets the following kconfig options:
+
+  * :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` to ``y``.
+  * :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS` to ``y``.
+  * :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_SAVE_CRASH_TO_SETTINGS` to ``y``.
+  * :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_REMOVE_CRASH_AFTER_READ` to ``y``.
+
+To use the snippet when building a sample, add ``-S diagnostic-logs`` to the west arguments list.
+
+Example for the ``nrf52840dk_nrf52840`` target board:
+
+.. parsed-literal::
+   :class: highlight
+
+   west build -d nrf52840dk_nrf52840 -S diagnostic-logs

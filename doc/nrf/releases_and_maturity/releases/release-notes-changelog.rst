@@ -141,8 +141,8 @@ Matter
 
   * Documentation page about :ref:`ug_matter_gs_matter_api`.
   * Diagnostic logs provider that collects the diagnostic logs and sends them to the Matter controller.
-    To enable diagnostic logs support, set the :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` Kconfig option to ``y``.
     To learn more about the diagnostic logs module see :ref:`ug_matter_configuration_diagnostic_logs`.
+  * :ref:`ug_matter_diagnostic_logs_snippet` to add support for all features of the diagnostic log provider.
 
 Matter fork
 +++++++++++

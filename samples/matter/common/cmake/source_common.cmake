@@ -47,5 +47,10 @@ endif()
 
 if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS)
     target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/diagnostic/diagnostic_logs_provider.cpp)
-    target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/persistent_storage/persistent_storage_util.cpp)
+    if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS)
+        # Wrap z_fatal_error to allow injecting crash data into the retention memory.
+        target_link_options(app INTERFACE -Wl,--wrap=z_fatal_error)
+        target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/persistent_storage/persistent_storage_util.cpp)
+        target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/diagnostic/diagnostic_logs_crash.cpp)
+    endif()
 endif()

@@ -52,18 +52,5 @@ config NCS_SAMPLE_MATTER_SETTINGS_SHELL
 	  get_size - to read the size of specific value.
 	  current - to read current settings usage.
 	  free - to read free settings space.
-config NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS
-	bool "Enable diagnostics logs support"
-	help
-	  Provides support for diagnostics logs. Diagnostics logs allow the Matter controller to read end-user,
-	  network and crash logs from the Matter device.
-	  Diagnostic logs are usable only if the DiagnosticCluster is available and active on the device's root endpoint.
-	  Otherwise the compilation error occurs.
 
-config NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_MAX_SIMULTANEOUS_SESSIONS
-	int "Define maximum simultaneous sessions"
-	default 20
-	help
-	  The maximum simultaneous sessions, which is the capability for sending diagnostic logs
-	  to Matter controller using multiple sessions at the same time for different diagnostic
-	  intents. When a session finishes, it releases its slot for a new one.
+rsource "diagnostic/Kconfig"
