@@ -54,3 +54,7 @@ if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS)
         target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/diagnostic/diagnostic_logs_crash.cpp)
     endif()
 endif()
+
+if(CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS)
+    target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/event_triggers/event_triggers.cpp)
+endif()

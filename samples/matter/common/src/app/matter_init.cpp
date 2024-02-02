@@ -25,6 +25,10 @@
 #include "dfu/smp/dfu_over_smp.h"
 #endif
 
+#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+#include "event_triggers/event_triggers.h"
+#endif
+
 #include <app/InteractionModelEngine.h>
 #include <app/clusters/network-commissioning/network-commissioning.h>
 #include <app/server/OnboardingCodesUtil.h>
@@ -169,6 +173,11 @@ void DoInitChipServer(intptr_t /* unused */)
 	Nrf::GetDFUOverSMP().ConfirmNewImage();
 #endif
 
+#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+	static Nrf::Matter::TestEventTrigger testEventTriggerDelegate;
+	sLocalInitData.mServerInitParams->testEventTriggerDelegate = &testEventTriggerDelegate;
+#endif
+
 	/* Initialize CHIP server */
 #ifdef CONFIG_CHIP_FACTORY_DATA
 	if (sLocalInitData.mFactoryDataProvider) {
@@ -179,6 +188,16 @@ void DoInitChipServer(intptr_t /* unused */)
 	SetDeviceInstanceInfoProvider(sLocalInitData.mFactoryDataProvider);
 	SetDeviceAttestationCredentialsProvider(sLocalInitData.mFactoryDataProvider);
 	SetCommissionableDataProvider(sLocalInitData.mFactoryDataProvider);
+
+#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+	// Read EnableKey from the factory data.
+	uint8_t enableKeyData[chip::TestEventTriggerDelegate::kEnableKeyLength];
+	MutableByteSpan enableKey(enableKeyData);
+	sInitResult = sLocalInitData.mFactoryDataProvider->GetEnableKey(enableKey);
+	VerifyInitResultOrReturn(sInitResult, "GetEnableKey() failed");
+	sInitResult = testEventTriggerDelegate.SetEnableKey(enableKey);
+	VerifyInitResultOrReturn(sInitResult, "SetEnableKey() failed");
+#endif /* CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS */
 #else
 	SetDeviceInstanceInfoProvider(&DeviceInstanceInfoProviderMgrImpl());
 	SetDeviceAttestationCredentialsProvider(Examples::GetExampleDACProvider());
