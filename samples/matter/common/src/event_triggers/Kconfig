@@ -1,0 +1,10 @@
+#
+# Copyright (c) 2024 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+
+menuconfig NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+	bool "Test event triggers support"
+	help
+	  Enables support for test event triggers for the specific use-cases.

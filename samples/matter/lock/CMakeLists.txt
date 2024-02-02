@@ -98,6 +98,10 @@ if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS)
 endif()
 endif()
 
+if(CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS)
+    target_sources(app PRIVATE ${COMMON_ROOT}/src/event_triggers/event_triggers.cpp)
+endif()
+
 if(CONFIG_THREAD_WIFI_SWITCHING)
     target_sources(app PRIVATE src/thread_wifi_switch.cpp)
 
