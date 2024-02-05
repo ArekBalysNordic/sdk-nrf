@@ -197,7 +197,6 @@
     0x00000030, /* Cluster: General Commissioning, Command: SetRegulatoryConfig, Privilege: administer */ \
     0x00000030, /* Cluster: General Commissioning, Command: CommissioningComplete, Privilege: administer */ \
     0x00000031, /* Cluster: Network Commissioning, Command: ScanNetworks, Privilege: administer */ \
-    0x00000031, /* Cluster: Network Commissioning, Command: AddOrUpdateWiFiNetwork, Privilege: administer */ \
     0x00000031, /* Cluster: Network Commissioning, Command: AddOrUpdateThreadNetwork, Privilege: administer */ \
     0x00000031, /* Cluster: Network Commissioning, Command: RemoveNetwork, Privilege: administer */ \
     0x00000031, /* Cluster: Network Commissioning, Command: ConnectNetwork, Privilege: administer */ \
@@ -237,7 +236,6 @@
     0x00000002, /* Cluster: General Commissioning, Command: SetRegulatoryConfig, Privilege: administer */ \
     0x00000004, /* Cluster: General Commissioning, Command: CommissioningComplete, Privilege: administer */ \
     0x00000000, /* Cluster: Network Commissioning, Command: ScanNetworks, Privilege: administer */ \
-    0x00000002, /* Cluster: Network Commissioning, Command: AddOrUpdateWiFiNetwork, Privilege: administer */ \
     0x00000003, /* Cluster: Network Commissioning, Command: AddOrUpdateThreadNetwork, Privilege: administer */ \
     0x00000004, /* Cluster: Network Commissioning, Command: RemoveNetwork, Privilege: administer */ \
     0x00000006, /* Cluster: Network Commissioning, Command: ConnectNetwork, Privilege: administer */ \
@@ -277,7 +275,6 @@
     kMatterAccessPrivilegeAdminister, /* Cluster: General Commissioning, Command: SetRegulatoryConfig, Privilege: administer */ \
     kMatterAccessPrivilegeAdminister, /* Cluster: General Commissioning, Command: CommissioningComplete, Privilege: administer */ \
     kMatterAccessPrivilegeAdminister, /* Cluster: Network Commissioning, Command: ScanNetworks, Privilege: administer */ \
-    kMatterAccessPrivilegeAdminister, /* Cluster: Network Commissioning, Command: AddOrUpdateWiFiNetwork, Privilege: administer */ \
     kMatterAccessPrivilegeAdminister, /* Cluster: Network Commissioning, Command: AddOrUpdateThreadNetwork, Privilege: administer */ \
     kMatterAccessPrivilegeAdminister, /* Cluster: Network Commissioning, Command: RemoveNetwork, Privilege: administer */ \
     kMatterAccessPrivilegeAdminister, /* Cluster: Network Commissioning, Command: ConnectNetwork, Privilege: administer */ \
