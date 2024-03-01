@@ -6,7 +6,7 @@
 
 #include <app/util/config.h>
 
-#ifndef EMBER_AF_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT
+#ifndef MATTER_DM_DIAGNOSTIC_LOGS_CLUSTER_SERVER_ENDPOINT_COUNT
 #error "Diagnostics cluster is not enabled in the root endpoint"
 #endif
 

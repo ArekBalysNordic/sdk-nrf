@@ -63,11 +63,6 @@ if(CONFIG_CHIP_ICD_LIT_SUPPORT)
     )
 endif()    
 
-if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS)
-    target_sources(app PRIVATE ${COMMON_ROOT}/src/diagnostic/diagnostic_logs_provider.cpp)
-    target_sources(app PRIVATE ${COMMON_ROOT}/src/persistent_storage/persistent_storage_util.cpp)
-endif()
-
 if(CONFIG_THREAD_WIFI_SWITCHING)
     target_sources(app PRIVATE src/thread_wifi_switch.cpp
         # TODO: Remove the following lines once there is LTO support for the Zephyr library

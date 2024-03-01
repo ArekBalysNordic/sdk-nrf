@@ -100,22 +100,24 @@ void emberAfDoorLockClusterInitCallback(EndpointId endpoint)
 {
 	DoorLockServer::Instance().InitServer(endpoint);
 
-	const auto logOnFailure = [](EmberAfStatus status, const char *attributeName) {
-		if (status != EMBER_ZCL_STATUS_SUCCESS) {
-			ChipLogError(Zcl, "Failed to set DoorLock %s: %x", attributeName, status);
-		}
-	};
+    const auto logOnFailure = [](Protocols::InteractionModel::Status status, const char * attributeName) {
+        if (status != Protocols::InteractionModel::Status::Success)
+        {
+            ChipLogError(Zcl, "Failed to set DoorLock %s: %x", attributeName, to_underlying(status));
+        }
+    };
 
-	logOnFailure(DoorLock::Attributes::LockType::Set(endpoint, DlLockType::kDeadBolt), "type");
-	logOnFailure(DoorLock::Attributes::NumberOfTotalUsersSupported::Set(endpoint, CONFIG_LOCK_NUM_USERS),
-		     "number of users");
-	logOnFailure(DoorLock::Attributes::NumberOfPINUsersSupported::Set(endpoint, CONFIG_LOCK_NUM_USERS),
-		     "number of PIN users");
-	logOnFailure(DoorLock::Attributes::NumberOfRFIDUsersSupported::Set(endpoint, 0), "number of RFID users");
-	logOnFailure(DoorLock::Attributes::NumberOfCredentialsSupportedPerUser::Set(
-			     endpoint, CONFIG_LOCK_NUM_CREDENTIALS_PER_USER),
-		     "number of credentials per user");
+    logOnFailure(DoorLock::Attributes::LockType::Set(endpoint, DlLockType::kDeadBolt), "type");
+    logOnFailure(DoorLock::Attributes::NumberOfTotalUsersSupported::Set(endpoint, CONFIG_LOCK_NUM_USERS), "number of users");
+    logOnFailure(DoorLock::Attributes::NumberOfPINUsersSupported::Set(endpoint, CONFIG_LOCK_NUM_USERS), "number of PIN users");
+    logOnFailure(DoorLock::Attributes::NumberOfRFIDUsersSupported::Set(endpoint, 0), "number of RFID users");
+    logOnFailure(DoorLock::Attributes::NumberOfCredentialsSupportedPerUser::Set(endpoint, CONFIG_LOCK_NUM_CREDENTIALS_PER_USER),
+                 "number of credentials per user");
 
-	AppTask::Instance().UpdateClusterState(BoltLockMgr().GetState(),
-					       BoltLockManager::OperationSource::kUnspecified);
+   // Set FeatureMap to (kUser|kPinCredential), default is:
+    // (kUser|kAccessSchedules|kRfidCredential|kPinCredential) 0x113
+    logOnFailure(DoorLock::Attributes::FeatureMap::Set(endpoint, 0x181), "feature map");
+
+    AppTask::Instance().UpdateClusterState(BoltLockMgr().GetState(), BoltLockManager::OperationSource::kUnspecified);
+
 }

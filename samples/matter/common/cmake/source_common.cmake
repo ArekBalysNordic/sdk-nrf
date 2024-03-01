@@ -44,3 +44,8 @@ endif()
 if(CONFIG_NCS_SAMPLE_MATTER_SETTINGS_SHELL)
     target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/persistent_storage/persistent_storage_shell.cpp)
 endif()
+
+if(CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS)
+    target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/diagnostic/diagnostic_logs_provider.cpp)
+    target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/persistent_storage/persistent_storage_util.cpp)
+endif()
