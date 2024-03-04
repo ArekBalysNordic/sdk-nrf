@@ -86,9 +86,15 @@ CHIP_ERROR DiagnosticLogProvider::EndLogCollection(LogSessionHandle sessionHandl
 	/* Do the specific action for the removing intent */
 	switch (intent) {
 	case IntentEnum::kEndUserSupport:
+#ifndef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
 		/* TODO: add support for End User Intent */
 		return CHIP_ERROR_NOT_IMPLEMENTED;
+#endif
 	case IntentEnum::kNetworkDiag:
+#ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+		err = CHIP_NO_ERROR;
+		break;
+#endif
 		/* TODO: add support for End User Intent */
 		return CHIP_ERROR_NOT_IMPLEMENTED;
 	case IntentEnum::kCrashLogs:
@@ -118,9 +124,15 @@ CHIP_ERROR DiagnosticLogProvider::CollectLog(LogSessionHandle sessionHandle, Mut
 
 	switch (mIntentMap[sessionHandle]) {
 	case IntentEnum::kEndUserSupport:
+#ifndef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
 		/* TODO: add support for End User Intent */
 		return CHIP_ERROR_NOT_IMPLEMENTED;
+#endif
 	case IntentEnum::kNetworkDiag:
+#ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+		err = GetTestingLogs(mIntentMap[sessionHandle], outBuffer, outIsEndOfLog);
+		break;
+#endif
 		/* TODO: add support for Network Diag Intent */
 		return CHIP_ERROR_NOT_IMPLEMENTED;
 	case IntentEnum::kCrashLogs:
@@ -139,24 +151,33 @@ CHIP_ERROR DiagnosticLogProvider::CollectLog(LogSessionHandle sessionHandle, Mut
 
 size_t DiagnosticLogProvider::GetSizeForIntent(IntentEnum intent)
 {
-	CHIP_ERROR err = CHIP_NO_ERROR;
+	size_t logSize = 0;
 
 	switch (intent) {
 	case IntentEnum::kEndUserSupport:
 		/* TODO: add support for End User Intent */
+#ifndef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
 		break;
+#endif
 	case IntentEnum::kNetworkDiag:
+#ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+		logSize = GetTestingLogsSize(intent);
+		break;
+#endif
 		/* TODO: add support for Network Diag Intent */
 		break;
 #ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS
 	case IntentEnum::kCrashLogs:
-		return GetCrashLogsSize();
+		logSize = GetCrashLogsSize();
+		break;
 #endif
 	default:
 		break;
 	}
 
-	return 0;
+	ChipLogProgress(Zcl, "Current Log size for Intent: %s is %zu", GetIntentStr(intent), logSize);
+
+	return logSize;
 }
 
 CHIP_ERROR DiagnosticLogProvider::GetLogForIntent(IntentEnum intent, MutableByteSpan &outBuffer,
@@ -323,3 +344,82 @@ CHIP_ERROR DiagnosticLogProvider::MoveCrashLogsToNVS()
 }
 #endif /* CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_SAVE_CRASH_TO_SETTINGS */
 #endif /* CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS */
+
+#ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+
+bool DiagnosticLogProvider::StoreTestingLog(IntentEnum intent, char *text, size_t textSize)
+{
+	if (intent != IntentEnum::kEndUserSupport && intent != IntentEnum::kNetworkDiag) {
+		return false;
+	}
+
+	uint8_t *bufferToWrite =
+		(intent == IntentEnum::kEndUserSupport) ? mTestingUserLogsBuffer : mTestingNetworkLogsBuffer;
+	size_t *bufferSize = (intent == IntentEnum::kEndUserSupport) ? &mCurrentUserLogsSize : &mCurrentNetworkLogsSize;
+
+	if (textSize + *bufferSize > kTestingBufferLen) {
+		return false;
+	}
+
+	memcpy(bufferToWrite + *bufferSize, text, textSize);
+	*bufferSize += textSize;
+
+	return true;
+}
+
+void DiagnosticLogProvider::ClearTestingBuffer(IntentEnum intent)
+{
+	if (intent != IntentEnum::kEndUserSupport && intent != IntentEnum::kNetworkDiag) {
+		return;
+	}
+
+	uint8_t *bufferToWrite =
+		(intent == IntentEnum::kEndUserSupport) ? mTestingUserLogsBuffer : mTestingNetworkLogsBuffer;
+	size_t *bufferSize = (intent == IntentEnum::kEndUserSupport) ? &mCurrentUserLogsSize : &mCurrentNetworkLogsSize;
+	size_t *readOffset = (intent == IntentEnum::kEndUserSupport) ? &mReadUserLogsOffset : &mReadNetworkLogsOffset;
+
+	memset(bufferToWrite, 0, kTestingBufferLen);
+	*bufferSize = 0;
+	*readOffset = 0;
+}
+
+CHIP_ERROR DiagnosticLogProvider::GetTestingLogs(IntentEnum intent, chip::MutableByteSpan &outBuffer,
+						 bool &outIsEndOfLog)
+{
+	if (intent != IntentEnum::kEndUserSupport && intent != IntentEnum::kNetworkDiag) {
+		return CHIP_ERROR_INVALID_ARGUMENT;
+	}
+
+	uint8_t *bufferToWrite =
+		(intent == IntentEnum::kEndUserSupport) ? mTestingUserLogsBuffer : mTestingNetworkLogsBuffer;
+	size_t *currentBufferSize =
+		(intent == IntentEnum::kEndUserSupport) ? &mCurrentUserLogsSize : &mCurrentNetworkLogsSize;
+	size_t *readOffset = (intent == IntentEnum::kEndUserSupport) ? &mReadUserLogsOffset : &mReadNetworkLogsOffset;
+
+	size_t sizeToRead = *currentBufferSize > outBuffer.size() ? outBuffer.size() : *currentBufferSize;
+
+	memcpy(outBuffer.data(), bufferToWrite + *readOffset, sizeToRead);
+	*currentBufferSize -= sizeToRead;
+	*readOffset += sizeToRead;
+
+	if (*currentBufferSize == 0) {
+		outIsEndOfLog = true;
+		ClearTestingBuffer(intent);
+	} else {
+		outIsEndOfLog = false;
+	}
+
+	ChipLogProgress(Zcl, "Sending %zu B of logs, left bytes: %zu, is the end of logs: %d", sizeToRead,
+			*currentBufferSize, outIsEndOfLog);
+
+	outBuffer.reduce_size(sizeToRead);
+
+	return CHIP_NO_ERROR;
+}
+
+size_t DiagnosticLogProvider::GetTestingLogsSize(IntentEnum intent)
+{
+	return (intent == IntentEnum::kEndUserSupport) ? mCurrentUserLogsSize : mCurrentNetworkLogsSize;
+}
+
+#endif

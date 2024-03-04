@@ -39,15 +39,27 @@ The following table lists available triggers and the activation codes:
    * - Factory reset
      - None
      - Perform a factory reset of the device.
-     - `0xF000000000000000`
+     - `0xF000'0000'0000'0000`
    * - Reboot
      - None
      - Reboot the device.
-     - `0xF000000000000001`
+     - `0xF000'0000'0001'0000`
+   * - Diagnostic logs User Data
+     - :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST` = ``y`` & :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` = ``y`` & `diagnostic logs` cluster
+     - Trigger a writing specific amount of ``u`` signs to the user diagnostics logs.
+       The amount of signs determine by adding the value to the end of the event trigger value.
+       Currently we support maximum 1023 Bytes for single trigger call, and 4096 Bytes of all data written.
+     - From `0x0032'0000'0000'0001` to `0x0032'0000'0000'0C00` (from 1 Bytes to 1024 Bytes), `0x0032'0000'0000'0000` to clear logs.
+   * - Diagnostic logs Network Data
+     - :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST` = ``y`` & :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` = ``y`` & `diagnostic logs` cluster
+     - Trigger a writing specific amount of ``n`` signs to the user diagnostics logs.
+       The amount of signs determine by writing the value to the end of the event trigger value.
+       Currently we support maximum 1023 Bytes for single trigger call, and 4096 Bytes of all data written.
+     - From `0x0032'0001'0000'0001` to `0x0032'0001'0000'0C00` (from 1 Bytes to 1024 Bytes), `0x0032'0001'0000'0000` to clear logs.
    * - Diagnostic logs crash
      - The snippet `diagnostic-logs` attached (-S diagnostic-logs) or :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS` = ``y`` & :kconfig:option:`CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS` to ``y`` & `diagnostic logs` cluster
      - Trigger a simple crash that rely on execution of the undefined instruction attempt.
-     - `0x1000000000000000`
+     - `0x0032'0002'0000'0000`
    * - OTA query
      - :kconfig:option:`CONFIG_CHIP_OTA_REQUESTOR` = ``y``
      - Trigger a OTA firmware update.

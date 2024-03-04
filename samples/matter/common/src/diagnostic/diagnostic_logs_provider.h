@@ -58,6 +58,11 @@ public:
 				   chip::MutableByteSpan &outBuffer, chip::Optional<uint64_t> &outTimeStamp,
 				   chip::Optional<uint64_t> &outTimeSinceBoot) override;
 
+#ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+	bool StoreTestingLog(chip::app::Clusters::DiagnosticLogs::IntentEnum intent, char *text, size_t textSize);
+	void ClearTestingBuffer(chip::app::Clusters::DiagnosticLogs::IntentEnum intent);
+#endif
+
 private:
 	/* The maximum number of the simultaneous sessions */
 	constexpr static uint16_t kMaxLogSessionHandle =
@@ -95,6 +100,20 @@ private:
 
 #ifndef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_SAVE_CRASH_TO_SETTINGS
 	DiagnosticLogProvider() = default;
+#endif
+
+#ifdef CONFIG_NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+	size_t GetTestingLogsSize(chip::app::Clusters::DiagnosticLogs::IntentEnum intent);
+	CHIP_ERROR GetTestingLogs(chip::app::Clusters::DiagnosticLogs::IntentEnum intent,
+				  chip::MutableByteSpan &outBuffer, bool &outIsEndOfLog);
+
+	constexpr static size_t kTestingBufferLen = 4096;
+	uint8_t mTestingUserLogsBuffer[kTestingBufferLen];
+	uint8_t mTestingNetworkLogsBuffer[kTestingBufferLen];
+	size_t mCurrentUserLogsSize = 0;
+	size_t mCurrentNetworkLogsSize = 0;
+	size_t mReadUserLogsOffset = 0;
+	size_t mReadNetworkLogsOffset = 0;
 #endif
 
 	Nrf::FiniteMap<chip::app::Clusters::DiagnosticLogs::IntentEnum, kMaxLogSessionHandle> mIntentMap;

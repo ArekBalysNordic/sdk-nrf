@@ -47,5 +47,10 @@ config NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_SAVE_CRASH_TO_SETTINGS
 	  If this option is disabled crash logs will be saved only in the retention memory and can be lost
 	  during physical power down.
 
+config NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_TEST
+	bool "Testing module for Diagnostic logs cluster"
+	help
+	  Enables testing module for diagnostic logs cluster.	
+
 endif # NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS_CRASH_LOGS
 endif # NCS_SAMPLE_MATTER_DIAGNOSTIC_LOGS
