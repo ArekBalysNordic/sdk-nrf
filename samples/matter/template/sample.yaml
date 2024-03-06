@@ -36,3 +36,20 @@ tests:
       - nrf5340dk_nrf5340_cpuapp
       - nrf7002dk_nrf5340_cpuapp
     platform_allow: nrf52840dk_nrf52840 nrf5340dk_nrf5340_cpuapp nrf7002dk_nrf5340_cpuapp
+  sample.matter.template.lto:
+    build_only: true
+    extra_args: CONFIG_LTO=y CONFIG_ISR_TABLES_LOCAL_DECLARATION=y
+    integration_platforms:
+      - nrf52840dk_nrf52840
+      - nrf5340dk_nrf5340_cpuapp
+      - nrf7002dk_nrf5340_cpuapp
+    platform_allow: nrf52840dk_nrf52840 nrf5340dk_nrf5340_cpuapp nrf7002dk_nrf5340_cpuapp
+  sample.matter.template.lto_release:
+    build_only: true
+    extra_args: CONFIG_LTO=y CONFIG_ISR_TABLES_LOCAL_DECLARATION=y 
+      CONF_FILE=prj_release.conf
+    integration_platforms:
+      - nrf52840dk_nrf52840
+      - nrf5340dk_nrf5340_cpuapp
+      - nrf7002dk_nrf5340_cpuapp
+    platform_allow: nrf52840dk_nrf52840 nrf5340dk_nrf5340_cpuapp nrf7002dk_nrf5340_cpuapp
