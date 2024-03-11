@@ -23,10 +23,19 @@ config ECDSA_SECP256K1_TEST
 	imply PSA_WANT_ECC_SECP_K1_256
 	imply PSA_CRYPTO_DRIVER_CC3XX
 
+config PSA_USE_CC3XX_HASH_DRIVER
+	default n
+
+if ECDSA_SECP256K1_TEST
+
+config OPENTHREAD_THREAD_STACK_SIZE
+	default 6144
+
 config ECDSA_SECP256K1_TEST_ALLOW_KEY_EXPORT
 	bool "Enable exporting private key for ECDSA secp256k1 ECC"
 	default y
-	depends on ECDSA_SECP256K1_TEST
+
+endif #ECDSA_SECP256K1_TEST
 
 endif # NET_L2_OPENTHREAD
 

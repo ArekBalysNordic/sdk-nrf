@@ -14,3 +14,5 @@
  */
 
 #pragma once
+
+#define CHIP_DEVICE_CONFIG_CHIP_TASK_STACK_SIZE 8192
