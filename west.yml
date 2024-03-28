@@ -39,6 +39,8 @@ manifest:
       url-base: https://github.com/BabbleSim
     - name: bosch
       url-base: https://github.com/boschsensortec
+    - name: arbl
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -158,7 +160,8 @@ manifest:
     - name: matter
       repo-path: sdk-connectedhomeip
       path: modules/lib/matter
-      revision: 70be330c014ae2067be1f641b365c19c2a6e4680
+      remote: arbl
+      revision: nrf54l15_initial_support
       submodules:
         - name: nlio
           path: third_party/nlio/repo
