@@ -21,6 +21,8 @@
 using namespace chip;
 using namespace chip::DeviceLayer;
 
+namespace Nrf::Matter {
+
 #if CONFIG_CHIP_OTA_REQUESTOR
 
 namespace
@@ -30,8 +32,6 @@ DefaultOTARequestorDriver sOTARequestorDriver;
 chip::BDXDownloader sBDXDownloader;
 chip::DefaultOTARequestor sOTARequestor;
 } /* namespace */
-
-namespace Nrf::Matter {
 
 /* compile-time factory method */
 OTAImageProcessorImpl &GetOTAImageProcessor()
