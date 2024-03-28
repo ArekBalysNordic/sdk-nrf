@@ -45,3 +45,16 @@
 &uart30 {
 	status = "okay";
 };
+
+
+/* Workaround for nRF54L15 PDK in revision 0.2.x
+TODO: remove the following lines for PDK in higher revisions
+*/
+/delete-node/ &button2;
+/delete-node/ &button3;
+/ {
+    aliases {
+        /delete-property/ sw2;
+        /delete-property/ sw3;
+    };
+};
