@@ -11,6 +11,37 @@
 	};
 };
 
+/* Matter needs at least 700 kB Flash size, instead of default 344 kB */
+/delete-node/ &rram0;
+
+&rram_controller {
+	reg = < 0x5004b000 0x107E00 >;
+	
+	rram0: rram@0 {
+		compatible = "soc-nv-flash";
+		erase-block-size = < 0x1000 >;
+		write-block-size = < 0x10 >;
+		reg = < 0x0 0x17d000 >;
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = < 0x1 >;
+			#size-cells = < 0x1 >;
+			boot_partition: partition@0 {
+				label = "mcuboot";
+				reg = < 0x0 0x7000 >;
+			};
+			slot0_partition: partition@7000 {
+				label = "image-0";
+				reg = < 0x7000 0xb6800 >;
+			};
+			storage_partition: partition@175000 {
+				label = "storage";
+				reg = < 0x175000 0x8000 >;
+			};
+		};
+	};
+};
+
 &uart30 {
 	status = "okay";
 };
@@ -18,7 +49,7 @@
 
 /* Workaround for nRF54L15 PDK in revision 0.2.x
 TODO: remove the following lines for PDK in higher revisions
-*/
+ */
 /delete-node/ &button2;
 /delete-node/ &button3;
 / {
