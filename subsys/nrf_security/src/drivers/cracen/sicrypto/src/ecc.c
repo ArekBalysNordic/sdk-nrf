@@ -43,7 +43,7 @@ static int on_generated_public(struct sitask *t, struct siwq *wq)
 			sx_pk_release_req(t->pk);
 			t->statuscode = SX_ERR_HW_PROCESSING;
 
-			if (t > 0x30000000) {
+			if ((size_t)t > 0x30000000) {
 				LOG_ERR("\n\n T is invalid %zu", (size_t)t);
 				assert("t is invalid");
 			}
