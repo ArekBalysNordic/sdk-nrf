@@ -20,6 +20,10 @@
 #include "final.h"
 #include "util.h"
 
+#include <zephyr/logging/log.h>
+
+LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
+
 #define MAX_ECC_ATTEMPTS 10
 
 static void run_ecc_generate_public_key(struct sitask *t);
@@ -33,11 +37,19 @@ static int on_generated_public(struct sitask *t, struct siwq *wq)
 	/* When countermeasures are used, the operation may fail with error code
 	 * SX_ERR_NOT_INVERTIBLE. In this case we can try again.
 	 */
+	LOG_ERR("\n\n on generated public:");
 	if (t->statuscode == SX_ERR_NOT_INVERTIBLE) {
 		if (t->params.ecc.attempts--) {
 			sx_pk_release_req(t->pk);
 			t->statuscode = SX_ERR_HW_PROCESSING;
+
+			if (t > 0x30000000) {
+				LOG_ERR("\n\n T is invalid %zu", (size_t)t);
+				assert("t is invalid");
+			}
+
 			run_ecc_generate_public_key(t);
+			LOG_ERR("\n\n status code: %d", t->statuscode);
 		} else {
 			return si_task_mark_final(t, SX_ERR_TOO_MANY_ATTEMPTS);
 		}
@@ -55,6 +67,11 @@ static void run_ecc_generate_public_key(struct sitask *t)
 	struct sx_pk_acq_req pkreq;
 	struct sx_pk_inops_ecp_mult inputs;
 	int opsz;
+
+	// assert(t);
+	if (t == NULL) {
+		LOG_ERR("\n\n t is NULL!! \n\n");
+	}
 
 	pkreq = sx_pk_acquire_req(SX_PK_CMD_ECC_PTMUL);
 	if (pkreq.status) {
@@ -74,6 +91,11 @@ static void run_ecc_generate_public_key(struct sitask *t)
 	/* Write the private key (random) into ba414ep device memory */
 	sx_wrpkmem(inputs.k.addr, t->params.ecc.sk->d, opsz);
 	sx_pk_write_curve_gen(pkreq.req, t->params.ecc.sk->curve, inputs.px, inputs.py);
+
+	if (pkreq.req == NULL) {
+		LOG_ERR("\n\n pkreq.req is NULL!! \n\n");
+	}
+	assert(pkreq.req);
 
 	sx_pk_run(pkreq.req);
 
