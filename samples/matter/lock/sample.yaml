@@ -81,3 +81,8 @@ tests:
       - nrf5340dk/nrf5340/cpuapp
     platform_allow: nrf52840dk/nrf52840 nrf5340dk/nrf5340/cpuapp
     tags: sysbuild
+  sample.matter.lock.nrf54h20.wifi:
+    sysbuild: true
+    build_only: true
+    extra_args: SB_CONFIG_NRF_WIFI=y CONFIG_CHIP_WIFI=y lock_SHIELD=nrf700x_nrf54h20dk
+      SB_CONFIG_BOOTLOADER_NONE=y
