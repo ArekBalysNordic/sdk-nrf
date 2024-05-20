@@ -21,18 +21,39 @@
  *
  * /cr/
  *    /<credential type (int)>/
- *                           /cr_idxs (bytes)/
- *                           /<credential index (int)>/
- *                                                    /<credential data (bytes)>
- *    /usr_idxs (bytes)/
+ *                           / cr_idxs (bytes)
+ *                           / <credential index (int)>/
+ *                                                     / <credential data (bytes)>
+ *    /usr_idxs (bytes)
  *    /usr/
- *        /<user index (int)>/
- *                           / <user data (bytes)> /
+ *        / <user index (int)> /
+ *                             / <user data (bytes)>
+ *
+ *    /sch_<type (w - weekday, y - yearday, h - holiday)>/
+ *    		/sch_idx_<type (w - weekday, y - yearday, h - holiday)> (bytes)/
+ *        			/ <user index (int)> /
+ *                       		/ <schedule index (int)> /
+ *		   		                 			/ <schedule data (bytes)>
+ *
  */
 
 class CredentialsStorage {
 public:
-	enum class Type : uint8_t { User, Credential, UsersIndexes, CredentialsIndexes, RequirePIN };
+	enum class Type : uint8_t {
+		User,
+		Credential,
+		UsersIndexes,
+		CredentialsIndexes,
+		RequirePIN,
+#ifdef CONFIG_LOCK_SCHEDULES
+		WeekDaySchedule,
+		WeekDayScheduleIndexes,
+		YearDaySchedule,
+		YearDayScheduleIndexes,
+		HolidaySchedule,
+		HolidayScheduleIndexes
+#endif /* CONFIG_LOCK_SCHEDULES */
+	};
 
 	/**
 	 * @brief Initialize the persistent storage.
@@ -81,6 +102,13 @@ private:
 	constexpr static auto kUserPrefix = "usr";
 	constexpr static auto kUserCounterPrefix = "usr_idxs";
 	constexpr static auto kRequirePinPrefix = "pin_req";
+#ifdef CONFIG_LOCK_SCHEDULES
+	constexpr static auto kSchedulePrefix = "sch";
+	constexpr static auto kScheduleWeekDaySuffix = "_w";
+	constexpr static auto kScheduleYearDaySuffix = "_y";
+	constexpr static auto kScheduleHolidaySuffix = "_h";
+	constexpr static auto kScheduleCounterPrefix = "sch_idxs";
+#endif /* CONFIG_LOCK_SCHEDULES */
 	constexpr static auto kMaxCredentialsName = Nrf::PersistentStorageNode::kMaxKeyNameLength;
 
 	char mKeyName[CredentialsStorage::kMaxCredentialsName];

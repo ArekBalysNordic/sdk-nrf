@@ -54,6 +54,49 @@ bool BoltLockManager::SetCredential(uint16_t credentialIndex, FabricIndex creato
 						    credentialType, secret);
 }
 
+#ifdef CONFIG_LOCK_SCHEDULES
+
+DlStatus BoltLockManager::GetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
+					     EmberAfPluginDoorLockWeekDaySchedule &schedule)
+{
+	return PinManager::Instance().GetWeekDaySchedule(weekdayIndex, userIndex, schedule);
+}
+
+DlStatus BoltLockManager::SetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex, DlScheduleStatus status,
+					     DaysMaskMap daysMask, uint8_t startHour, uint8_t startMinute,
+					     uint8_t endHour, uint8_t endMinute)
+{
+	return PinManager::Instance().SetWeekDaySchedule(weekdayIndex, userIndex, status, daysMask, startHour,
+							 startMinute, endHour, endMinute);
+}
+
+DlStatus BoltLockManager::GetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex,
+					     EmberAfPluginDoorLockYearDaySchedule &schedule)
+{
+	return PinManager::Instance().GetYearDaySchedule(yearDayIndex, userIndex, schedule);
+}
+
+DlStatus BoltLockManager::SetYearDaySchedule(uint8_t yeardayIndex, uint16_t userIndex, DlScheduleStatus status,
+					     uint32_t localStartTime, uint32_t localEndTime)
+{
+	return PinManager::Instance().SetYearDaySchedule(yeardayIndex, userIndex, status, localStartTime, localEndTime);
+}
+
+DlStatus BoltLockManager::GetHolidaySchedule(uint8_t holidayIndex, EmberAfPluginDoorLockHolidaySchedule &schedule)
+{
+	return PinManager::Instance().GetHolidaySchedule(holidayIndex, schedule);
+}
+
+DlStatus BoltLockManager::SetHolidaySchedule(uint8_t holidayIndex, DlScheduleStatus status, uint32_t localStartTime,
+					     uint32_t localEndTime, OperatingModeEnum operatingMode)
+{
+	return PinManager::Instance().SetHolidaySchedule(holidayIndex, status, localStartTime, localEndTime,
+							 operatingMode);
+}
+
+#endif /* CONFIG_LOCK_SCHEDULES */
+
+
 bool BoltLockManager::ValidatePIN(const Optional<ByteSpan> &pinCode, OperationErrorEnum &err)
 {
 	return PinManager::Instance().ValidatePIN(pinCode, err);

@@ -59,6 +59,21 @@ public:
 			   DlCredentialStatus credentialStatus, CredentialTypeEnum credentialType,
 			   const chip::ByteSpan &secret);
 
+#ifdef CONFIG_LOCK_SCHEDULES
+	DlStatus GetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
+				    EmberAfPluginDoorLockWeekDaySchedule &schedule);
+	DlStatus SetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex, DlScheduleStatus status,
+				    DaysMaskMap daysMask, uint8_t startHour, uint8_t startMinute, uint8_t endHour,
+				    uint8_t endMinute);
+	DlStatus GetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex,
+				    EmberAfPluginDoorLockYearDaySchedule &schedule);
+	DlStatus SetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex, DlScheduleStatus status,
+				    uint32_t localStartTime, uint32_t localEndTime);
+	DlStatus GetHolidaySchedule(uint8_t holidayIndex, EmberAfPluginDoorLockHolidaySchedule &schedule);
+	DlStatus SetHolidaySchedule(uint8_t holidayIndex, DlScheduleStatus status, uint32_t localStartTime,
+				    uint32_t localEndTime, OperatingModeEnum operatingMode);
+#endif /* CONFIG_LOCK_SCHEDULES */
+
 	bool ValidatePIN(const Optional<chip::ByteSpan> &pinCode, OperationErrorEnum &err);
 
 	void Lock(OperationSource source);

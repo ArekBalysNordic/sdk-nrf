@@ -134,6 +134,19 @@ public:
 			   DlCredentialStatus credentialStatus, CredentialTypeEnum credentialType,
 			   const chip::ByteSpan &secret);
 
+	DlStatus GetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
+				    EmberAfPluginDoorLockWeekDaySchedule &schedule);
+	DlStatus SetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex, DlScheduleStatus status,
+				    DaysMaskMap daysMask, uint8_t startHour, uint8_t startMinute, uint8_t endHour,
+				    uint8_t endMinute);
+	DlStatus GetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex,
+				    EmberAfPluginDoorLockYearDaySchedule &schedule);
+	DlStatus SetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex, DlScheduleStatus status,
+				    uint32_t localStartTime, uint32_t localEndTime);
+	DlStatus GetHolidaySchedule(uint8_t holidayIndex, EmberAfPluginDoorLockHolidaySchedule &schedule);
+	DlStatus SetHolidaySchedule(uint8_t holidayIndex, DlScheduleStatus status, uint32_t localStartTime,
+				    uint32_t localEndTime, OperatingModeEnum operatingMode);
+
 	/**
 	 * @brief PIN code validator.
 	 *
@@ -183,7 +196,12 @@ public:
 	void PrintCredential(CredentialTypeEnum type, uint16_t index);
 	const char *GetCredentialName(CredentialTypeEnum type);
 	void PrintUser(uint16_t userIndex);
-#endif
+#ifdef CONFIG_LOCK_SCHEDULES
+	enum class ScheduleType : uint8_t { WeekDay, YearDay, Holiday };
+	/* @param userIndex is only needed for ScheduleType WeekDay and YearDay */
+	void PrintSchedule(ScheduleType scheduleType, uint16_t scheduleIndex, uint16_t userIndex = 0);
+#endif /* CONFIG_LOCK_SCHEDULES */
+#endif /* CONFIG_LOCK_ENABLE_DEBUG */
 
 private:
 	struct CredentialsIndexes {
@@ -195,6 +213,24 @@ private:
 
 	using UsersIndexes = DoorLockData::IndexList<CONFIG_LOCK_MAX_NUM_USERS>;
 
+#ifdef CONFIG_LOCK_SCHEDULES
+	struct WeekDayScheduleIndexes {
+		using ScheduleList = DoorLockData::IndexList<CONFIG_LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER>;
+		ScheduleList mScheduleIndexes[CONFIG_LOCK_MAX_NUM_USERS];
+
+		ScheduleList &Get(uint16_t userIndex) { return mScheduleIndexes[userIndex - 1]; }
+	};
+
+	struct YearDayScheduleIndexes {
+		using ScheduleList = DoorLockData::IndexList<CONFIG_LOCK_MAX_YEARDAY_SCHEDULES_PER_USER>;
+		ScheduleList mScheduleIndexes[CONFIG_LOCK_MAX_NUM_USERS];
+
+		ScheduleList &Get(uint16_t userIndex) { return mScheduleIndexes[userIndex - 1]; }
+	};
+
+	using HolidayScheduleIndexes = DoorLockData::IndexList<CONFIG_LOCK_MAX_HOLIDAY_SCHEDULES>;
+#endif /* CONFIG_LOCK_SCHEDULES */
+
 	CredentialsManager() = default;
 	~CredentialsManager() = default;
 	CredentialsManager(const CredentialsManager &) = delete;
@@ -202,7 +238,12 @@ private:
 	CredentialsManager &operator=(CredentialsManager &) = delete;
 
 	void InitializeUsers();
-	void LoadFromPersistentStorage();
+	void LoadUsersFromPersistentStorage();
+	void LoadCredentialsFromPersistentStorage();
+#ifdef CONFIG_LOCK_SCHEDULES
+	void InitializeSchedules();
+	void LoadSchedulesFromPersistentStorage();
+#endif
 
 	static CHIP_ERROR GetCredentialUserId(uint16_t credentialIndex, CredentialTypeEnum credentialType,
 					      uint32_t &userId);
@@ -226,6 +267,19 @@ private:
 
 	DoorLockData::User mUsers[CONFIG_LOCK_MAX_NUM_USERS] = {};
 	UsersIndexes mUsersIndexes{};
+
+#ifdef CONFIG_LOCK_SCHEDULES
+	DoorLockData::WeekDaySchedule mWeekDaySchedule[CONFIG_LOCK_MAX_NUM_USERS]
+						      [CONFIG_LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER] = {};
+	WeekDayScheduleIndexes mWeekDayScheduleIndexes = {};
+
+	DoorLockData::YearDaySchedule mYearDaySchedule[CONFIG_LOCK_MAX_NUM_USERS]
+						      [CONFIG_LOCK_MAX_YEARDAY_SCHEDULES_PER_USER] = {};
+	YearDayScheduleIndexes mYearDayScheduleIndexes = {};
+
+	DoorLockData::HolidaySchedule mHolidaySchedule[CONFIG_LOCK_MAX_HOLIDAY_SCHEDULES];
+	HolidayScheduleIndexes mHolidayScheduleIndexes = {};
+#endif /* CONFIG_LOCK_SCHEDULES */
 
 	bool mRequirePINForRemoteOperation{ false };
 };

@@ -35,14 +35,18 @@ bool GetStorageFreeSpace(size_t &freeBytes)
 
 /* Currently the secure storage is available only for non-Wi-Fi builds,
    because NCS Wi-Fi implementation does not support PSA API yet. */
-#ifdef CONFIG_CHIP_WIFI
+#if defined(CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND) &&                                                      \
+	!defined(CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND)
 #define PSInit NonSecureInit
 #define PSStore NonSecureStore
 #define PSLoad NonSecureLoad
-#else
+#elif defined(CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND) and                                                     \
+	!defined(CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND)
 #define PSInit SecureInit
 #define PSStore SecureStore
 #define PSLoad SecureLoad
+#else
+#error Please select only one of the possible credential backends: CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND or CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND
 #endif
 
 bool CredentialsStorage::Init()
@@ -89,6 +93,32 @@ bool CredentialsStorage::PrepareKeyName(Type storageType, uint16_t index, uint16
 	case Type::RequirePIN:
 		(void)snprintf(mKeyName, kMaxCredentialsName, "%s", kRequirePinPrefix);
 		return true;
+#ifdef CONFIG_LOCK_SCHEDULES
+	case Type::WeekDaySchedule:
+		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u/%u", kCredentialsPrefix, kSchedulePrefix,
+			       kScheduleWeekDaySuffix, limitedIndex, limitedSubindex);
+		return true;
+	case Type::YearDaySchedule:
+		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u/%u", kCredentialsPrefix, kSchedulePrefix,
+			       kScheduleYearDaySuffix, limitedIndex, limitedSubindex);
+		return true;
+	case Type::HolidaySchedule:
+		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u", kCredentialsPrefix, kSchedulePrefix,
+			       kScheduleHolidaySuffix, limitedIndex);
+		return true;
+	case Type::WeekDayScheduleIndexes:
+		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u", kCredentialsPrefix, kScheduleCounterPrefix,
+			       kScheduleWeekDaySuffix, limitedIndex);
+		return true;
+	case Type::YearDayScheduleIndexes:
+		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u", kCredentialsPrefix, kScheduleCounterPrefix,
+			       kScheduleYearDaySuffix, limitedIndex);
+		return true;
+	case Type::HolidayScheduleIndexes:
+		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s", kCredentialsPrefix, kScheduleCounterPrefix,
+			       kScheduleHolidaySuffix);
+		return true;
+#endif /* CONFIG_LOCK_SCHEDULES */
 	default:
 		break;
 	}
