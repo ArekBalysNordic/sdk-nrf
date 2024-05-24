@@ -132,6 +132,7 @@ struct WeekDaySchedule {
 	static_assert(sizeof(Data) == 5);
 
 	Data mData;
+	bool mAvailable = true;
 
 	/**
 	 * @brief Get required size for single credential entry.
@@ -194,6 +195,7 @@ struct YearDaySchedule {
 	static_assert(sizeof(Data) == 8);
 
 	Data mData;
+	bool mAvailable = true;
 
 	/**
 	 * @brief Get required size for single credential entry.
@@ -257,6 +259,7 @@ struct HolidaySchedule {
 	static_assert(sizeof(Data) == 12);
 
 	Data mData;
+	bool mAvailable = true;
 
 	/**
 	 * @brief Get required size for single credential entry.

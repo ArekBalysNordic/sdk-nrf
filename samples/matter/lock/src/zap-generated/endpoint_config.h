@@ -72,7 +72,7 @@
 	}
 
 // This is an array of EmberAfAttributeMetadata structures.
-#define GENERATED_ATTRIBUTE_COUNT 204
+#define GENERATED_ATTRIBUTE_COUNT 207
 #define GENERATED_ATTRIBUTES                                                                                                          \
 	{                                                                                                                             \
 		/* Endpoint: 0, Cluster: Descriptor (server) */                                                                       \
@@ -480,6 +480,12 @@
 											 */                                           \
 			{ ZAP_SIMPLE_DEFAULT(10), 0x00000012, 2, ZAP_TYPE(INT16U), 0 }, /* NumberOfPINUsersSupported                  \
 											 */                                           \
+			{ ZAP_SIMPLE_DEFAULT(5), 0x00000014, 1, ZAP_TYPE(INT8U), 0 }, /* NumberOfWeekDaySchedulesSupportedPerUser     \
+										       */                                             \
+			{ ZAP_SIMPLE_DEFAULT(5), 0x00000015, 1, ZAP_TYPE(INT8U), 0 }, /* NumberOfYearDaySchedulesSupportedPerUser     \
+										       */                                             \
+			{ ZAP_SIMPLE_DEFAULT(5), 0x00000016, 1, ZAP_TYPE(INT8U), 0 }, /* NumberOfHolidaySchedulesSupported            \
+										       */                                             \
 			{ ZAP_SIMPLE_DEFAULT(8), 0x00000017, 1, ZAP_TYPE(INT8U), 0 }, /* MaxPINCodeLength */                          \
 			{ ZAP_SIMPLE_DEFAULT(6), 0x00000018, 1, ZAP_TYPE(INT8U), 0 }, /* MinPINCodeLength */                          \
 			{ ZAP_SIMPLE_DEFAULT(1), 0x0000001B, 1, ZAP_TYPE(BITMAP8), 0 }, /* CredentialRulesSupport */                  \
@@ -506,7 +512,7 @@
 											 */                                           \
 			{ ZAP_SIMPLE_DEFAULT(0), 0x00000033, 1, ZAP_TYPE(BOOLEAN),                                                    \
 			  ZAP_ATTRIBUTE_MASK(WRITABLE) }, /* RequirePINforRemoteOperation */                                          \
-			{ ZAP_SIMPLE_DEFAULT(0x181), 0x0000FFFC, 4, ZAP_TYPE(BITMAP32), 0 }, /* FeatureMap */                         \
+			{ ZAP_SIMPLE_DEFAULT(0xD91), 0x0000FFFC, 4, ZAP_TYPE(BITMAP32), 0 }, /* FeatureMap */                         \
 			{ ZAP_SIMPLE_DEFAULT(7), 0x0000FFFD, 2, ZAP_TYPE(INT16U), 0 }, /* ClusterRevision */                          \
 	}
 
@@ -632,6 +638,15 @@
   0x00000000 /* LockDoor */, \
   0x00000001 /* UnlockDoor */, \
   0x00000003 /* UnlockWithTimeout */, \
+  0x0000000B /* SetWeekDaySchedule */, \
+  0x0000000C /* GetWeekDaySchedule */, \
+  0x0000000D /* ClearWeekDaySchedule */, \
+  0x0000000E /* SetYearDaySchedule */, \
+  0x0000000F /* GetYearDaySchedule */, \
+  0x00000010 /* ClearYearDaySchedule */, \
+  0x00000011 /* SetHolidaySchedule */, \
+  0x00000012 /* GetHolidaySchedule */, \
+  0x00000013 /* ClearHolidaySchedule */, \
   0x0000001A /* SetUser */, \
   0x0000001B /* GetUser */, \
   0x0000001D /* ClearUser */, \
@@ -639,7 +654,10 @@
   0x00000024 /* GetCredentialStatus */, \
   0x00000026 /* ClearCredential */, \
   chip::kInvalidCommandId /* end of list */, \
-  /*   GeneratedCommandList (index=70)*/ \
+  /*   GeneratedCommandList (index=79)*/ \
+  0x0000000C /* GetWeekDayScheduleResponse */, \
+  0x0000000F /* GetYearDayScheduleResponse */, \
+  0x00000012 /* GetHolidayScheduleResponse */, \
   0x0000001C /* GetUserResponse */, \
   0x00000023 /* SetCredentialResponse */, \
   0x00000025 /* GetCredentialStatusResponse */, \
@@ -890,12 +908,12 @@
       /* Endpoint: 1, Cluster: Door Lock (server) */ \
       .clusterId = 0x00000101, \
       .attributes = ZAP_ATTRIBUTE_INDEX(183), \
-      .attributeCount = 21, \
-      .clusterSize = 34, \
+      .attributeCount = 24, \
+      .clusterSize = 37, \
       .mask = ZAP_CLUSTER_MASK(SERVER) | ZAP_CLUSTER_MASK(ATTRIBUTE_CHANGED_FUNCTION) | ZAP_CLUSTER_MASK(SHUTDOWN_FUNCTION) | ZAP_CLUSTER_MASK(PRE_ATTRIBUTE_CHANGED_FUNCTION), \
       .functions = chipFuncArrayDoorLockServer, \
       .acceptedCommandList = ZAP_GENERATED_COMMANDS_INDEX( 60 ), \
-      .generatedCommandList = ZAP_GENERATED_COMMANDS_INDEX( 70 ), \
+      .generatedCommandList = ZAP_GENERATED_COMMANDS_INDEX( 79 ), \
       .eventList = nullptr, \
       .eventCount = 0, \
     },\
@@ -908,7 +926,7 @@
 // This is an array of EmberAfEndpointType structures.
 #define GENERATED_ENDPOINT_TYPES                                                                                       \
 	{                                                                                                              \
-		{ ZAP_CLUSTER_INDEX(0), 16, 110 }, { ZAP_CLUSTER_INDEX(16), 3, 43 },                                   \
+		{ ZAP_CLUSTER_INDEX(0), 16, 110 }, { ZAP_CLUSTER_INDEX(16), 3, 46 },                                   \
 	}
 
 // Largest attribute size is needed for various buffers
@@ -921,7 +939,7 @@ static_assert(ATTRIBUTE_LARGEST <= CHIP_CONFIG_MAX_ATTRIBUTE_STORE_ELEMENT_SIZE,
 #define ATTRIBUTE_SINGLETONS_SIZE (35)
 
 // Total size of attribute storage
-#define ATTRIBUTE_MAX_SIZE (153)
+#define ATTRIBUTE_MAX_SIZE (156)
 
 // Number of fixed endpoints
 #define FIXED_ENDPOINT_COUNT (2)

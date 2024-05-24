@@ -213,6 +213,15 @@
     0x0000003F, /* Cluster: Group Key Management, Command: KeySetRead, Privilege: administer */ \
     0x0000003F, /* Cluster: Group Key Management, Command: KeySetRemove, Privilege: administer */ \
     0x0000003F, /* Cluster: Group Key Management, Command: KeySetReadAllIndices, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: SetWeekDaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: GetWeekDaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: ClearWeekDaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: SetYearDaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: GetYearDaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: ClearYearDaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: SetHolidaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: GetHolidaySchedule, Privilege: administer */ \
+    0x00000101, /* Cluster: Door Lock, Command: ClearHolidaySchedule, Privilege: administer */ \
     0x00000101, /* Cluster: Door Lock, Command: SetUser, Privilege: administer */ \
     0x00000101, /* Cluster: Door Lock, Command: GetUser, Privilege: administer */ \
     0x00000101, /* Cluster: Door Lock, Command: ClearUser, Privilege: administer */ \
@@ -250,6 +259,15 @@
     0x00000001, /* Cluster: Group Key Management, Command: KeySetRead, Privilege: administer */ \
     0x00000003, /* Cluster: Group Key Management, Command: KeySetRemove, Privilege: administer */ \
     0x00000004, /* Cluster: Group Key Management, Command: KeySetReadAllIndices, Privilege: administer */ \
+    0x0000000B, /* Cluster: Door Lock, Command: SetWeekDaySchedule, Privilege: administer */ \
+    0x0000000C, /* Cluster: Door Lock, Command: GetWeekDaySchedule, Privilege: administer */ \
+    0x0000000D, /* Cluster: Door Lock, Command: ClearWeekDaySchedule, Privilege: administer */ \
+    0x0000000E, /* Cluster: Door Lock, Command: SetYearDaySchedule, Privilege: administer */ \
+    0x0000000F, /* Cluster: Door Lock, Command: GetYearDaySchedule, Privilege: administer */ \
+    0x00000010, /* Cluster: Door Lock, Command: ClearYearDaySchedule, Privilege: administer */ \
+    0x00000011, /* Cluster: Door Lock, Command: SetHolidaySchedule, Privilege: administer */ \
+    0x00000012, /* Cluster: Door Lock, Command: GetHolidaySchedule, Privilege: administer */ \
+    0x00000013, /* Cluster: Door Lock, Command: ClearHolidaySchedule, Privilege: administer */ \
     0x0000001A, /* Cluster: Door Lock, Command: SetUser, Privilege: administer */ \
     0x0000001B, /* Cluster: Door Lock, Command: GetUser, Privilege: administer */ \
     0x0000001D, /* Cluster: Door Lock, Command: ClearUser, Privilege: administer */ \
@@ -287,6 +305,15 @@
     chip::Access::Privilege::kAdminister, /* Cluster: Group Key Management, Command: KeySetRead, Privilege: administer */ \
     chip::Access::Privilege::kAdminister, /* Cluster: Group Key Management, Command: KeySetRemove, Privilege: administer */ \
     chip::Access::Privilege::kAdminister, /* Cluster: Group Key Management, Command: KeySetReadAllIndices, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: SetWeekDaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: GetWeekDaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: ClearWeekDaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: SetYearDaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: GetYearDaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: ClearYearDaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: SetHolidaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: GetHolidaySchedule, Privilege: administer */ \
+    chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: ClearHolidaySchedule, Privilege: administer */ \
     chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: SetUser, Privilege: administer */ \
     chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: GetUser, Privilege: administer */ \
     chip::Access::Privilege::kAdminister, /* Cluster: Door Lock, Command: ClearUser, Privilege: administer */ \

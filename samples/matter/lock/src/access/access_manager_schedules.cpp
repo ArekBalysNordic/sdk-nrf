@@ -41,13 +41,18 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetWeekDaySchedule(uint8_t weekdayIndex, 
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, DlStatus::kFailure);
 	VerifyOrReturnError(weekdayIndex > 0 && weekdayIndex <= CONFIG_LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER,
 			    DlStatus::kFailure);
+	VerifyOrReturnError(!mWeekDaySchedule[userIndex - 1][weekdayIndex - 1].mAvailable, DlStatus::kNotFound);
 
 	auto &schedule = mWeekDaySchedule[userIndex - 1][weekdayIndex - 1];
 
+	if (!schedule.mAvailable) {
+		return DlStatus::kOccupied;
+	}
+
 	if (DlScheduleStatus::kAvailable == status) {
-		if (!AccessStorage::Instance().Remove(AccessStorage::Type::WeekDaySchedule, userIndex, weekdayIndex) ||
-		    !AccessStorage::Instance().Remove(AccessStorage::Type::WeekDayScheduleIndexes, userIndex,
-						      weekdayIndex)) {
+		schedule.mAvailable = true;
+		memset(schedule.mData.mRaw, 0, DoorLockData::WeekDaySchedule::RequiredBufferSize());
+		if (!AccessStorage::Instance().Remove(AccessStorage::Type::WeekDaySchedule, userIndex, weekdayIndex)) {
 			LOG_ERR("Cannot remove the WeekDay schedule");
 			return DlStatus::kFailure;
 		}
@@ -100,6 +105,7 @@ DlStatus AccessManager<CRED_BIT_MASK>::GetYearDaySchedule(uint8_t yearDayIndex, 
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, DlStatus::kFailure);
 	VerifyOrReturnError(yearDayIndex > 0 && yearDayIndex <= CONFIG_LOCK_MAX_YEARDAY_SCHEDULES_PER_USER,
 			    DlStatus::kFailure);
+	VerifyOrReturnError(!mYearDaySchedule[userIndex - 1][yearDayIndex - 1].mAvailable, DlStatus::kNotFound);
 
 	if (CHIP_NO_ERROR != mYearDaySchedule[userIndex - 1][yearDayIndex - 1].ConvertToPlugin(schedule)) {
 		return DlStatus::kNotFound;
@@ -119,10 +125,14 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetYearDaySchedule(uint8_t yeardayIndex, 
 
 	auto &schedule = mYearDaySchedule[userIndex - 1][yeardayIndex - 1];
 
+	if (!schedule.mAvailable) {
+		return DlStatus::kOccupied;
+	}
+
 	if (DlScheduleStatus::kAvailable == status) {
-		if (!AccessStorage::Instance().Remove(AccessStorage::Type::YearDaySchedule, userIndex, yeardayIndex) ||
-		    !AccessStorage::Instance().Remove(AccessStorage::Type::YearDayScheduleIndexes, userIndex,
-						      yeardayIndex)) {
+		schedule.mAvailable = true;
+		memset(schedule.mData.mRaw, 0, DoorLockData::YearDaySchedule::RequiredBufferSize());
+		if (!AccessStorage::Instance().Remove(AccessStorage::Type::YearDaySchedule, userIndex, yeardayIndex)) {
 			LOG_ERR("Cannot remove the YearDay schedule");
 			return DlStatus::kFailure;
 		}
@@ -170,6 +180,7 @@ DlStatus AccessManager<CRED_BIT_MASK>::GetHolidaySchedule(uint8_t holidayIndex,
 							  EmberAfPluginDoorLockHolidaySchedule &schedule)
 {
 	VerifyOrReturnError(holidayIndex > 0 && holidayIndex <= CONFIG_LOCK_MAX_HOLIDAY_SCHEDULES, DlStatus::kFailure);
+	VerifyOrReturnError(!mHolidaySchedule[holidayIndex - 1].mAvailable, DlStatus::kNotFound);
 
 	if (CHIP_NO_ERROR != mHolidaySchedule[holidayIndex - 1].ConvertToPlugin(schedule)) {
 		return DlStatus::kNotFound;
@@ -187,9 +198,14 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetHolidaySchedule(uint8_t holidayIndex, 
 
 	auto &schedule = mHolidaySchedule[holidayIndex - 1];
 
+	if (!schedule.mAvailable) {
+		return DlStatus::kOccupied;
+	}
+
 	if (DlScheduleStatus::kAvailable == status) {
-		if (!AccessStorage::Instance().Remove(AccessStorage::Type::HolidaySchedule, holidayIndex) ||
-		    !AccessStorage::Instance().Remove(AccessStorage::Type::HolidayScheduleIndexes, holidayIndex)) {
+		schedule.mAvailable = true;
+		memset(schedule.mData.mRaw, 0, DoorLockData::HolidaySchedule::RequiredBufferSize());
+		if (!AccessStorage::Instance().Remove(AccessStorage::Type::HolidaySchedule, holidayIndex)) {
 			LOG_ERR("Cannot remove the Holiday schedule");
 			return DlStatus::kFailure;
 		}
@@ -199,6 +215,7 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetHolidaySchedule(uint8_t holidayIndex, 
 	schedule.mData.mFields.mLocalStartTime = localStartTime;
 	schedule.mData.mFields.mLocalEndTime = localEndTime;
 	schedule.mData.mFields.mOperatingMode = static_cast<uint8_t>(operatingMode);
+	schedule.mAvailable = false;
 
 	uint8_t scheduleSerialized[DoorLockData::HolidaySchedule::RequiredBufferSize()] = { 0 };
 	size_t serializedSize = schedule.Serialize(scheduleSerialized, sizeof(scheduleSerialized));
