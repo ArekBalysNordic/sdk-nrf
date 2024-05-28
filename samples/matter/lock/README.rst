@@ -570,7 +570,7 @@ To enable the scheduled timed access feature, complete the following steps:
 
 #. Enable Time Synchronization cluster with all needed types in the ZAP file:
 
-   #. In ZAP Tool GUI select the endpoint 0 and enable Time Synchronization cluster, with both server and client roles, for that endpoint.
+   #. In ZAP Tool GUI, select the endpoint 0 and enable the ``Time Synchronization`` cluster, with both server and client roles, for that endpoint.
 
    #. Click the :guilabel:`Configure` symbol for the ``Time Synchronization`` cluster entry.
    #. In the **Time Synchronization** context window, go to the **Attributes** tab and enable all required attributes:
@@ -597,8 +597,8 @@ To enable the scheduled timed access feature, complete the following steps:
 
 #. In the **Time Synchronization** context window, go to the **Attributes** tab and set the proper bits for the ``FeatureMap`` attribute:
 
-   * For the ``TimeZone`` support set the ``0th`` bit of the feature map bit map.
-   * For the ``TimeSyncClient`` support set the ``3rd`` bit of the feature map bit map.
+   * For the ``TimeZone`` support, set the ``0th`` bit of the feature map bit map.
+   * For the ``TimeSyncClient`` support, set the ``3rd`` bit of the feature map bit map.
 
    As a result, the default decimal value of the ``FeatureMap`` should be `9`.
 
@@ -621,6 +621,9 @@ To learn more about configuring the Matter clusters, see the :ref:`ug_matter_cre
 
 All scheduled timed access entries are saved to non-volatile memory and loaded automatically after device reboot.
 To disable the feature, you need to revert all changes in the :file:`lock.zap` file, re-generate the ZAP files and set the :kconfig:option:`CONFIG_LOCK_SCHEDULES` Kconfig option to ``n``.
+
+.. note::
+   Adding a single schedule for a user contributes to the settings partition memory occupancy increase.
 
 .. _matter_lock_sample_remote_access_with_pin:
 
