@@ -19,7 +19,7 @@ using namespace DoorLockData;
 
 template <CredentialsBits CRED_BIT_MASK>
 DlStatus AccessManager<CRED_BIT_MASK>::GetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
-							       EmberAfPluginDoorLockWeekDaySchedule &schedule)
+							  EmberAfPluginDoorLockWeekDaySchedule &schedule)
 {
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, DlStatus::kFailure);
 	VerifyOrReturnError(weekdayIndex > 0 && weekdayIndex <= CONFIG_LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER,
@@ -34,15 +34,30 @@ DlStatus AccessManager<CRED_BIT_MASK>::GetWeekDaySchedule(uint8_t weekdayIndex, 
 
 template <CredentialsBits CRED_BIT_MASK>
 DlStatus AccessManager<CRED_BIT_MASK>::SetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
-							       DlScheduleStatus status, DaysMaskMap daysMask,
-							       uint8_t startHour, uint8_t startMinute, uint8_t endHour,
-							       uint8_t endMinute)
+							  DlScheduleStatus status, DaysMaskMap daysMask,
+							  uint8_t startHour, uint8_t startMinute, uint8_t endHour,
+							  uint8_t endMinute)
 {
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, DlStatus::kFailure);
 	VerifyOrReturnError(weekdayIndex > 0 && weekdayIndex <= CONFIG_LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER,
 			    DlStatus::kFailure);
+	VerifyOrReturnError(!mWeekDaySchedule[userIndex - 1][weekdayIndex - 1].mAvailable, DlStatus::kNotFound);
 
 	auto &schedule = mWeekDaySchedule[userIndex - 1][weekdayIndex - 1];
+
+	if (!schedule.mAvailable) {
+		return DlStatus::kOccupied;
+	}
+
+	if (DlScheduleStatus::kAvailable == status) {
+		schedule.mAvailable = true;
+		memset(schedule.mData.mRaw, 0, DoorLockData::WeekDaySchedule::RequiredBufferSize());
+		if (!AccessStorage::Instance().Remove(AccessStorage::Type::WeekDaySchedule, userIndex, weekdayIndex)) {
+			LOG_ERR("Cannot remove the WeekDay schedule");
+			return DlStatus::kFailure;
+		}
+		return DlStatus::kSuccess;
+	}
 
 	schedule.mData.mFields.mDaysMask = static_cast<uint8_t>(daysMask);
 	schedule.mData.mFields.mStartHour = startHour;
@@ -69,12 +84,12 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetWeekDaySchedule(uint8_t weekdayIndex, 
 	/* Store to persistent storage */
 	if (0 < serializedSize && 0 < serializedIndexesSize) {
 		if (!AccessStorage::Instance().Store(AccessStorage::Type::WeekDaySchedule, scheduleSerialized,
-							  serializedSize, userIndex, weekdayIndex)) {
+						     serializedSize, userIndex, weekdayIndex)) {
 			LOG_ERR("Cannot store WeekDaySchedule");
 			return DlStatus::kFailure;
 		} else if (!AccessStorage::Instance().Store(AccessStorage::Type::WeekDayScheduleIndexes,
-								 scheduleIndexesSerialized, serializedIndexesSize,
-								 userIndex)) {
+							    scheduleIndexesSerialized, serializedIndexesSize,
+							    userIndex)) {
 			LOG_ERR("Cannot store WeekDaySchedule counter. The persistent database will be corrupted.");
 			return DlStatus::kFailure;
 		}
@@ -85,11 +100,12 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetWeekDaySchedule(uint8_t weekdayIndex, 
 
 template <CredentialsBits CRED_BIT_MASK>
 DlStatus AccessManager<CRED_BIT_MASK>::GetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex,
-							       EmberAfPluginDoorLockYearDaySchedule &schedule)
+							  EmberAfPluginDoorLockYearDaySchedule &schedule)
 {
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, DlStatus::kFailure);
 	VerifyOrReturnError(yearDayIndex > 0 && yearDayIndex <= CONFIG_LOCK_MAX_YEARDAY_SCHEDULES_PER_USER,
 			    DlStatus::kFailure);
+	VerifyOrReturnError(!mYearDaySchedule[userIndex - 1][yearDayIndex - 1].mAvailable, DlStatus::kNotFound);
 
 	if (CHIP_NO_ERROR != mYearDaySchedule[userIndex - 1][yearDayIndex - 1].ConvertToPlugin(schedule)) {
 		return DlStatus::kNotFound;
@@ -100,14 +116,28 @@ DlStatus AccessManager<CRED_BIT_MASK>::GetYearDaySchedule(uint8_t yearDayIndex, 
 
 template <CredentialsBits CRED_BIT_MASK>
 DlStatus AccessManager<CRED_BIT_MASK>::SetYearDaySchedule(uint8_t yeardayIndex, uint16_t userIndex,
-							       DlScheduleStatus status, uint32_t localStartTime,
-							       uint32_t localEndTime)
+							  DlScheduleStatus status, uint32_t localStartTime,
+							  uint32_t localEndTime)
 {
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, DlStatus::kFailure);
 	VerifyOrReturnError(yeardayIndex > 0 && yeardayIndex <= CONFIG_LOCK_MAX_YEARDAY_SCHEDULES_PER_USER,
 			    DlStatus::kFailure);
 
 	auto &schedule = mYearDaySchedule[userIndex - 1][yeardayIndex - 1];
+
+	if (!schedule.mAvailable) {
+		return DlStatus::kOccupied;
+	}
+
+	if (DlScheduleStatus::kAvailable == status) {
+		schedule.mAvailable = true;
+		memset(schedule.mData.mRaw, 0, DoorLockData::YearDaySchedule::RequiredBufferSize());
+		if (!AccessStorage::Instance().Remove(AccessStorage::Type::YearDaySchedule, userIndex, yeardayIndex)) {
+			LOG_ERR("Cannot remove the YearDay schedule");
+			return DlStatus::kFailure;
+		}
+		return DlStatus::kSuccess;
+	}
 
 	schedule.mData.mFields.mLocalStartTime = localStartTime;
 	schedule.mData.mFields.mLocalEndTime = localEndTime;
@@ -131,12 +161,12 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetYearDaySchedule(uint8_t yeardayIndex, 
 	/* Store to persistent storage */
 	if (0 < serializedSize && 0 < serializedIndexesSize) {
 		if (!AccessStorage::Instance().Store(AccessStorage::Type::YearDaySchedule, scheduleSerialized,
-							  serializedSize, userIndex, yeardayIndex)) {
+						     serializedSize, userIndex, yeardayIndex)) {
 			LOG_ERR("Cannot store YearDaySchedule");
 			return DlStatus::kFailure;
 		} else if (!AccessStorage::Instance().Store(AccessStorage::Type::YearDayScheduleIndexes,
-								 scheduleIndexesSerialized, serializedIndexesSize,
-								 userIndex)) {
+							    scheduleIndexesSerialized, serializedIndexesSize,
+							    userIndex)) {
 			LOG_ERR("Cannot store YearDaySchedule counter. The persistent database will be corrupted.");
 			return DlStatus::kFailure;
 		}
@@ -147,9 +177,10 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetYearDaySchedule(uint8_t yeardayIndex, 
 
 template <CredentialsBits CRED_BIT_MASK>
 DlStatus AccessManager<CRED_BIT_MASK>::GetHolidaySchedule(uint8_t holidayIndex,
-							       EmberAfPluginDoorLockHolidaySchedule &schedule)
+							  EmberAfPluginDoorLockHolidaySchedule &schedule)
 {
 	VerifyOrReturnError(holidayIndex > 0 && holidayIndex <= CONFIG_LOCK_MAX_HOLIDAY_SCHEDULES, DlStatus::kFailure);
+	VerifyOrReturnError(!mHolidaySchedule[holidayIndex - 1].mAvailable, DlStatus::kNotFound);
 
 	if (CHIP_NO_ERROR != mHolidaySchedule[holidayIndex - 1].ConvertToPlugin(schedule)) {
 		return DlStatus::kNotFound;
@@ -160,16 +191,31 @@ DlStatus AccessManager<CRED_BIT_MASK>::GetHolidaySchedule(uint8_t holidayIndex,
 
 template <CredentialsBits CRED_BIT_MASK>
 DlStatus AccessManager<CRED_BIT_MASK>::SetHolidaySchedule(uint8_t holidayIndex, DlScheduleStatus status,
-							       uint32_t localStartTime, uint32_t localEndTime,
-							       OperatingModeEnum operatingMode)
+							  uint32_t localStartTime, uint32_t localEndTime,
+							  OperatingModeEnum operatingMode)
 {
 	VerifyOrReturnError(holidayIndex > 0 && holidayIndex <= CONFIG_LOCK_MAX_HOLIDAY_SCHEDULES, DlStatus::kFailure);
 
 	auto &schedule = mHolidaySchedule[holidayIndex - 1];
 
+	if (!schedule.mAvailable) {
+		return DlStatus::kOccupied;
+	}
+
+	if (DlScheduleStatus::kAvailable == status) {
+		schedule.mAvailable = true;
+		memset(schedule.mData.mRaw, 0, DoorLockData::HolidaySchedule::RequiredBufferSize());
+		if (!AccessStorage::Instance().Remove(AccessStorage::Type::HolidaySchedule, holidayIndex)) {
+			LOG_ERR("Cannot remove the Holiday schedule");
+			return DlStatus::kFailure;
+		}
+		return DlStatus::kSuccess;
+	}
+
 	schedule.mData.mFields.mLocalStartTime = localStartTime;
 	schedule.mData.mFields.mLocalEndTime = localEndTime;
 	schedule.mData.mFields.mOperatingMode = static_cast<uint8_t>(operatingMode);
+	schedule.mAvailable = false;
 
 	uint8_t scheduleSerialized[DoorLockData::HolidaySchedule::RequiredBufferSize()] = { 0 };
 	size_t serializedSize = schedule.Serialize(scheduleSerialized, sizeof(scheduleSerialized));
@@ -189,11 +235,11 @@ DlStatus AccessManager<CRED_BIT_MASK>::SetHolidaySchedule(uint8_t holidayIndex, 
 	/* Store to persistent storage */
 	if (0 < serializedSize && 0 < serializedIndexesSize) {
 		if (!AccessStorage::Instance().Store(AccessStorage::Type::HolidaySchedule, scheduleSerialized,
-							  serializedSize, holidayIndex)) {
+						     serializedSize, holidayIndex)) {
 			LOG_ERR("Cannot store HolidaySchedule");
 			return DlStatus::kFailure;
 		} else if (!AccessStorage::Instance().Store(AccessStorage::Type::HolidayScheduleIndexes,
-								 scheduleIndexesSerialized, serializedIndexesSize)) {
+							    scheduleIndexesSerialized, serializedIndexesSize)) {
 			LOG_ERR("Cannot store HolidaySchedule counter. The persistent database will be corrupted.");
 			return DlStatus::kFailure;
 		}
@@ -219,8 +265,8 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 		scheduleFound = false;
 		/* Load WeekDay schedules */
 		if (AccessStorage::Instance().Load(AccessStorage::Type::WeekDayScheduleIndexes,
-							scheduleWeekDayIndexesSerialized,
-							sizeof(scheduleWeekDayIndexesSerialized), outSize, userIndex)) {
+						   scheduleWeekDayIndexesSerialized,
+						   sizeof(scheduleWeekDayIndexesSerialized), outSize, userIndex)) {
 			if (CHIP_NO_ERROR == mWeekDayScheduleIndexes.Get(userIndex).Deserialize(
 						     scheduleWeekDayIndexesSerialized, outSize)) {
 				scheduleFound = true;
@@ -232,9 +278,9 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 			for (size_t scheduleIdx = 0; scheduleIdx < scheduleIndexes.mList.mLength; scheduleIdx++) {
 				/* Read the actual index from the indexList */
 				scheduleIndex = scheduleIndexes.mList.mIndexes[scheduleIdx];
-				if (AccessStorage::Instance().Load(
-					    AccessStorage::Type::WeekDaySchedule, scheduleWeekDayData,
-					    sizeof(scheduleWeekDayData), outSize, userIndex, scheduleIndex)) {
+				if (AccessStorage::Instance().Load(AccessStorage::Type::WeekDaySchedule,
+								   scheduleWeekDayData, sizeof(scheduleWeekDayData),
+								   outSize, userIndex, scheduleIndex)) {
 					if (CHIP_NO_ERROR !=
 					    mWeekDaySchedule[userIndex - 1][scheduleIndex - 1].Deserialize(
 						    scheduleWeekDayData, outSize)) {
@@ -254,8 +300,8 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 
 		/* Load YearDay schedules */
 		if (AccessStorage::Instance().Load(AccessStorage::Type::YearDayScheduleIndexes,
-							scheduleYearDayIndexesSerialized,
-							sizeof(scheduleYearDayIndexesSerialized), outSize, userIndex)) {
+						   scheduleYearDayIndexesSerialized,
+						   sizeof(scheduleYearDayIndexesSerialized), outSize, userIndex)) {
 			if (CHIP_NO_ERROR == mYearDayScheduleIndexes.Get(userIndex).Deserialize(
 						     scheduleYearDayIndexesSerialized, outSize)) {
 				scheduleFound = true;
@@ -267,9 +313,9 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 			for (size_t scheduleIdx = 0; scheduleIdx < scheduleIndexes.mList.mLength; scheduleIdx++) {
 				/* Read the actual index from the indexList */
 				scheduleIndex = scheduleIndexes.mList.mIndexes[scheduleIdx];
-				if (!AccessStorage::Instance().Load(
-					    AccessStorage::Type::YearDaySchedule, scheduleYearDayData,
-					    sizeof(scheduleYearDayData), outSize, userIndex, scheduleIndex)) {
+				if (!AccessStorage::Instance().Load(AccessStorage::Type::YearDaySchedule,
+								    scheduleYearDayData, sizeof(scheduleYearDayData),
+								    outSize, userIndex, scheduleIndex)) {
 				} else {
 					if (CHIP_NO_ERROR !=
 					    mYearDaySchedule[userIndex - 1][scheduleIndex - 1].Deserialize(
@@ -294,8 +340,8 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 	uint8_t scheduleHolidayData[DoorLockData::HolidaySchedule::RequiredBufferSize()] = { 0 };
 
 	if (AccessStorage::Instance().Load(AccessStorage::Type::HolidayScheduleIndexes,
-						scheduleHolidayIndexesSerialized,
-						sizeof(scheduleHolidayIndexesSerialized), outSize, 0)) {
+					   scheduleHolidayIndexesSerialized, sizeof(scheduleHolidayIndexesSerialized),
+					   outSize, 0)) {
 		if (CHIP_NO_ERROR == mHolidayScheduleIndexes.Deserialize(scheduleHolidayIndexesSerialized, outSize)) {
 			scheduleFound = true;
 		}
@@ -304,7 +350,7 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 		/* Read the actual index from the indexList */
 		scheduleIndex = mHolidayScheduleIndexes.mList.mIndexes[scheduleIdx];
 		if (AccessStorage::Instance().Load(AccessStorage::Type::HolidaySchedule, scheduleHolidayData,
-							sizeof(scheduleHolidayData), outSize, scheduleIndex)) {
+						   sizeof(scheduleHolidayData), outSize, scheduleIndex)) {
 			if (CHIP_NO_ERROR !=
 			    mHolidaySchedule[scheduleIndex - 1].Deserialize(scheduleHolidayData, outSize)) {
 				LOG_ERR("Cannot deserialize Holiday Schedule %d ", scheduleIndex);
@@ -321,15 +367,14 @@ template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::Load
 #ifdef CONFIG_LOCK_ENABLE_DEBUG
 
 template <CredentialsBits CRED_BIT_MASK>
-void AccessManager<CRED_BIT_MASK>::PrintSchedule(ScheduleType scheduleType, uint16_t scheduleIndex,
-						      uint16_t userIndex)
+void AccessManager<CRED_BIT_MASK>::PrintSchedule(ScheduleType scheduleType, uint16_t scheduleIndex, uint16_t userIndex)
 {
 	switch (scheduleType) {
 	case ScheduleType::WeekDay: {
 		auto *schedule = &mWeekDaySchedule[userIndex - 1][scheduleIndex - 1];
 		if (schedule) {
-			LOG_INF("-- WeekDay Schedule %d for user %d, days %08u, start %d:%d, end %d:%d",
-				scheduleIndex, userIndex, static_cast<uint8_t>(schedule->mData.mFields.mDaysMask),
+			LOG_INF("-- WeekDay Schedule %d for user %d, days %08u, start %d:%d, end %d:%d", scheduleIndex,
+				userIndex, static_cast<uint8_t>(schedule->mData.mFields.mDaysMask),
 				schedule->mData.mFields.mStartHour, schedule->mData.mFields.mStartMinute,
 				schedule->mData.mFields.mEndHour, schedule->mData.mFields.mEndMinute);
 		}
@@ -337,8 +382,8 @@ void AccessManager<CRED_BIT_MASK>::PrintSchedule(ScheduleType scheduleType, uint
 	case ScheduleType::YearDay: {
 		auto *schedule = &mYearDaySchedule[userIndex - 1][scheduleIndex - 1];
 		if (schedule) {
-			LOG_INF("-- YearDay Schedule %d for user %d, starting time: %u, ending time: %u",
-				scheduleIndex, userIndex, schedule->mData.mFields.mLocalStartTime,
+			LOG_INF("-- YearDay Schedule %d for user %d, starting time: %u, ending time: %u", scheduleIndex,
+				userIndex, schedule->mData.mFields.mLocalStartTime,
 				schedule->mData.mFields.mLocalEndTime);
 		}
 	} break;
@@ -364,4 +409,4 @@ template class AccessManager<DoorLockData::PIN | DoorLockData::RFID>;
 template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
 template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
 template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
-				  DoorLockData::FACE>;
+			     DoorLockData::FACE>;

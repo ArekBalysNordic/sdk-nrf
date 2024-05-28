@@ -90,6 +90,17 @@ public:
 	bool Load(Type storageType, void *data, size_t dataSize, size_t &outSize, uint16_t index = 0,
 		  uint16_t subindex = 0);
 
+	/**
+	 * @brief Remove an entry from the persistent storage.
+	 *
+	 * @param storageType depending on that there will be a different key set.
+	 * @param index a number to be appended to key (<key>/index).
+	 * @param subindex a number to be appended to key and index (<key>/index/subindex).
+	 * @return true if data has been removed successfully.
+	 * @return false an error occurred.
+	 */
+	bool Remove(Type storageType, uint16_t index = 0, uint16_t subindex = 0);
+
 	static AccessStorage &Instance()
 	{
 		static AccessStorage sInstance;
@@ -97,8 +108,8 @@ public:
 	}
 
 private:
-	constexpr static auto kAccessPrefix = "ac";
-	constexpr static auto kAccessCounterPrefix = "ac_idxs";
+	constexpr static auto kAccessPrefix = "cr";
+	constexpr static auto kAccessCounterPrefix = "cr_idxs";
 	constexpr static auto kUserPrefix = "usr";
 	constexpr static auto kUserCounterPrefix = "usr_idxs";
 	constexpr static auto kRequirePinPrefix = "pin_req";

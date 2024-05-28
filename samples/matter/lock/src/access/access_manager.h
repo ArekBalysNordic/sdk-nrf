@@ -136,16 +136,94 @@ public:
 
 #ifdef CONFIG_LOCK_SCHEDULES
 
+	/**
+	 * @brief Get the Week Day Schedule.
+	 *
+	 * @param weekdayIndex schedule index that was saved utilizing setWeekDaySchedule method.
+	 * @param userIndex user index that contains the specific Week day schedule.
+	 * @param schedule Schedule data to be retrieved.
+	 * @retval DlStatus::kNotFound if schedule has not been found.
+	 * @retval DlStatus::kFailure if userIndex or weekdayIndex is out of scope.
+	 * @retval DlStatus::kSuccess if schedule has been retrieved.
+	 */
 	DlStatus GetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
 				    EmberAfPluginDoorLockWeekDaySchedule &schedule);
+
+	/**
+	 * @brief Set the Week Day Schedule object
+	 *
+	 * @param weekdayIndex Schedule index to be set starting from 1.
+	 * @param userIndex User index to be set starting from 1
+	 * @param status New status of the schedule slot (occupied/available).
+	 * @param daysMask Indicates the days of the week the Week Day schedule applies for.
+	 * @param startHour Starting hour for the Week Day schedule.
+	 * @param startMinute Starting minute for the Week Day schedule
+	 * @param endHour Ending hour for the Week Day schedule.
+	 * @param endMinute Ending minute for the Week Day schedule.
+	 * @retval DlStatus::kFailure if userIndex or weekdayIndex is out of scope.
+	 * @retval DlStatus::kSuccess if schedule has been set.
+	 */
 	DlStatus SetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex, DlScheduleStatus status,
 				    DaysMaskMap daysMask, uint8_t startHour, uint8_t startMinute, uint8_t endHour,
 				    uint8_t endMinute);
+
+	/**
+	 * @brief Get the Year Day Schedule.
+	 *
+	 * @param yearDayIndex ndex of the year day schedule to access. It is guaranteed to be within limits declared
+	 * in the spec for year day schedule (from 1 up to NumberOfYearDaySchedulesSupportedPerUser)
+	 * @param userIndex Index of the user to get year day schedule.
+	 * @param schedule Schedule data to be retrieved.
+	 * @retval DlStatus::kNotFound if schedule has not been found.
+	 * @retval DlStatus::kFailure if userIndex or weekdayIndex is out of scope.
+	 * @retval DlStatus::kSuccess if schedule has been retrieved.
+	 */
 	DlStatus GetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex,
 				    EmberAfPluginDoorLockYearDaySchedule &schedule);
+
+	/**
+	 * @brief Set the Year Day Schedule object
+	 *
+	 * @param yearDayIndex Index of the year day schedule to access. It is guaranteed to be within limits declared
+	 * in the spec for year day schedule (from 1 up to NumberOfYearDaySchedulesSupportedPerUser)
+	 * @param userIndex Index of the user to get year day schedule.
+	 * @param status New status of the schedule slot (occupied/available).
+	 * @param localStartTime The starting time for the Year Day schedule in Epoch Time in Seconds with local time
+	 * offset based on the local timezone and DST offset on the day represented by the value.
+	 * @param localEndTime The ending time for the Year Day schedule in Epoch Time in Seconds with local time offset
+	 * based on the local timezone and DST offset on the day represented by the value
+	 * @retval DlStatus::kFailure if userIndex or weekdayIndex is out of scope.
+	 * @retval DlStatus::kSuccess if schedule has been set.
+	 */
 	DlStatus SetYearDaySchedule(uint8_t yearDayIndex, uint16_t userIndex, DlScheduleStatus status,
 				    uint32_t localStartTime, uint32_t localEndTime);
+
+	/**
+	 * @brief Get the Holiday Schedule object
+	 *
+	 * @param holidayIndex Index of the holiday schedule to access. It is guaranteed to be within limits declared in
+	 * the spec for holiday schedule (from 1 up to NumberOfHolidaySchedulesSupported)
+	 * @param schedule Schedule data to be retrieved.
+	 * @retval DlStatus::kNotFound if schedule has not been found.
+	 * @retval DlStatus::kFailure if weekdayIndex is out of scope.
+	 * @retval DlStatus::kSuccess if schedule has been retrieved.
+	 */
 	DlStatus GetHolidaySchedule(uint8_t holidayIndex, EmberAfPluginDoorLockHolidaySchedule &schedule);
+
+	/**
+	 * @brief Set the Holiday Schedule object
+	 *
+	 * @param holidayIndex Index of the holiday schedule to access. It is guaranteed to be within limits declared in
+	 * the spec for holiday schedule (from 1 up to NumberOfHolidaySchedulesSupported).
+	 * @param status New status of the schedule slot (occupied/available).
+	 * @param localStartTime The starting time for the Year Day schedule in Epoch Time in Seconds with local time
+	 * offset based on the local timezone and DST offset on the day represented by the value.
+	 * @param localEndTime The ending time for the Year Day schedule in Epoch Time in Seconds with local time offset
+	 * based on the local timezone and DST offset on the day represented by the value.
+	 * @param operatingMode The operating mode to use during this Holiday schedule start/end time.
+	 * @retval DlStatus::kFailure if weekdayIndex is out of scope.
+	 * @retval DlStatus::kSuccess if schedule has been set.
+	 */
 	DlStatus SetHolidaySchedule(uint8_t holidayIndex, DlScheduleStatus status, uint32_t localStartTime,
 				    uint32_t localEndTime, OperatingModeEnum operatingMode);
 

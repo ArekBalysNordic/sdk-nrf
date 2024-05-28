@@ -622,6 +622,9 @@ To learn more about configuring the Matter clusters, see the :ref:`ug_matter_cre
 All scheduled timed access entries are saved to non-volatile memory and loaded automatically after device reboot.
 To disable the feature, you need to revert all changes in the :file:`lock.zap` file, re-generate the ZAP files and set the :kconfig:option:`CONFIG_LOCK_SCHEDULES` Kconfig option to ``n``.
 
+.. note::
+   Adding a single schedule for a user contributes to the settings partition memory occupancy increase.
+
 .. _matter_lock_sample_remote_access_with_pin:
 
 Testing remote access with PIN code credential

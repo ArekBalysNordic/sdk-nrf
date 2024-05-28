@@ -40,10 +40,12 @@ bool GetStorageFreeSpace(size_t &freeBytes)
 #define PSInit NonSecureInit
 #define PSStore NonSecureStore
 #define PSLoad NonSecureLoad
+#define PSRemove NonSecureRemove
 #elif defined(CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND) and                                                     \
 	!defined(CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND)
 #define PSInit SecureInit
 #define PSStore SecureStore
+#define PSRemove SecureRemove
 #define PSLoad SecureLoad
 #else
 #error Please select only one of the possible credential backends: CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND or CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND
@@ -66,8 +68,7 @@ bool AccessStorage::PrepareKeyName(Type storageType, uint16_t index, uint16_t su
 		if (0 == limitedIndex && 0 == limitedSubindex) {
 			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s", kAccessPrefix, kUserPrefix);
 		} else if (0 == limitedSubindex) {
-			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s/%u", kAccessPrefix, kUserPrefix,
-				       limitedIndex);
+			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s/%u", kAccessPrefix, kUserPrefix, limitedIndex);
 		} else {
 			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s/%u/%u", kAccessPrefix, kUserPrefix,
 				       limitedIndex, limitedSubindex);
@@ -87,8 +88,7 @@ bool AccessStorage::PrepareKeyName(Type storageType, uint16_t index, uint16_t su
 		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s", kAccessPrefix, kUserCounterPrefix);
 		return true;
 	case Type::CredentialsIndexes:
-		(void)snprintf(mKeyName, kMaxAccessName, "%s/%u/%s", kAccessPrefix, limitedIndex,
-			       kAccessPrefix);
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%u/%s", kAccessPrefix, limitedIndex, kAccessPrefix);
 		return true;
 	case Type::RequirePIN:
 		(void)snprintf(mKeyName, kMaxAccessName, "%s", kRequirePinPrefix);
@@ -137,8 +137,8 @@ bool AccessStorage::Store(Type storageType, const void *data, size_t dataSize, u
 
 #ifdef CONFIG_LOCK_PRINT_STORAGE_STATUS
 	if (ret) {
-		LOG_DBG("AccessStorage: Stored %s of size: %d bytes",
-			storageType == Type::User ? "user" : "credential", dataSize);
+		LOG_DBG("AccessStorage: Stored %s of size: %d bytes", storageType == Type::User ? "user" : "credential",
+			dataSize);
 
 		size_t storageFreeSpace;
 		if (GetStorageFreeSpace(storageFreeSpace)) {
@@ -151,7 +151,7 @@ bool AccessStorage::Store(Type storageType, const void *data, size_t dataSize, u
 }
 
 bool AccessStorage::Load(Type storageType, void *data, size_t dataSize, size_t &outSize, uint16_t index,
-			      uint16_t subindex)
+			 uint16_t subindex)
 {
 	if (data == nullptr || !PrepareKeyName(storageType, index, subindex)) {
 		return false;
@@ -159,6 +159,18 @@ bool AccessStorage::Load(Type storageType, void *data, size_t dataSize, size_t &
 
 	Nrf::PersistentStorageNode node{ mKeyName, strlen(mKeyName) + 1 };
 	Nrf::PSErrorCode result = Nrf::GetPersistentStorage().PSLoad(&node, data, dataSize, outSize);
+
+	return (Nrf::PSErrorCode::Success == result);
+}
+
+bool AccessStorage::Remove(Type storageType, uint16_t index, uint16_t subindex)
+{
+	if (!PrepareKeyName(storageType, index, subindex)) {
+		return false;
+	}
+
+	Nrf::PersistentStorageNode node{ mKeyName, strlen(mKeyName) + 1 };
+	Nrf::PSErrorCode result = Nrf::GetPersistentStorage().PSRemove(&node);
 
 	return (Nrf::PSErrorCode::Success == result);
 }
