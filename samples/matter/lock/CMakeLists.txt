@@ -28,7 +28,16 @@ target_include_directories(app PRIVATE
     src
 )
 
-FILE(GLOB cred_srcs src/credentials/*.cpp)
+SET(cred_srcs src/access/access_data_types.cpp
+              src/access/access_manager_credentials.cpp
+              src/access/access_manager_users.cpp
+              src/access/access_manager.cpp
+              src/access/access_storage.cpp
+              )
+
+if(CONFIG_LOCK_SCHEDULES)
+    LIST(APPEND cred_srcs src/access/access_manager_schedules.cpp)
+endif()
 
 target_sources(app PRIVATE
     src/app_task.cpp

@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "credentials_manager.h"
-#include "credentials_storage.h"
+#include "access_manager.h"
+#include "access_storage.h"
 
 #include <platform/CHIPDeviceLayer.h>
 
@@ -17,7 +17,7 @@ using namespace chip;
 using namespace DoorLockData;
 
 template <CredentialsBits CRED_BIT_MASK>
-void CredentialsManager<CRED_BIT_MASK>::Init(SetCredentialCallback setCredentialClbk,
+void AccessManager<CRED_BIT_MASK>::Init(SetCredentialCallback setCredentialClbk,
 					     ClearCredentialCallback clearCredentialClbk,
 					     ValidateCredentialCallback validateCredentialClbk)
 {
@@ -25,7 +25,7 @@ void CredentialsManager<CRED_BIT_MASK>::Init(SetCredentialCallback setCredential
 	mSetCredentialCallback = setCredentialClbk;
 	mClearCredentialCallback = clearCredentialClbk;
 	mValidateCredentialCallback = validateCredentialClbk;
-	CredentialsStorage::Instance().Init();
+	AccessStorage::Instance().Init();
 	LoadUsersFromPersistentStorage();
 	LoadCredentialsFromPersistentStorage();
 #ifdef CONFIG_LOCK_SCHEDULES
@@ -34,7 +34,7 @@ void CredentialsManager<CRED_BIT_MASK>::Init(SetCredentialCallback setCredential
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::ValidateCustom(CredentialTypeEnum type, chip::MutableByteSpan &secret)
+bool AccessManager<CRED_BIT_MASK>::ValidateCustom(CredentialTypeEnum type, chip::MutableByteSpan &secret)
 {
 	/* Run a custom verification within the application layer for RFID credential type */
 	if (mValidateCredentialCallback && type == CredentialTypeEnum::kRfid && secret.size() > 0) {
@@ -45,7 +45,7 @@ bool CredentialsManager<CRED_BIT_MASK>::ValidateCustom(CredentialTypeEnum type, 
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::ValidatePIN(const Optional<ByteSpan> &pinCode, OperationErrorEnum &err)
+bool AccessManager<CRED_BIT_MASK>::ValidatePIN(const Optional<ByteSpan> &pinCode, OperationErrorEnum &err)
 {
 	/* Optionality of the PIN code is validated by the caller, so assume it is OK not to provide the PIN
 	 * code. */
@@ -73,7 +73,7 @@ bool CredentialsManager<CRED_BIT_MASK>::ValidatePIN(const Optional<ByteSpan> &pi
 	return false;
 }
 
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::InitializeUsers()
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::InitializeUsers()
 {
 	for (size_t userIndex = 0; userIndex < CONFIG_LOCK_MAX_NUM_USERS; ++userIndex) {
 		auto &user = mUsers[userIndex];
@@ -91,7 +91,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 }
 
 #ifdef CONFIG_LOCK_SCHEDULES
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::InitializeSchedules()
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::InitializeSchedules()
 {
 	for (size_t userIndex = 0; userIndex < CONFIG_LOCK_MAX_NUM_USERS; ++userIndex) {
 		for (size_t weekDayIndex = 0; weekDayIndex < CONFIG_LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER;
@@ -112,7 +112,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 }
 #endif /* CONFIG_LOCK_SCHEDULES */
 
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::InitializeAllCredentials()
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::InitializeAllCredentials()
 {
 	mCredentials.Initialize();
 	InitializeUsers();
@@ -121,11 +121,11 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 #endif /* CONFIG_LOCK_SCHEDULES */
 }
 
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::SetRequirePIN(bool require)
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::SetRequirePIN(bool require)
 {
 	if (mRequirePINForRemoteOperation != require) {
 		mRequirePINForRemoteOperation = require;
-		if (!CredentialsStorage::Instance().Store(CredentialsStorage::Type::RequirePIN,
+		if (!AccessStorage::Instance().Store(AccessStorage::Type::RequirePIN,
 							  &mRequirePINForRemoteOperation,
 							  sizeof(mRequirePINForRemoteOperation))) {
 			LOG_ERR("Cannot store RequirePINforRemoteOperation.");
@@ -134,9 +134,9 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 }
 
 /* Explicitly instantiate supported template variants to avoid linker errors. */
-template class CredentialsManager<DoorLockData::PIN>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
+template class AccessManager<DoorLockData::PIN>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
 				  DoorLockData::FACE>;

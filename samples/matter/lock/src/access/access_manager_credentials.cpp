@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "credentials_manager.h"
-#include "credentials_storage.h"
+#include "access_manager.h"
+#include "access_storage.h"
 
 #include <platform/CHIPDeviceLayer.h>
 
@@ -17,8 +17,8 @@ using namespace chip;
 using namespace DoorLockData;
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::GetCredential(uint16_t credentialIndex, CredentialTypeEnum credentialType,
-						      EmberAfPluginDoorLockCredentialInfo &credential)
+bool AccessManager<CRED_BIT_MASK>::GetCredential(uint16_t credentialIndex, CredentialTypeEnum credentialType,
+						 EmberAfPluginDoorLockCredentialInfo &credential)
 {
 	VerifyOrReturnError(credentialIndex > 0 && credentialIndex <= CONFIG_LOCK_MAX_NUM_CREDENTIALS_PER_TYPE, false);
 	VerifyOrReturnError(CHIP_NO_ERROR == mCredentials.GetCredentials(credentialType, credential, credentialIndex),
@@ -28,9 +28,9 @@ bool CredentialsManager<CRED_BIT_MASK>::GetCredential(uint16_t credentialIndex, 
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::SetCredential(uint16_t credentialIndex, FabricIndex creator,
-						      FabricIndex modifier, DlCredentialStatus credentialStatus,
-						      CredentialTypeEnum credentialType, const ByteSpan &secret)
+bool AccessManager<CRED_BIT_MASK>::SetCredential(uint16_t credentialIndex, FabricIndex creator, FabricIndex modifier,
+						 DlCredentialStatus credentialStatus, CredentialTypeEnum credentialType,
+						 const ByteSpan &secret)
 {
 	/* Programming PIN is a special case - it is unique and its index assumed to be 0, currently we do not
 	 * support it */
@@ -47,10 +47,10 @@ bool CredentialsManager<CRED_BIT_MASK>::SetCredential(uint16_t credentialIndex, 
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::DoSetCredential(DoorLockData::Credential &credential, uint16_t credentialIndex,
-							FabricIndex creator, FabricIndex modifier,
-							DlCredentialStatus credentialStatus,
-							CredentialTypeEnum credentialType, const ByteSpan &secret)
+bool AccessManager<CRED_BIT_MASK>::DoSetCredential(DoorLockData::Credential &credential, uint16_t credentialIndex,
+						   FabricIndex creator, FabricIndex modifier,
+						   DlCredentialStatus credentialStatus,
+						   CredentialTypeEnum credentialType, const ByteSpan &secret)
 {
 	uint32_t uniqueUserId;
 	credential.mInfo.mFields.mStatus = static_cast<uint8_t>(credentialStatus);
@@ -97,14 +97,14 @@ bool CredentialsManager<CRED_BIT_MASK>::DoSetCredential(DoorLockData::Credential
 
 	/* Store to persistent storage */
 	if (0 < serializedSize && 0 < credIndexesSerializedSize) {
-		if (!CredentialsStorage::Instance().Store(
-			    CredentialsStorage::Type::Credential, credentialSerialized, serializedSize,
+		if (!AccessStorage::Instance().Store(
+			    AccessStorage::Type::Credential, credentialSerialized, serializedSize,
 			    static_cast<CredentialTypeIndex>(credentialType), credentialIndex)) {
 			LOG_ERR("Cannot store given credentials Type: %d Idx: %d",
 				static_cast<uint16_t>(credentialType), credentialIndex);
 		} else {
-			if (!CredentialsStorage::Instance().Store(
-				    CredentialsStorage::Type::CredentialsIndexes, credentialIndexesSerialized,
+			if (!AccessStorage::Instance().Store(
+				    AccessStorage::Type::CredentialsIndexes, credentialIndexesSerialized,
 				    credIndexesSerializedSize, static_cast<CredentialTypeIndex>(credentialType))) {
 				LOG_ERR("Cannot store credentials counter. The persistent database will be corrupted.");
 			}
@@ -128,8 +128,8 @@ bool CredentialsManager<CRED_BIT_MASK>::DoSetCredential(DoorLockData::Credential
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-CHIP_ERROR CredentialsManager<CRED_BIT_MASK>::GetCredentialUserId(uint16_t credentialIndex,
-								  CredentialTypeEnum credentialType, uint32_t &userId)
+CHIP_ERROR AccessManager<CRED_BIT_MASK>::GetCredentialUserId(uint16_t credentialIndex,
+							     CredentialTypeEnum credentialType, uint32_t &userId)
 {
 	for (size_t idxUsr = 0; idxUsr < CONFIG_LOCK_MAX_NUM_USERS; ++idxUsr) {
 		auto &user = Instance().mUsers[idxUsr];
@@ -146,7 +146,7 @@ CHIP_ERROR CredentialsManager<CRED_BIT_MASK>::GetCredentialUserId(uint16_t crede
 }
 
 #ifdef CONFIG_LOCK_LEAVE_FABRIC_CLEAR_CREDENTIAL
-template <CredentialsBits CRED_BIT_MASK> bool CredentialsManager<CRED_BIT_MASK>::ClearAllCredentialsFromFabric()
+template <CredentialsBits CRED_BIT_MASK> bool AccessManager<CRED_BIT_MASK>::ClearAllCredentialsFromFabric()
 {
 	return mCredentials.ForEach([](DoorLockData::Credential &credential, uint8_t credIdx) {
 		/* At this point the door-lock-server already invalidated both mCreatedBy and mLastModifiedBy
@@ -160,7 +160,7 @@ template <CredentialsBits CRED_BIT_MASK> bool CredentialsManager<CRED_BIT_MASK>:
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::ClearCredential(DoorLockData::Credential &credential, uint8_t credIdx)
+bool AccessManager<CRED_BIT_MASK>::ClearCredential(DoorLockData::Credential &credential, uint8_t credIdx)
 {
 	credIdx++; /* DoSetCredential expects indexes starting from 1 */
 	return DoSetCredential(credential, credIdx, kUndefinedFabricIndex, kUndefinedFabricIndex,
@@ -170,7 +170,7 @@ bool CredentialsManager<CRED_BIT_MASK>::ClearCredential(DoorLockData::Credential
 }
 #endif
 
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::LoadCredentialsFromPersistentStorage()
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::LoadCredentialsFromPersistentStorage()
 {
 	uint8_t credentialData[DoorLockData::Credential::RequiredBufferSize()] = { 0 };
 	uint8_t credentialIndexesSerialized[CredentialsIndexes::CredentialList::RequiredBufferSize()] = { 0 };
@@ -184,7 +184,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 			continue;
 		}
 		outSize = 0;
-		if (!CredentialsStorage::Instance().Load(CredentialsStorage::Type::CredentialsIndexes,
+		if (!AccessStorage::Instance().Load(AccessStorage::Type::CredentialsIndexes,
 							 credentialIndexesSerialized,
 							 sizeof(credentialIndexesSerialized), outSize, type)) {
 			LOG_INF("No stored indexes for credential of type: %d", type);
@@ -201,7 +201,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 			/* Read the actual index from the indexList */
 			uint16_t credentialIndex = credIndexes.mList.mIndexes[idx];
 			outSize = 0;
-			if (!CredentialsStorage::Instance().Load(CredentialsStorage::Type::Credential, credentialData,
+			if (!AccessStorage::Instance().Load(AccessStorage::Type::Credential, credentialData,
 								 sizeof(credentialData), outSize, type,
 								 credentialIndex)) {
 				LOG_ERR("Cannot load credentials of type %d for index: %d", static_cast<uint8_t>(type),
@@ -215,7 +215,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 		}
 	}
 	outSize = 0;
-	if (!CredentialsStorage::Instance().Load(CredentialsStorage::Type::RequirePIN, &mRequirePINForRemoteOperation,
+	if (!AccessStorage::Instance().Load(AccessStorage::Type::RequirePIN, &mRequirePINForRemoteOperation,
 						 sizeof(mRequirePINForRemoteOperation), outSize) ||
 	    outSize != sizeof(mRequirePINForRemoteOperation)) {
 		LOG_DBG("Cannot load RequirePINforRemoteOperation");
@@ -225,7 +225,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 #ifdef CONFIG_LOCK_ENABLE_DEBUG
 
 template <CredentialsBits CRED_BIT_MASK>
-const char *CredentialsManager<CRED_BIT_MASK>::GetCredentialName(CredentialTypeEnum type)
+const char *AccessManager<CRED_BIT_MASK>::GetCredentialName(CredentialTypeEnum type)
 {
 	switch (type) {
 	case CredentialTypeEnum::kPin:
@@ -244,7 +244,7 @@ const char *CredentialsManager<CRED_BIT_MASK>::GetCredentialName(CredentialTypeE
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-void CredentialsManager<CRED_BIT_MASK>::PrintCredential(CredentialTypeEnum type, uint16_t index)
+void AccessManager<CRED_BIT_MASK>::PrintCredential(CredentialTypeEnum type, uint16_t index)
 {
 	bool success{ false };
 	auto &credentialList = mCredentials.GetCredentialsTypes(type, success);
@@ -274,9 +274,9 @@ void CredentialsManager<CRED_BIT_MASK>::PrintCredential(CredentialTypeEnum type,
 #endif
 
 /* Explicitly instantiate supported template variants to avoid linker errors. */
-template class CredentialsManager<DoorLockData::PIN>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
-				  DoorLockData::FACE>;
+template class AccessManager<DoorLockData::PIN>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
+			     DoorLockData::FACE>;

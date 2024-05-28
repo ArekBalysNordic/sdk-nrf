@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "credentials_data_types.h"
+#include "access_data_types.h"
 
 namespace DoorLockData
 {

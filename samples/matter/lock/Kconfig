@@ -30,20 +30,21 @@ config LOCK_SCHEDULES
 	  specific user for a specific amount of time. For example, use it to
 	  allow access to a user only for three days in week.
 
+if LOCK_SCHEDULES
+
 config LOCK_MAX_WEEKDAY_SCHEDULES_PER_USER
 	int "Maximum number of WeekDay schedules per one user supported by the lock"
-	depends on LOCK_SCHEDULES
 	default 5
 
 config LOCK_MAX_YEARDAY_SCHEDULES_PER_USER
 	int "Maximum number of YearDay schedules per one user supported by the lock"
-	depends on LOCK_SCHEDULES
 	default 5
 
 config LOCK_MAX_HOLIDAY_SCHEDULES
 	int "Maximum number of Holiday schedules supported by the lock"
-	depends on LOCK_SCHEDULES
 	default 5
+
+endif
 
 config LOCK_ENABLE_DEBUG
 	bool "Enable debug features to print users and credentials"

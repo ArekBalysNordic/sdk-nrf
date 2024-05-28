@@ -6,7 +6,7 @@
 
 #pragma once
 
-#include "credentials/credentials_manager.h"
+#include "access/access_manager.h"
 
 #include <app/clusters/door-lock-server/door-lock-server.h>
 #include <lib/core/ClusterEnums.h>
@@ -83,7 +83,7 @@ public:
 	bool GetRequirePIN();
 
 private:
-	using PinManager = CredentialsManager<DoorLockData::PIN>;
+	using AccessMgr = AccessManager<DoorLockData::PIN>;
 	friend class AppTask;
 
 	void SetState(State state, OperationSource source);

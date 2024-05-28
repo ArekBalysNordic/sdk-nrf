@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "credentials_storage.h"
+#include "access_storage.h"
 
 #include <persistent_storage/persistent_storage.h>
 
@@ -24,7 +24,7 @@ bool GetStorageFreeSpace(size_t &freeBytes)
 	void *storage = nullptr;
 	int status = settings_storage_get(&storage);
 	if (status != 0 || !storage) {
-		LOG_ERR("CredentialsStorage: Cannot read NVS free space [error: %d]", status);
+		LOG_ERR("AccessStorage: Cannot read NVS free space [error: %d]", status);
 		return false;
 	}
 	freeBytes = nvs_calc_free_space(static_cast<nvs_fs *>(storage));
@@ -49,12 +49,12 @@ bool GetStorageFreeSpace(size_t &freeBytes)
 #error Please select only one of the possible credential backends: CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND or CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND
 #endif
 
-bool CredentialsStorage::Init()
+bool AccessStorage::Init()
 {
 	return (Nrf::Success == Nrf::GetPersistentStorage().PSInit());
 }
 
-bool CredentialsStorage::PrepareKeyName(Type storageType, uint16_t index, uint16_t subindex)
+bool AccessStorage::PrepareKeyName(Type storageType, uint16_t index, uint16_t subindex)
 {
 	memset(mKeyName, '\0', sizeof(mKeyName));
 
@@ -64,58 +64,58 @@ bool CredentialsStorage::PrepareKeyName(Type storageType, uint16_t index, uint16
 	switch (storageType) {
 	case Type::User:
 		if (0 == limitedIndex && 0 == limitedSubindex) {
-			(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s", kCredentialsPrefix, kUserPrefix);
+			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s", kAccessPrefix, kUserPrefix);
 		} else if (0 == limitedSubindex) {
-			(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s/%u", kCredentialsPrefix, kUserPrefix,
+			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s/%u", kAccessPrefix, kUserPrefix,
 				       limitedIndex);
 		} else {
-			(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s/%u/%u", kCredentialsPrefix, kUserPrefix,
+			(void)snprintf(mKeyName, kMaxAccessName, "%s/%s/%u/%u", kAccessPrefix, kUserPrefix,
 				       limitedIndex, limitedSubindex);
 		}
 		return true;
 	case Type::Credential:
 		if (0 == limitedIndex && 0 == limitedSubindex) {
-			(void)snprintf(mKeyName, kMaxCredentialsName, "%s", kCredentialsPrefix);
+			(void)snprintf(mKeyName, kMaxAccessName, "%s", kAccessPrefix);
 		} else if (0 == limitedSubindex) {
-			(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%u", kCredentialsPrefix, limitedIndex);
+			(void)snprintf(mKeyName, kMaxAccessName, "%s/%u", kAccessPrefix, limitedIndex);
 		} else {
-			(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%u/%u", kCredentialsPrefix, limitedIndex,
+			(void)snprintf(mKeyName, kMaxAccessName, "%s/%u/%u", kAccessPrefix, limitedIndex,
 				       limitedSubindex);
 		}
 		return true;
 	case Type::UsersIndexes:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s", kCredentialsPrefix, kUserCounterPrefix);
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s", kAccessPrefix, kUserCounterPrefix);
 		return true;
 	case Type::CredentialsIndexes:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%u/%s", kCredentialsPrefix, limitedIndex,
-			       kCredentialsCounterPrefix);
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%u/%s", kAccessPrefix, limitedIndex,
+			       kAccessPrefix);
 		return true;
 	case Type::RequirePIN:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s", kRequirePinPrefix);
+		(void)snprintf(mKeyName, kMaxAccessName, "%s", kRequirePinPrefix);
 		return true;
 #ifdef CONFIG_LOCK_SCHEDULES
 	case Type::WeekDaySchedule:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u/%u", kCredentialsPrefix, kSchedulePrefix,
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s%s/%u/%u", kAccessPrefix, kSchedulePrefix,
 			       kScheduleWeekDaySuffix, limitedIndex, limitedSubindex);
 		return true;
 	case Type::YearDaySchedule:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u/%u", kCredentialsPrefix, kSchedulePrefix,
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s%s/%u/%u", kAccessPrefix, kSchedulePrefix,
 			       kScheduleYearDaySuffix, limitedIndex, limitedSubindex);
 		return true;
 	case Type::HolidaySchedule:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u", kCredentialsPrefix, kSchedulePrefix,
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s%s/%u", kAccessPrefix, kSchedulePrefix,
 			       kScheduleHolidaySuffix, limitedIndex);
 		return true;
 	case Type::WeekDayScheduleIndexes:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u", kCredentialsPrefix, kScheduleCounterPrefix,
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s%s/%u", kAccessPrefix, kScheduleCounterPrefix,
 			       kScheduleWeekDaySuffix, limitedIndex);
 		return true;
 	case Type::YearDayScheduleIndexes:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s/%u", kCredentialsPrefix, kScheduleCounterPrefix,
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s%s/%u", kAccessPrefix, kScheduleCounterPrefix,
 			       kScheduleYearDaySuffix, limitedIndex);
 		return true;
 	case Type::HolidayScheduleIndexes:
-		(void)snprintf(mKeyName, kMaxCredentialsName, "%s/%s%s", kCredentialsPrefix, kScheduleCounterPrefix,
+		(void)snprintf(mKeyName, kMaxAccessName, "%s/%s%s", kAccessPrefix, kScheduleCounterPrefix,
 			       kScheduleHolidaySuffix);
 		return true;
 #endif /* CONFIG_LOCK_SCHEDULES */
@@ -126,7 +126,7 @@ bool CredentialsStorage::PrepareKeyName(Type storageType, uint16_t index, uint16
 	return false;
 }
 
-bool CredentialsStorage::Store(Type storageType, const void *data, size_t dataSize, uint16_t index, uint16_t subindex)
+bool AccessStorage::Store(Type storageType, const void *data, size_t dataSize, uint16_t index, uint16_t subindex)
 {
 	if (data == nullptr || !PrepareKeyName(storageType, index, subindex)) {
 		return false;
@@ -137,12 +137,12 @@ bool CredentialsStorage::Store(Type storageType, const void *data, size_t dataSi
 
 #ifdef CONFIG_LOCK_PRINT_STORAGE_STATUS
 	if (ret) {
-		LOG_DBG("CredentialsStorage: Stored %s of size: %d bytes",
+		LOG_DBG("AccessStorage: Stored %s of size: %d bytes",
 			storageType == Type::User ? "user" : "credential", dataSize);
 
 		size_t storageFreeSpace;
 		if (GetStorageFreeSpace(storageFreeSpace)) {
-			LOG_DBG("CredentialsStorage: Free space: %d bytes", storageFreeSpace);
+			LOG_DBG("AccessStorage: Free space: %d bytes", storageFreeSpace);
 		}
 	}
 #endif
@@ -150,7 +150,7 @@ bool CredentialsStorage::Store(Type storageType, const void *data, size_t dataSi
 	return ret;
 }
 
-bool CredentialsStorage::Load(Type storageType, void *data, size_t dataSize, size_t &outSize, uint16_t index,
+bool AccessStorage::Load(Type storageType, void *data, size_t dataSize, size_t &outSize, uint16_t index,
 			      uint16_t subindex)
 {
 	if (data == nullptr || !PrepareKeyName(storageType, index, subindex)) {

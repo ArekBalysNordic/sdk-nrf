@@ -9,9 +9,9 @@
 #include <app/clusters/door-lock-server/door-lock-server.h>
 #include <lib/core/ClusterEnums.h>
 
-#include "credentials_data_types.h"
+#include "access_data_types.h"
 
-template <DoorLockData::CredentialsBits CRED_BIT_MASK> class CredentialsManager {
+template <DoorLockData::CredentialsBits CRED_BIT_MASK> class AccessManager {
 public:
 	/**
 	 * @brief Signature of the callback fired when the credential is set.
@@ -55,9 +55,9 @@ public:
 	 *
 	 * @return CredentialManager single instance
 	 */
-	static CredentialsManager &Instance()
+	static AccessManager &Instance()
 	{
-		static CredentialsManager sInstance;
+		static AccessManager sInstance;
 		return sInstance;
 	}
 
@@ -134,6 +134,8 @@ public:
 			   DlCredentialStatus credentialStatus, CredentialTypeEnum credentialType,
 			   const chip::ByteSpan &secret);
 
+#ifdef CONFIG_LOCK_SCHEDULES
+
 	DlStatus GetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex,
 				    EmberAfPluginDoorLockWeekDaySchedule &schedule);
 	DlStatus SetWeekDaySchedule(uint8_t weekdayIndex, uint16_t userIndex, DlScheduleStatus status,
@@ -146,6 +148,8 @@ public:
 	DlStatus GetHolidaySchedule(uint8_t holidayIndex, EmberAfPluginDoorLockHolidaySchedule &schedule);
 	DlStatus SetHolidaySchedule(uint8_t holidayIndex, DlScheduleStatus status, uint32_t localStartTime,
 				    uint32_t localEndTime, OperatingModeEnum operatingMode);
+
+#endif /* CONFIG_LOCK_SCHEDULES */
 
 	/**
 	 * @brief PIN code validator.
@@ -231,11 +235,11 @@ private:
 	using HolidayScheduleIndexes = DoorLockData::IndexList<CONFIG_LOCK_MAX_HOLIDAY_SCHEDULES>;
 #endif /* CONFIG_LOCK_SCHEDULES */
 
-	CredentialsManager() = default;
-	~CredentialsManager() = default;
-	CredentialsManager(const CredentialsManager &) = delete;
-	CredentialsManager(CredentialsManager &&) = delete;
-	CredentialsManager &operator=(CredentialsManager &) = delete;
+	AccessManager() = default;
+	~AccessManager() = default;
+	AccessManager(const AccessManager &) = delete;
+	AccessManager(AccessManager &&) = delete;
+	AccessManager &operator=(AccessManager &) = delete;
 
 	void InitializeUsers();
 	void LoadUsersFromPersistentStorage();

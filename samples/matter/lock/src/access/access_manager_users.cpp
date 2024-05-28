@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-#include "credentials_manager.h"
-#include "credentials_storage.h"
+#include "access_manager.h"
+#include "access_storage.h"
 
 #include <platform/CHIPDeviceLayer.h>
 
@@ -17,7 +17,7 @@ using namespace chip;
 using namespace DoorLockData;
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::GetUserInfo(uint16_t userIndex, EmberAfPluginDoorLockUserInfo &user)
+bool AccessManager<CRED_BIT_MASK>::GetUserInfo(uint16_t userIndex, EmberAfPluginDoorLockUserInfo &user)
 {
 	/* userIndex is guaranteed by the caller to be between 1 and CONFIG_LOCK_MAX_NUM_USERS */
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, false);
@@ -29,10 +29,10 @@ bool CredentialsManager<CRED_BIT_MASK>::GetUserInfo(uint16_t userIndex, EmberAfP
 }
 
 template <CredentialsBits CRED_BIT_MASK>
-bool CredentialsManager<CRED_BIT_MASK>::SetUser(uint16_t userIndex, FabricIndex creator, FabricIndex modifier,
-						const CharSpan &userName, uint32_t uniqueId, UserStatusEnum userStatus,
-						UserTypeEnum userType, CredentialRuleEnum credentialRule,
-						const CredentialStruct *credentials, size_t totalCredentials)
+bool AccessManager<CRED_BIT_MASK>::SetUser(uint16_t userIndex, FabricIndex creator, FabricIndex modifier,
+					   const CharSpan &userName, uint32_t uniqueId, UserStatusEnum userStatus,
+					   UserTypeEnum userType, CredentialRuleEnum credentialRule,
+					   const CredentialStruct *credentials, size_t totalCredentials)
 {
 	/* userIndex is guaranteed by the caller to be between 1 and CONFIG_LOCK_MAX_NUM_USERS */
 	VerifyOrReturnError(userIndex > 0 && userIndex <= CONFIG_LOCK_MAX_NUM_USERS, false);
@@ -75,12 +75,12 @@ bool CredentialsManager<CRED_BIT_MASK>::SetUser(uint16_t userIndex, FabricIndex 
 
 	/* Store to persistent storage */
 	if (0 < serializedSize && 0 < serializedIndexesSize) {
-		if (!CredentialsStorage::Instance().Store(CredentialsStorage::Type::User, userSerialized,
+		if (!AccessStorage::Instance().Store(AccessStorage::Type::User, userSerialized,
 							  serializedSize, userIndex)) {
 			LOG_ERR("Cannot store given User Idx: %d", userIndex);
 			return false;
 		} else {
-			if (!CredentialsStorage::Instance().Store(CredentialsStorage::Type::UsersIndexes,
+			if (!AccessStorage::Instance().Store(AccessStorage::Type::UsersIndexes,
 								  userIndexesSerialized, serializedIndexesSize, 0)) {
 				LOG_ERR("Cannot store users counter. The persistent database will be corrupted.");
 			}
@@ -95,7 +95,7 @@ bool CredentialsManager<CRED_BIT_MASK>::SetUser(uint16_t userIndex, FabricIndex 
 	return true;
 }
 
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::LoadUsersFromPersistentStorage()
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::LoadUsersFromPersistentStorage()
 {
 	/* Load all Users from persistent storage */
 	uint8_t userIndexesSerialized[UsersIndexes::RequiredBufferSize()] = { 0 };
@@ -103,7 +103,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 	bool usersFound{ false };
 	size_t outSize{ 0 };
 
-	if (!CredentialsStorage::Instance().Load(CredentialsStorage::Type::UsersIndexes, userIndexesSerialized,
+	if (!AccessStorage::Instance().Load(AccessStorage::Type::UsersIndexes, userIndexesSerialized,
 						 sizeof(userIndexesSerialized), outSize, 0)) {
 		LOG_INF("No users indexes stored");
 	} else {
@@ -117,7 +117,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 			/* Read the actual index from the indexList */
 			uint16_t userIndex = mUsersIndexes.mList.mIndexes[idx];
 			outSize = 0;
-			if (CredentialsStorage::Instance().Load(CredentialsStorage::Type::User, userData,
+			if (AccessStorage::Instance().Load(AccessStorage::Type::User, userData,
 								sizeof(userData), outSize, userIndex)) {
 				if (CHIP_NO_ERROR != mUsers[userIndex - 1].Deserialize(userData, outSize)) {
 					LOG_ERR("Cannot deserialize User index: %d", userIndex);
@@ -129,7 +129,7 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 
 #ifdef CONFIG_LOCK_ENABLE_DEBUG
 
-template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>::PrintUser(uint16_t userIndex)
+template <CredentialsBits CRED_BIT_MASK> void AccessManager<CRED_BIT_MASK>::PrintUser(uint16_t userIndex)
 {
 	auto *user = &mUsers[userIndex - 1];
 
@@ -173,9 +173,9 @@ template <CredentialsBits CRED_BIT_MASK> void CredentialsManager<CRED_BIT_MASK>:
 #endif
 
 /* Explicitly instantiate supported template variants to avoid linker errors. */
-template class CredentialsManager<DoorLockData::PIN>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
-template class CredentialsManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
-				  DoorLockData::FACE>;
+template class AccessManager<DoorLockData::PIN>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN>;
+template class AccessManager<DoorLockData::PIN | DoorLockData::RFID | DoorLockData::FINGER | DoorLockData::VEIN |
+			     DoorLockData::FACE>;

@@ -76,7 +76,7 @@ For details, see the `Commissioning the device`_ section.
 Door lock credentials
 =====================
 
-By default, the application supports only PIN code credentials, but it is possible to implement support for other door lock credential types by using the ``CredentialsManager`` module.
+By default, the application supports only PIN code credentials, but it is possible to implement support for other door lock credential types by using the ``AccessManager`` module.
 The credentials can be used to control remote access to the bolt lock.
 The PIN code assigned by the Matter controller is stored persistently, which means that it can survive a device reboot.
 Depending on the IPv6 network technology in use, the following storage backends are supported by default to store the PIN code credential:
