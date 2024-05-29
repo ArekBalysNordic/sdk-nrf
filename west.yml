@@ -41,6 +41,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: arbl
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -114,7 +116,8 @@ manifest:
     - name: hostap
       repo-path: sdk-hostap
       path: modules/lib/hostap
-      revision: 3ac5008029de16f83d585d2735768ada53c5b05e
+      remote: arbl
+      revision: allow_to_not_use_x509
       userdata:
         ncs:
           upstream-url: https://w1.fi/cgit/hostap/
@@ -160,7 +163,8 @@ manifest:
     - name: matter
       repo-path: sdk-connectedhomeip
       path: modules/lib/matter
-      revision: 78d81b482013968eecd75bc5e8824d92d65ed429
+      remote: arbl
+      revision: disable_mbedtls_tls
       west-commands: scripts/west/west-commands.yml
       submodules:
         - name: nlio
