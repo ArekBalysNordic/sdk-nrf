@@ -187,6 +187,87 @@ namespace app
 						}
 						break;
 					}
+					case Commands::SetWeekDaySchedule::Id: {
+						Commands::SetWeekDaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterSetWeekDayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::GetWeekDaySchedule::Id: {
+						Commands::GetWeekDaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterGetWeekDayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::ClearWeekDaySchedule::Id: {
+						Commands::ClearWeekDaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterClearWeekDayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::SetYearDaySchedule::Id: {
+						Commands::SetYearDaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterSetYearDayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::GetYearDaySchedule::Id: {
+						Commands::GetYearDaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterGetYearDayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::ClearYearDaySchedule::Id: {
+						Commands::ClearYearDaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterClearYearDayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::SetHolidaySchedule::Id: {
+						Commands::SetHolidaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterSetHolidayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::GetHolidaySchedule::Id: {
+						Commands::GetHolidaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterGetHolidayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::ClearHolidaySchedule::Id: {
+						Commands::ClearHolidaySchedule::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled = emberAfDoorLockClusterClearHolidayScheduleCallback(
+								apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
 					case Commands::SetUser::Id: {
 						Commands::SetUser::DecodableType commandData;
 						TLVError = DataModel::Decode(aDataTlv, commandData);
@@ -708,6 +789,81 @@ namespace app
 
 		} // namespace ThreadNetworkDiagnostics
 
+		namespace TimeSynchronization
+		{
+
+			void DispatchServerCommand(CommandHandler *apCommandObj,
+						   const ConcreteCommandPath &aCommandPath, TLV::TLVReader &aDataTlv)
+			{
+				CHIP_ERROR TLVError = CHIP_NO_ERROR;
+				bool wasHandled = false;
+				{
+					switch (aCommandPath.mCommandId) {
+					case Commands::SetUTCTime::Id: {
+						Commands::SetUTCTime::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled =
+								emberAfTimeSynchronizationClusterSetUTCTimeCallback(
+									apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::SetTrustedTimeSource::Id: {
+						Commands::SetTrustedTimeSource::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled =
+								emberAfTimeSynchronizationClusterSetTrustedTimeSourceCallback(
+									apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::SetTimeZone::Id: {
+						Commands::SetTimeZone::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled =
+								emberAfTimeSynchronizationClusterSetTimeZoneCallback(
+									apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					case Commands::SetDSTOffset::Id: {
+						Commands::SetDSTOffset::DecodableType commandData;
+						TLVError = DataModel::Decode(aDataTlv, commandData);
+						if (TLVError == CHIP_NO_ERROR) {
+							wasHandled =
+								emberAfTimeSynchronizationClusterSetDSTOffsetCallback(
+									apCommandObj, aCommandPath, commandData);
+						}
+						break;
+					}
+					default: {
+						// Unrecognized command ID, error status will apply.
+						apCommandObj->AddStatus(
+							aCommandPath,
+							Protocols::InteractionModel::Status::UnsupportedCommand);
+						ChipLogError(Zcl,
+							     "Unknown command " ChipLogFormatMEI
+							     " for cluster " ChipLogFormatMEI,
+							     ChipLogValueMEI(aCommandPath.mCommandId),
+							     ChipLogValueMEI(aCommandPath.mClusterId));
+						return;
+					}
+					}
+				}
+
+				if (CHIP_NO_ERROR != TLVError || !wasHandled) {
+					apCommandObj->AddStatus(aCommandPath,
+								Protocols::InteractionModel::Status::InvalidCommand);
+					ChipLogProgress(Zcl, "Failed to dispatch command, TLVError=%" CHIP_ERROR_FORMAT,
+							TLVError.Format());
+				}
+			}
+
+		} // namespace TimeSynchronization
+
 	} // namespace Clusters
 
 	void DispatchSingleClusterCommand(const ConcreteCommandPath &aCommandPath, TLV::TLVReader &aReader,
@@ -745,6 +901,9 @@ namespace app
 			break;
 		case Clusters::ThreadNetworkDiagnostics::Id:
 			Clusters::ThreadNetworkDiagnostics::DispatchServerCommand(apCommandObj, aCommandPath, aReader);
+			break;
+		case Clusters::TimeSynchronization::Id:
+			Clusters::TimeSynchronization::DispatchServerCommand(apCommandObj, aCommandPath, aReader);
 			break;
 		default:
 			ChipLogError(Zcl, "Unknown cluster " ChipLogFormatMEI,
