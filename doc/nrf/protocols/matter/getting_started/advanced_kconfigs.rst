@@ -279,3 +279,9 @@ Example for the ``nrf52840dk_nrf52840`` target board and the :ref:`matter_lock_s
    :class: highlight
 
    west build -b nrf52840dk/nrf52840 -- -Dlock_SNIPPET=diagnostic-logs
+
+.. important::
+
+  You can enable diagnostic log support only by setting the snippet because it contains the crucial devicetree overlays.
+  You cannot set the diagnostic-logs Kconfigs option separately without adding the devicetree overlays.
+  To disable a specific functionality, use the snippet and set the chosen config to ``n``.
