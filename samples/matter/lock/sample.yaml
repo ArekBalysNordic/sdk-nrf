@@ -83,3 +83,13 @@ tests:
       - nrf5340dk/nrf5340/cpuapp
     platform_allow: nrf52840dk/nrf52840 nrf5340dk/nrf5340/cpuapp
     tags: sysbuild
+  samples.matter.lock.certification:
+    sysbuild: true
+    build_only: true
+    extra_args: lock_SNIPPET=diagnostic-logs
+    integration_platforms:
+      - nrf52840dk/nrf52840
+      - nrf5340dk/nrf5340/cpuapp
+      - nrf54l15pdk/nrf54l15/cpuapp
+    platform_allow: nrf52840dk/nrf52840 nrf5340dk/nrf5340/cpuapp nrf54l15pdk/nrf54l15/cpuapp
+    tags: sysbuild
