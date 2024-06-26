@@ -39,4 +39,64 @@ config MATTER_OTA_IMAGE_FILE_NAME
 	help
 	  Provides the file name of the generated Matter OTA image in the build directory.
 
+config MATTER_SUIT_COMMON_MANIFESTS
+	bool "Use the common Matter manifests for SUIT"
+	default y if SOC_SERIES_NRF54HX
+	depends on SUIT_ENVELOPE
+	help
+	  Use the common suit manifests that are located in the Matter samples common
+	  directory in the suit_templates sub-directory.
+
+choice MATTER_SUIT_IMAGE
+	prompt "Select the SUIT root manifest depending on the purpose"
+	depends on MATTER_SUIT_COMMON_MANIFESTS
+	help
+	  Choose which images will be included in the root manifest and
+	  installed during the firmware update. This option is available only
+	  for the common Matter Suit manifests.
+
+	config MATTER_SUIT_IMAGE_ALL
+		bool "Both application and radio images"
+		help
+		  The Suit root manifest will include and install both application
+		  and Radio core images. Both images will be installed during the
+		  DFU process.
+
+	config MATTER_SUIT_IMAGE_APP_ONLY
+		bool "The application core image only"
+		help
+		  The Suit root manifest will include and install only the new application image.
+		  It means that the current radio core image installed on the board must be
+		  compatible with the new application image.
+
+	config MATTER_SUIT_IMAGE_RAD_ONLY
+		bool "The radio core image only"
+		help
+		  The Suit root manifest will include and install only the new radio image.
+		  It means that the current application core image installed on the board
+		  must be compatible with the new radio image.
+
+endchoice
+
+if MATTER_SUIT_IMAGE_ALL
+
+config SUIT_ENVELOPE_ROOT_TEMPLATE
+	default "../common/suit_templates/root_with_binary_nordic_top.yaml.jinja2"
+
+endif
+
+if MATTER_SUIT_IMAGE_APP_ONLY
+
+config SUIT_ENVELOPE_ROOT_TEMPLATE
+	default "../common/suit_templates/root_with_binary_nordic_top_app.yaml.jinja2"
+
+endif
+
+if MATTER_SUIT_IMAGE_RAD_ONLY
+
+config SUIT_ENVELOPE_ROOT_TEMPLATE
+	default "../common//suit_templates/root_with_binary_nordic_top_rad.yaml.jinja2"
+
+endif
+
 endif

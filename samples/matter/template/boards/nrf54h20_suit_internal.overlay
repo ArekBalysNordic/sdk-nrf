@@ -1,0 +1,69 @@
+/* Copyright (c) 2024 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/* Reorganize partitions for SUIT */
+/delete-node/ &cpuapp_rx_partitions;
+/delete-node/ &cpuapp_rw_partitions;
+
+&mram1x {
+	erase-block-size = < 0x1000 >;
+	write-block-size = < 0x10 >;
+
+	cpurad_rx_partitions: cpurad-rx-partitions {
+		compatible = "nordic,owned-partitions", "fixed-partitions";
+		status = "disabled";
+		perm-read;
+		perm-execute;
+		perm-secure;
+		#address-cells = < 0x1 >;
+		#size-cells = < 0x1 >;
+		cpurad_slot0_partition: partition@66000 {
+			reg = < 0x66000 0x32000 >;
+		};
+	};
+
+	cpuapp_rx_partitions: cpuapp-rx-partitions {
+		compatible = "nordic,owned-partitions", "fixed-partitions";
+		status = "okay";
+		perm-read;
+		perm-execute;
+		perm-secure;
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		cpuapp_slot0_partition: partition@98000 {
+			reg = <0x98000 DT_SIZE_K(656)>;
+		};
+	};
+
+	cpuapp_rw_partitions: cpuapp-rw-partitions {
+		compatible = "nordic,owned-partitions", "fixed-partitions";
+		status = "okay";
+		perm-read;
+		perm-write;
+		#address-cells = < 0x1 >;
+		#size-cells = < 0x1 >;
+
+		storage_partition: partition@13C000 {
+			reg = < 0x13C000 DT_SIZE_K(32) >;
+		};
+
+		factory_data: partition@144000 {
+			reg = < 0x144000 DT_SIZE_K(4) >;
+		};
+
+		dfu_partition: partition@145000 {
+			reg = < 0x145000 DT_SIZE_K(656) >;
+		};
+	};
+};
+
+/* Communication between Application Core and Secure domain for SUIT */
+&cpusec_cpuapp_ipc {
+	status = "okay";
+};
+&cpusec_bellboard {
+	status = "okay";
+};
