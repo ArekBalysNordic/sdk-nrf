@@ -79,11 +79,18 @@ function(include_matter_factory_data)
 endfunction()
 
 function(include_matter_ota)
-  include(${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/zephyr/ota-image_sysbuild.cmake)
-  chip_ota_image(chip-ota-image
-    INPUT_FILES ${CMAKE_BINARY_DIR}/dfu_multi_image.bin
-    OUTPUT_FILE ${CMAKE_BINARY_DIR}/${SB_CONFIG_MATTER_OTA_IMAGE_FILE_NAME}
-  )
+  include(${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/zephyr/ota-image.cmake)
+  if(SB_CONFIG_PARTITION_MANAGER AND SB_CONFIG_DFU_MULTI_IMAGE_PACKAGE_BUILD)
+    chip_ota_image(chip-ota-image
+      INPUT_FILES ${CMAKE_BINARY_DIR}/dfu_multi_image.bin
+      OUTPUT_FILE ${CMAKE_BINARY_DIR}/${SB_CONFIG_MATTER_OTA_IMAGE_FILE_NAME}
+    )
+  elseif(SB_CONFIG_SUIT_ENVELOPE)
+    chip_ota_image(chip-ota-image
+      INPUT_FILES ${CMAKE_BINARY_DIR}/DFU/root.suit
+      OUTPUT_FILE ${CMAKE_BINARY_DIR}/${SB_CONFIG_MATTER_OTA_IMAGE_FILE_NAME}
+    )
+  endif()
 endfunction()
 
 function(include_nrf700x)
