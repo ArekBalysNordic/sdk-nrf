@@ -41,6 +41,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: arbl
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -159,8 +161,9 @@ manifest:
       revision: 94a349db22cd0e44136c281724ffc71b6e7391c3
     - name: matter
       repo-path: sdk-connectedhomeip
+      remote: arbl
       path: modules/lib/matter
-      revision: pull/458/head
+      revision: nrf54h20__dfu_target_check
       west-commands: scripts/west/west-commands.yml
       submodules:
         - name: nlio
