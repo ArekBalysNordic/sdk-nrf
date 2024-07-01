@@ -25,14 +25,39 @@
 	};
 };
 
-// restore full RRAM and SRAM space - by default some parts are dedicated to FLRP
-&cpuapp_rram {
-	reg = <0x0 DT_SIZE_K(1524)>;
+/delete-node/ &cpuapp_rram;
+
+// Extend RRAM size to 3MB
+&rram_controller {
+	cpuapp_rram: rram@0 {
+		compatible = "soc-nv-flash";
+		reg = < 0x0 0x300000 >;
+		erase-block-size = < 0x1000 >;
+		write-block-size = < 0x10 >;
+		partitions {
+			compatible = "fixed-partitions";
+			#address-cells = < 0x1 >;
+			#size-cells = < 0x1 >;
+			boot_partition: partition@0 {
+				label = "mcuboot";
+				reg = < 0x0 0x10000 >;
+			};
+			slot0_partition: partition@10000 {
+				label = "image-0";
+				reg = < 0x10000 0x2E7000 >;
+			};
+			storage_partition: partition@2F7000 {
+				label = "storage";
+				reg = < 0x2F7000 0x9000 >;
+			};
+		};
+	};
 };
 
+// Extend RAM to 1 MB
 &cpuapp_sram {
-	reg = <0x20000000 DT_SIZE_K(256)>;
-	ranges = <0x0 0x20000000  0x40000>;
+	reg = <0x20000000 DT_SIZE_K(1024)>;
+	ranges = <0x0 0x20000000  0x100000>;
 };
 
 // TODO: re-enable HWFC once it's fixed

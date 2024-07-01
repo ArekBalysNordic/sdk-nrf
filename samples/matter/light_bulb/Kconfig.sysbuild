@@ -18,7 +18,7 @@ config NETCORE_IPC_RADIO_BT_HCI_IPC
 
 #### Bootloader
 choice BOOTLOADER
-	default BOOTLOADER_MCUBOOT if !BOARD_NRF21540DK
+	default BOOTLOADER_MCUBOOT if !BOARD_NRF21540DK && !SOC_SERIES_NRF54LX
 endchoice
 
 if BOOTLOADER_MCUBOOT
@@ -61,6 +61,6 @@ endif # BOOTLOADER_MCUBOOT
 
 #### Enable generating factory data
 config MATTER_FACTORY_DATA_GENERATE
-	default y if !BOARD_NRF21540DK
+	default n
 
 source "${ZEPHYR_BASE}/share/sysbuild/Kconfig"

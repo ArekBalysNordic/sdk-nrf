@@ -9,7 +9,7 @@ mcuboot_pad:
 app:
   address: 0xc800
   region: flash_primary
-  size: 0x167800
+  size: 0x2EA800
 mcuboot_primary:
   orig_span: &id001
   - mcuboot_pad
@@ -17,20 +17,20 @@ mcuboot_primary:
   span: *id001
   address: 0xc000
   region: flash_primary
-  size: 0x168000
+  size: 0x2EB000
 mcuboot_primary_app:
   orig_span: &id002
   - app
   span: *id002
   address: 0xc800
   region: flash_primary
-  size: 0x167800
+  size: 0x2EA800
 factory_data:
-  address: 0x174000
+  address: 0x2F7000
   region: flash_primary
   size: 0x1000
 settings_storage:
-  address: 0x175000
+  address: 0x2F8000
   region: flash_primary
   size: 0x8000
 mcuboot_secondary:
@@ -39,7 +39,7 @@ mcuboot_secondary:
   - mcuboot_secondary_pad
   - mcuboot_secondary_app
   region: external_flash
-  size: 0x168000
+  size: 0x2EB000
   span: *id003
 mcuboot_secondary_pad:
   region: external_flash
@@ -48,9 +48,9 @@ mcuboot_secondary_pad:
 mcuboot_secondary_app:
   region: external_flash
   address: 0x800
-  size: 0x167800
+  size: 0x2EA800
 external_flash:
-  address: 0x168000
-  size: 0x698000
+  address: 0x2EB000
+  size: 0x515000
   device: MX25R64
   region: external_flash
