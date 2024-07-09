@@ -16,6 +16,8 @@ SUIT_Envelope_Tagged:
         - {{ application['dt'].chosen_nodes['zephyr,code-partition'].regs[0].size }}
       - - CAND_IMG
         - 0
+      - - CACHE_POOL
+        - 1
 {%- if flash_companion is defined %}
       - - MEM
         - {{ flash_companion['dt'].label2node['cpu'].unit_addr }}
@@ -54,7 +56,7 @@ SUIT_Envelope_Tagged:
             suit-digest-bytes:
               file: {{ application['binary'] }}
 {%- if flash_companion is defined %}
-      - suit-directive-set-component-index: 2
+      - suit-directive-set-component-index: 3
       - suit-directive-override-parameters:
           suit-parameter-image-digest:
             suit-digest-algorithm-id: cose-alg-sha-256
@@ -72,9 +74,15 @@ SUIT_Envelope_Tagged:
     - suit-directive-set-component-index: 0
     - suit-directive-invoke:
       - suit-send-record-failure
+    suit-payload-fetch:
+    - suit-directive-set-component-index: 2
+    - suit-directive-override-parameters:
+        suit-parameter-uri: 'file://{{ application['filename'] }}'
+    - suit-directive-fetch:
+      - suit-send-record-failure
     suit-install:
 {%- if flash_companion is defined %}
-    - suit-directive-set-component-index: 1
+    - suit-directive-set-component-index: 3
     - suit-directive-override-parameters:
         suit-parameter-uri: '#{{ flash_companion['name'] }}'
         suit-parameter-image-digest:
@@ -88,7 +96,7 @@ SUIT_Envelope_Tagged:
       - suit-send-record-failure
       - suit-send-sysinfo-success
       - suit-send-sysinfo-failure
-    - suit-directive-set-component-index: 2
+    - suit-directive-set-component-index: 3
     - suit-directive-override-parameters:
         suit-parameter-source-component: 1
     - suit-directive-copy:
@@ -103,7 +111,7 @@ SUIT_Envelope_Tagged:
 {%- endif %}
     - suit-directive-set-component-index: 1
     - suit-directive-override-parameters:
-        suit-parameter-uri: '#{{ application['name'] }}'
+        suit-parameter-uri: 'file://{{ application['filename'] }}'
         suit-parameter-image-digest:
           suit-digest-algorithm-id: cose-alg-sha-256
           suit-digest-bytes:
@@ -141,8 +149,4 @@ SUIT_Envelope_Tagged:
         suit-text-model-info: The nRF54H20 application core
         suit-text-component-description: Sample application core FW
         suit-text-component-version: v1.0.0
-  suit-integrated-payloads:
-    '#{{ application['name'] }}': {{ application['binary'] }}
-{%- if flash_companion is defined %}
-    '#{{ flash_companion['name'] }}': {{ flash_companion['binary'] }}
-{%- endif %}
+  suit-integrated-payloads: {}
