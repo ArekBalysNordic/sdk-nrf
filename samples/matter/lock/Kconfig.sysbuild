@@ -65,6 +65,10 @@ config DFU_MULTI_IMAGE_PACKAGE_NET
 endif # SOC_SERIES_NRF53X
 endif # BOOTLOADER_MCUBOOT
 
+#### Build flash companion image to support external flash with SUIT
+config SUIT_BUILD_FLASH_COMPANION
+	default y if SOC_SERIES_NRF54HX
+
 #### Enable generating factory data
 config MATTER_FACTORY_DATA_GENERATE
 	default y if !BOARD_NRF21540DK

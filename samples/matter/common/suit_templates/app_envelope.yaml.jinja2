@@ -82,7 +82,7 @@ SUIT_Envelope_Tagged:
       - suit-send-record-failure
     suit-install:
 {%- if flash_companion is defined %}
-    - suit-directive-set-component-index: 3
+    - suit-directive-set-component-index: 1
     - suit-directive-override-parameters:
         suit-parameter-uri: '#{{ flash_companion['name'] }}'
         suit-parameter-image-digest:
@@ -149,4 +149,8 @@ SUIT_Envelope_Tagged:
         suit-text-model-info: The nRF54H20 application core
         suit-text-component-description: Sample application core FW
         suit-text-component-version: v1.0.0
-  suit-integrated-payloads: {}
+  suit-integrated-payloads: {
+{%- if flash_companion is defined %}
+    '#{{ flash_companion['name'] }}': {{ flash_companion['binary'] }}
+{%- endif %}
+  }

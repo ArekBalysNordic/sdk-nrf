@@ -9,6 +9,11 @@
  */
 
 / {
+	chosen {
+		/* External flash support */
+		extmem-device = &mx25uw63;
+	};
+
 	aliases {
 		factory-data = &factory_data;
 		factory-data-memory-region = &cpuapp_rw_partitions;
@@ -65,5 +70,19 @@
 			reg = < 0x175000 DT_SIZE_K(464) >;
 		};
 
+	};
+};
+
+/* External flash */
+&mx25uw63 {
+	status = "okay";
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		dfu_cache_partition_1: partition@0 {
+			reg = <0x0 DT_SIZE_K(1024)>;
+		};
 	};
 };

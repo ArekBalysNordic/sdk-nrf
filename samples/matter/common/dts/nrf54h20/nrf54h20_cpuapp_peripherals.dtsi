@@ -12,6 +12,12 @@
 	chosen {
 		/* prepare IPC to HCI Radio core */
 		zephyr,bt-hci-ipc = &ipc0;
+		zephyr,entropy = &psa_rng;
+	};
+
+	psa_rng: psa-rng {
+		compatible = "zephyr,psa-crypto-rng";
+		status = "okay";
 	};
 
 	aliases {
@@ -30,4 +36,9 @@
 };
 &cpusec_bellboard {
 	status = "okay";
+};
+
+/* Disable HW flow control for UART */
+&uart136 {
+	/delete-property/ hw-flow-control;
 };
