@@ -28,10 +28,19 @@ target_sources(app PRIVATE
     src/main.cpp
 )
 
-chip_configure_data_model(app
-    INCLUDE_SERVER
-    BYPASS_IDL
-    GEN_DIR src/zap-generated
-    ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/template.zap
-)
+if(CONFIG_NCS_SAMPLE_MATTER_GENERATE_ZAP_FILES)
+    chip_configure_data_model(app
+        INCLUDE_SERVER
+        GEN_FROM_APP
+        ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILE}
+    )
+else()
+    chip_configure_data_model(app
+        INCLUDE_SERVER
+        BYPASS_IDL
+        GEN_DIR src/zap-generated
+        ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/template.zap
+    )
+endif()
+
 # NORDIC SDK APP END
