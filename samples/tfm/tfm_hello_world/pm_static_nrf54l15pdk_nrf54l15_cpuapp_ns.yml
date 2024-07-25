@@ -1,0 +1,26 @@
+### Partitions
+external_flash:
+  address: 0xb8000
+  size: 0x748000
+  device: MX25R64
+  region: external_flash
+### Bootloader configuration
+mcuboot_secondary:
+  address: 0x0
+  orig_span: &id001
+  - mcuboot_secondary_pad
+  - mcuboot_secondary_app
+  region: external_flash
+  device: MX25R64
+  size: 0xb8000
+  span: *id001
+mcuboot_secondary_pad:
+  region: external_flash
+  device: MX25R64
+  address: 0x0
+  size: 0x800
+mcuboot_secondary_app:
+  region: external_flash
+  device: MX25R64
+  address: 0x800
+  size: 0xb7800
