@@ -13,12 +13,12 @@ tfm:
 app:
   address: 0x2F000
   region: flash_primary
-  size: 0x143000
+  size: 0x14E000
 external_flash:
-  address: 0x16D000
+  address: 0x16E000
   device: MX25R64
   region: external_flash
-  size: 0x693000
+  size: 0x692000
 # MCUBOOT partitions
 mcuboot_primary:
   address: 0xf000
@@ -27,7 +27,7 @@ mcuboot_primary:
   - tfm
   - mcuboot_pad
   region: flash_primary
-  size: 0x16D000
+  size: 0x16E000
   span: *id001
 mcuboot_primary_app:
   address: 0xF800
@@ -35,7 +35,7 @@ mcuboot_primary_app:
   - app
   - tfm
   region: flash_primary
-  size: 0x16C800
+  size: 0x16D800
   span: *id002
 mcuboot_secondary:
   address: 0x0
@@ -44,19 +44,19 @@ mcuboot_secondary:
   - mcuboot_secondary_pad
   - mcuboot_secondary_app
   region: external_flash
-  size: 0x16D000
+  size: 0x16E000
   span: *id003
-mcuboot_secondary_app:
-  address: 0x800
-  device: MX25R64
-  region: external_flash
-  size: 0x16C800
 mcuboot_secondary_pad:
   address: 0x0
   device: MX25R64
   end_address: 0x800
   region: external_flash
   size: 0x800
+mcuboot_secondary_app:
+  address: 0x800
+  device: MX25R64
+  region: external_flash
+  size: 0x16D800
 # TF-M
 tfm_nonsecure:
   address: 0x2F000
