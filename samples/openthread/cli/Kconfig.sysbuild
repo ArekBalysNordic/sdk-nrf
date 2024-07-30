@@ -8,3 +8,6 @@ source "${ZEPHYR_BASE}/share/sysbuild/Kconfig"
 
 config NRF_DEFAULT_IPC_RADIO
 	default y
+
+config PARTITION_MANAGER
+	default y if SOC_SERIES_NRF54LX

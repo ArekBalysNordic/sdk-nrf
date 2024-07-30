@@ -1,0 +1,61 @@
+### Partitions
+tfm:
+  address: 0x0
+  region: flash_primary
+  size: 0x20000
+app:
+  address: 0x20000
+  region: flash_primary
+  size: 0x14B000
+settings_storage:
+  address: 0x16B000
+  region: flash_primary
+  size: 0xa000
+tfm_storage:
+  address: 0x175000
+  orig_span: &id001
+  - tfm_ps
+  - tfm_its
+  - tfm_otp_nv_counters
+  region: flash_primary
+  size: 0x8000
+  span: *id001
+### TFM configuration
+tfm_secure:
+  address: 0x0
+  orig_span: &id002
+  - tfm
+  region: flash_primary
+  size: 0x20000
+  span: *id002
+tfm_nonsecure:
+  address: 0x20000
+  orig_span: &id003
+  - app
+  region: flash_primary
+  size: 0x14B000
+  span: *id003
+tfm_its:
+  address: 0x175000
+  inside:
+  - tfm_storage
+  placement:
+    before:
+    - tfm_otp_nv_counters
+  region: flash_primary
+  size: 0x2000
+tfm_otp_nv_counters:
+  address: 0x177000
+  inside:
+  - tfm_storage
+  placement:
+    before:
+    - tfm_ps
+  region: flash_primary
+  size: 0x2000
+tfm_ps:
+  address: 0x179000
+  inside:
+  - tfm_storage
+  region: flash_primary
+  size: 0x4000
