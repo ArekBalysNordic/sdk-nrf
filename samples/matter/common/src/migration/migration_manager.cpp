@@ -30,6 +30,7 @@ namespace Migration
 
 		/* Migrate all obsolete Operational Keys to PSA ITS */
 		for (const chip::FabricInfo &fabric : chip::Server::GetInstance().GetFabricTable()) {
+			ChipLogError(DeviceLayer, "Migration for fabric %d...", fabric.GetFabricIndex());
 			err = keystore->MigrateOpKeypairForFabric(fabric.GetFabricIndex(), obsoleteKeystore);
 			if (CHIP_NO_ERROR != err) {
 				break;
@@ -38,6 +39,7 @@ namespace Migration
 
 #ifdef CONFIG_NCS_SAMPLE_MATTER_FACTORY_RESET_ON_KEY_MIGRATION_FAILURE
 		if (CHIP_NO_ERROR != err) {
+			ChipLogError(DeviceLayer, "ERROR! %" CHIP_ERROR_FORMAT, err.Format());
 			GroupDataProviderImpl::Instance().WillBeFactoryReset();
 			chip::Server::GetInstance().ScheduleFactoryReset();
 			/* Return a success to not block the Matter event Loop and allow to call scheduled factory
