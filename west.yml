@@ -41,6 +41,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: arbl
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -72,7 +74,8 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: 8bd088c7c2936dbc94eddd5ede980d45a341e73d
+      remote: arbl
+      revision: ncs_2_7_99_august
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -247,7 +250,8 @@ manifest:
     - name: openthread
       repo-path: sdk-openthread
       path: modules/lib/openthread
-      revision: a759a4a09f9fe5bdf757c470aa86dffdc7a349f1
+      remote: arbl
+      revision: logging_improvement
       userdata:
         ncs:
           upstream-url: https://github.com/openthread/openthread
