@@ -13,6 +13,9 @@ menuconfig ZIGBEE
 	select NETWORKING
 	select NET_PKT_TXTIME
 	select REBOOT
+	select PSA_WANT_ALG_ECB_NO_PADDING if NRF_SECURITY
+	select PSA_WANT_KEY_TYPE_AES if NRF_SECURITY
+	select MBEDTLS_ENABLE_HEAP if NRF_SECURITY
 	imply ENTROPY_GENERATOR
 	imply POLL
 	imply FLASH
@@ -97,6 +100,7 @@ config ZBOSS_DEFAULT_THREAD_PRIORITY
 
 config ZBOSS_DEFAULT_THREAD_STACK_SIZE
 	int "Stack size of ZBOSS Zephyr task"
+	default 4096 if NRF_SECURITY
 	default 2048
 	help
 	  Stack size of ZBOSS Zephyr task. This is the task zboss_main_loop_iteration is called from.
@@ -336,6 +340,13 @@ config ZIGBEE_USE_SOFTWARE_AES
 	bool "Use software based AES"
 	select NRF_OBERON
 	default n
+
+if NRF_SECURITY
+
+config MBEDTLS_HEAP_SIZE
+	default 2048
+
+endif
 
 config ZIGBEE_USE_LEDS
 	bool "LEDs abstract for ZBOSS OSIF"
