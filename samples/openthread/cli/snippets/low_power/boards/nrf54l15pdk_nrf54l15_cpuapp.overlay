@@ -1,0 +1,21 @@
+/*
+ * Copyright (c) 2024 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+&adc {
+	status = "disabled";
+};
+&pwm20 {
+	status = "disabled";
+};
+&spi00 {
+	status = "disabled";
+};
+&wdt31 {
+	status = "disabled";
+};
+&mx25r64 {
+	status = "disabled";
+};
