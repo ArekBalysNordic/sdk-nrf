@@ -121,9 +121,53 @@ config DFU_TARGET_SUIT
 	select SUIT_UTILS
 	select ZCBOR
 	select ZCBOR_CANONICAL
+	select FLASH
+	select STREAM_FLASH
+	select STREAM_FLASH_ERASE
 	select DFU_TARGET_STREAM
+	# Minimal SUIT configuration to support SUIT processing
+	imply SUIT_DIGEST
+	imply SUIT_CRYPTO
+	imply SUIT_PLAT_CHECK_COMPONENT_COMPATIBILITY
+	imply SUIT_PLAT_CHECK_CLASSES
+	imply SUIT_CHECK_IMAGE_MATCH
+	imply SUIT_STREAM
+	imply SUIT_STREAM_SOURCE_CACHE
+	imply SUIT_STREAM_SOURCE_MEMPTR
+	imply SUIT_STREAM_SINK_DIGEST
+	imply SUIT_STREAM_SINK_CACHE
+	imply SUIT_STREAM_SINK_FLASH
+	imply SUIT_MEMPTR_STORAGE
+	imply SUIT_PLATFORM
+	imply SUIT_PROCESSOR
+	imply SUIT_SINK_SELECTOR
 	help
 	  Enable support for updates using DFU target based on SUIT
+
+if DFU_TARGET_SUIT
+
+config DFU_TARGET_SUIT_CACHE_PROCESSING
+	bool "SUIT cache processing"
+	imply SUIT_CACHE
+	imply SUIT_CACHE_RW
+	help
+	  Enable SUIT cache processing to process images ids bigger than 0.
+	  It allows to store the image in the cache cache partitions and
+	  assign them to be processed by the SUIT.
+
+config DFU_TARGET_SUIT_INITIALIZE_SUIT
+	bool "Initialize SUIT dfu library"
+	help
+	  Initialize SUIT library during the system startup.
+
+config DFU_TARGET_REBOOT_RESET_DELAY_MS
+	int "Reboot reset delay in milliseconds"
+	default 0
+	help
+	  Set the delay in milliseconds before the device is reset after a reboot
+	  function is called.
+
+endif # DFU_TARGET_SUIT
 
 module=DFU_TARGET
 module-dep=LOG
