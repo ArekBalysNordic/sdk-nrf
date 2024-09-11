@@ -1,0 +1,7 @@
+tests:
+  dfu.dfu_target.suit:
+    sysbuild: true
+    platform_allow: nrf54h20dk/nrf54h20/cpuapp
+    integration_platforms:
+      - nrf54h20dk/nrf54h20/cpuapp
+    tags: dfu sysbuild ci_tests_subsys_dfu
