@@ -552,7 +552,7 @@ The current maximum number of Bluetooth LE connections that can be selected usin
             .. parsed-literal::
                :class: highlight
 
-               west build -b nrf5340dk/nrf5340/cpuapp -p -- -Dmatter_bridge_SHIELD=nrf7002ek -DSB_CONFIG_WIFI_PATCHES_EXT_FLASH_STORE=y -DSB_CONFIG_DFU_MULTI_IMAGE_PACKAGE_WIFI_FW_PATCH=y -DSB_CONFIG_WIFI_NRF70=y -Dmcuboot_CONFIG_UPDATEABLE_IMAGE_NUMBER=3 -DCONFIG_BRIDGED_DEVICE_BT=y -DEXTRA_CONF_FILE="overlay-bt_max_connections_app.conf" -Dipc_radio_EXTRA_CONF_FILE="overlay-bt_max_connections_net.conf" -DFILE_SUFFIX=nrf70ek
+               west build -b nrf5340dk/nrf5340/cpuapp -p -- -Dmatter_bridge_SHIELD=nrf7002ek -DSB_CONFIG_WIFI_PATCHES_EXT_FLASH_STORE=y -Dmcuboot_CONFIG_UPDATEABLE_IMAGE_NUMBER=3 -DSB_CONFIG_WIFI_NRF70=y -DSB_CONFIG_DFU_MULTI_IMAGE_PACKAGE_WIFI_FW_PATCH=y -DCONFIG_CHIP_DFU_OVER_BT_SMP=y -DFILE_SUFFIX=nrf70ek
 
          .. group-tab:: Matter bridge over Thread
 
@@ -576,7 +576,7 @@ The current maximum number of Bluetooth LE connections that can be selected usin
              .. parsed-literal::
                :class: highlight
 
-               west build -b nrf54h20dk/nrf54h20/cpuapp -p -- -DSB_CONFIG_WIFI_NRF70=y -DCONFIG_CHIP_WIFI=y -Dmatter_bridge_SHIELD=nrf700x_nrf54h20dk -DCONFIG_BRIDGED_DEVICE_BT=y -DEXTRA_CONF_FILE="overlay-bt_max_connections_app.conf" -Dipc_radio_EXTRA_CONF_FILE="overlay-bt_max_connections_net.conf"
+               west build -b nrf54h20dk/nrf54h20/cpuapp -p -- -DSB_CONFIG_WIFI_NRF70=y -DCONFIG_CHIP_WIFI=y -Dmatter_bridge_SHIELD=nrf7002eb_interposer_p1 -DCONFIG_BRIDGED_DEVICE_BT=y
 
          .. group-tab:: Matter bridge over Thread
 
@@ -712,14 +712,14 @@ For example:
 
    .. code-block:: console
 
-      west build -b nrf5340dk/nrf5340/cpuapp -p -- -Dmatter_bridge_SHIELD=nrf7002ek -DSB_CONFIG_WIFI_PATCHES_EXT_FLASH_STORE=y -DSB_CONFIG_DFU_MULTI_IMAGE_PACKAGE_WIFI_FW_PATCH=y -DSB_CONFIG_WIFI_NRF70=y -Dmcuboot_CONFIG_UPDATEABLE_IMAGE_NUMBER=3 -DFILE_SUFFIX=nrf70ek
+      west build -b nrf5340dk/nrf5340/cpuapp -p -- -Dmatter_bridge_SHIELD=nrf7002ek -DSB_CONFIG_WIFI_PATCHES_EXT_FLASH_STORE=y -Dmcuboot_CONFIG_UPDATEABLE_IMAGE_NUMBER=3 -DSB_CONFIG_WIFI_NRF70=y -DSB_CONFIG_DFU_MULTI_IMAGE_PACKAGE_WIFI_FW_PATCH=y -DFILE_SUFFIX=nrf70ek
 
 To use the nRF54H20 DK with the ``nrf7002ek`` shield (2.4 GHz or 5 GHz), follow the :ref:`ug_nrf7002eb_nrf54h20dk_gs` user guide to connect all required pins.
 Once connected, run the following command to build the sample:
 
    .. code-block:: console
 
-      west build -b nrf54h20dk/nrf54h20/cpuapp -p -- -DSB_CONFIG_WIFI_NRF70=y -DCONFIG_CHIP_WIFI=y -Dmatter_bridge_SHIELD=nrf700x_nrf54h20dk
+      west build -b nrf54h20dk/nrf54h20/cpuapp -p -- -DSB_CONFIG_WIFI_NRF70=y -DCONFIG_CHIP_WIFI=y -Dmatter_bridge_SHIELD=nrf7002eb_interposer_p1
 
 Selecting a configuration
 =========================
@@ -740,7 +740,7 @@ To enable the Matter smart plugin functionality, run the following command with 
 
       .. code-block:: console
 
-         west build -b nrf54h20dk/nrf54h20/cpuapp -p -- -DSB_CONFIG_WIFI_NRF70=y -DCONFIG_CHIP_WIFI=y -Dmatter_bridge_SHIELD=nrf700x_nrf54h20dk -DCONFIG_BRIDGED_DEVICE_BT=y -Dmatter_bridge_SNIPPET=onoff_plug
+         west build -b nrf54h20dk/nrf54h20/cpuapp -p -- -DSB_CONFIG_WIFI_NRF70=y -DCONFIG_CHIP_WIFI=y -Dmatter_bridge_SHIELD=nrf7002eb_interposer_p1 -DCONFIG_BRIDGED_DEVICE_BT=y -Dmatter_bridge_SNIPPET=onoff_plug
 
    .. group-tab:: nRF70 DKs
 
