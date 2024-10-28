@@ -7,13 +7,57 @@ Security
    :local:
    :depth: 3
 
-Nordic Matter samples leverage security features supported in the |NCS| that can be divided into three major categories:
+Nordic Matter samples leverage security features supported in the |NCS| that can be divided into four major categories:
 
+* Trusted Execution Environment
 * Cryptography
 * Trusted storage
 * Securing production devices
 
 In the following sections you will learn more details about each listed category.
+
+Trusted Execution Environment
+*****************************
+
+In Matter samples, you can use two types of Trusted Execution Environments (TEE) to provide a secure environment for the execution of security-sensitive code, depending on the SoC.
+The Trusted Firmware-M (TF-M) is dedicated to the nRF54L SoC series, while the nRF54H SoC series can use the Secure Domain.
+All cryptographic operations are performed using the PSA Cryptography API.
+
+nRF54H Secure Domian
+====================
+
+The secure domain is a dedicated domain that executes a pre-compiled, Nordic Semiconductor-signed firmware component.
+This firmware allows the execution of all secure operations in a separate domain, providing a secure environment for security-sensitive Matter code.
+
+In Matter samples, we use security services exposed by the secure domain to perform all cryptographic operations during commissioning to Matter and while operating in the Matter network.
+All keys used by Matter, such as session keys, DAC private keys, and other keys, are stored in the secure domain's secure space and are isolated from local domains.
+
+To learn more about the secure domain, see the :ref:`ug_nrf54h20_architecture_cpu` user guide.
+
+nRF54L Trusted Firmware-M (TF-M)
+================================
+
+Matter samples based on the nRF54L SoC support the Trusted Firmware-M (TF-M) library.
+All cryptographic operations within the Matter stack are performed by utilizing the PSA Cryptography API and executed in the secure TF-M environment.
+Application and Matter codes are executed in the non-secure application, whereas MCUboot and TF-M are executed in the secure part.
+Both parts are isolated from each other, providing a secure environment for the execution of security-sensitive code.
+The secure materials like Matter Session keys, DAC private key and other keys, are stored in the TF-M secure storage utilizing the :ref:`tfm_encrypted_its` module.
+Matter samples utilize the full TF-M library, so you cannot use the :ref:`tfm_minimal_build` TF-M build variant.
+
+To build a Matter sample with the TF-M support add the ``/ns`` suffix to the build target, for example use the following command for nRF54L15 SoC:
+
+.. code-block:: console
+
+   west build -b nrf54l15dk/nrf54l15/cpuapp/ns
+
+To configure partition layout, configure the :file:`pm_static_nrf54l15dk_nrf54l15_cpuapp_ns.yml` which is available in each sample directory.
+To read more about the TF-M partitioning see the :ref:`ug_tfm_partition_alignment_requirements` user guide.
+While using TF-M, the application partition size and available RAM space for application is lower than without TF-M.
+You must keep it in mind and calculate the available space for the application partition.
+The recommended values are provided in the :ref:`ug_matter_hw_requirements_layouts` section.
+
+In addition, you can store the DAC private key in the KMU storage while using TF-M.
+To learn how to do it see the :ref:`matter_platforms_security_dac_priv_key_kmu` section.
 
 Cryptography
 ************
@@ -150,24 +194,30 @@ See the following table to learn about the default secure storage backends for t
      - Default secure storage backend for DAC private key
      - Available secure storage backends
    * - nRF52840 SoC
-     - Trusted Storage library + SHA-256 hash
-     - Trusted Storage library + SHA-256 hash
+     - Trusted Storage library + SHA-256 hash (Zephyr Settings)
+     - Trusted Storage library + SHA-256 hash (Zephyr Settings)
    * - nRF5340 SoC
-     - Trusted Storage library + Hardware Unique Key (HUK)
-     - | Trusted Storage library + Hardware Unique Key (HUK),
-       | Trusted Storage library + SHA-256 hash
+     - Trusted Storage library + Hardware Unique Key (Zephyr Settings)
+     - | Trusted Storage library + Hardware Unique Key (Zephyr Settings),
+       | Trusted Storage library + SHA-256 hash (Zephyr Settings)
    * - nRF5340 SoC + nRF7002 companion IC
      - Not available
      - Not available
    * - nRF54L15 SoC
-     - Trusted Storage library + Hardware Unique Key (HUK)
+     - Trusted Storage library + Hardware Unique Key
      - | Key Management Unit (KMU),
-       | Trusted Storage library + Hardware Unique Key (HUK),
-       | Trusted Storage library + SHA-256 hash
+       | Trusted Storage library + Hardware Unique Key (Zephyr Settings),
+       | Trusted Storage library + SHA-256 hash (Zephyr Settings)
    * - nRF54L15 SoC + Trusted Firmware-M (TF-M)
-     - Trusted Firmware-M (TF-M) Storage
+     - Trusted Firmware-M Storage (TF-M)
      - | Key Management Unit (KMU),
-       | Trusted Firmware-M (TF-M) Storage
+       | Trusted Firmware-M Storage (TF-M)
+
+If you migrate the DAC private key to storage based on Zephyr Settings storage, you cannot use the :kconfig:option:`CONFIG_CHIP_FACTORY_RESET_ERASE_SETTINGS` Kconfig option.
+This is because the factory reset feature will erase the secure storage, including the DAC private key, which has been removed from the factory data.
+In this case, the DAC private key will be lost, and the device will not be able to authenticate to the network.
+
+You can use the :kconfig:option:`CONFIG_CHIP_FACTORY_RESET_ERASE_SETTINGS` Kconfig option if you store the DAC private key in the KMU or TF-M secure storage (available on nRF54L SoCs only).
 
 .. _matter_platforms_security_dac_priv_key_its:
 
