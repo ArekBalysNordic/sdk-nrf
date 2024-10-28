@@ -1,0 +1,22 @@
+#
+# Copyright (c) 2022 Nordic Semiconductor
+#
+# SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+#
+mainmenu "Matter dummy sample for DFU integration purpose"
+
+config CHIP_DEVICE_VENDOR_ID
+	int
+	default 65521
+
+config CHIP_DEVICE_PRODUCT_ID
+	int
+	default 32768
+
+config UPDATEABLE_IMAGE_NUMBER
+    int
+    default 1
+
+source "${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.features"
+source "${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/chip-module/Kconfig.defaults"
+source "Kconfig.zephyr"
