@@ -52,8 +52,6 @@ static void err_handler(const struct nrf_rpc_err_report *report)
 
 int ssf_client_transport_init(ssf_client_transport_notif_handler handler)
 {
-	int err;
-
 	if (handler == NULL) {
 		return -SSF_EINVAL;
 	}
@@ -61,8 +59,12 @@ int ssf_client_transport_init(ssf_client_transport_notif_handler handler)
 
 	transport_initialized = false;
 
-	err = nrf_rpc_init(err_handler);
-	if (err != 0) {
+	/* We ignore the nrf_rpc_init on purpose here, the nrf_rpc_init
+	 * will try to initialize all the transports/groups, but we only
+	 * want to check that the ssf_group is initialized.
+	 */
+	nrf_rpc_init(err_handler);
+	if (!NRF_RPC_GROUP_STATUS(ssf_group)) {
 		return -SSF_EINVAL;
 	}
 
