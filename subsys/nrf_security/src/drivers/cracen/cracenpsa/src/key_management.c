@@ -858,6 +858,7 @@ psa_status_t cracen_import_key(const psa_key_attributes_t *attributes, const uin
 	psa_key_type_t key_type = psa_get_key_type(attributes);
 	*key_bits = 0;
 	*key_buffer_length = 0;
+	psa_status_t status = PSA_SUCCESS;
 
 	if (key_buffer_size == 0) {
 		return PSA_ERROR_INVALID_ARGUMENT;
@@ -866,16 +867,25 @@ psa_status_t cracen_import_key(const psa_key_attributes_t *attributes, const uin
 	psa_key_location_t location =
 		PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(attributes));
 #ifdef CONFIG_PSA_NEED_CRACEN_KMU_DRIVER
+#ifdef CONFIG_CRACEN_TRANSLATE_ITS_TO_KMU
+	if (location == PSA_KEY_LIFETIME_PERSISTENT) {
+		int slot_id = 0;
+		status = cracen_kmu_translate_key_from_its(attributes, &slot_id);
+		if (status != PSA_SUCCESS) {
+			return status;
+		}
+#else
 	if (location == PSA_KEY_LOCATION_CRACEN_KMU) {
 		int slot_id = CRACEN_PSA_GET_KMU_SLOT(
 			MBEDTLS_SVC_KEY_ID_GET_KEY_ID(psa_get_key_id(attributes)));
+#endif
 		psa_key_attributes_t stored_attributes;
 
 		if (key_buffer_size < cracen_get_opaque_size(attributes)) {
 			return PSA_ERROR_BUFFER_TOO_SMALL;
 		}
 
-		psa_status_t status = cracen_kmu_provision(attributes, slot_id, data, data_length);
+		status = cracen_kmu_provision(attributes, slot_id, data, data_length);
 
 		if (status != PSA_SUCCESS) {
 			return status;
@@ -1139,6 +1149,17 @@ psa_status_t cracen_generate_key(const psa_key_attributes_t *attributes, uint8_t
 		PSA_KEY_LIFETIME_GET_LOCATION(psa_get_key_lifetime(attributes));
 
 #if CONFIG_PSA_NEED_CRACEN_KMU_DRIVER
+#ifdef CONFIG_CRACEN_TRANSLATE_ITS_TO_KMU
+	if (location == PSA_KEY_LIFETIME_PERSISTENT) {
+		psa_key_attributes_t attributes_local = *attributes;
+		status = cracen_kmu_translate_key_from_its(attributes, &attributes_local.key_id);
+		if (status != PSA_SUCCESS) {
+			return status;
+		}
+		return generate_key_for_kmu(&attributes_local, key_buffer, key_buffer_size,
+					    key_buffer_length);
+	}
+#endif
 	if (location == PSA_KEY_LOCATION_CRACEN_KMU) {
 		return generate_key_for_kmu(attributes, key_buffer, key_buffer_size,
 					    key_buffer_length);
@@ -1167,7 +1188,6 @@ psa_status_t cracen_generate_key(const psa_key_attributes_t *attributes, uint8_t
 
 	return PSA_ERROR_NOT_SUPPORTED;
 }
-
 
 psa_status_t cracen_get_builtin_key(psa_drv_slot_number_t slot_number,
 				    psa_key_attributes_t *attributes, uint8_t *key_buffer,

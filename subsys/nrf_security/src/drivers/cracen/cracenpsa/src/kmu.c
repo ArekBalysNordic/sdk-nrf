@@ -27,6 +27,28 @@
  */
 #define PROVISIONING_SLOT 250
 
+#ifdef CONFIG_CRACEN_TRANSLATE_ITS_TO_KMU
+/* Define how many slots are available for translation */
+#define AVAILABLE_KMU_SLOTS 181 /* The current maximum value of slots from 0-180*/
+
+typedef struct kmu_slot_translation {
+	mbedtls_svc_key_id_t slot_id_base;	///< The base of the ITS key range
+	psa_drv_slot_number_t kmu_slot_id_base; ///< The starting slot in KMU space
+	uint8_t single_key_slot_size; ///< The number of slots needed to store an ITS key (This
+				      ///< value depends on the algorithm and key type)
+	uint8_t slot_count;	      ///< The number of slots within the range.
+	cracen_kmu_metadata_key_usage_scheme
+		scheme; ///< Scheme used for the keys in this range see @ref
+			///< cracen_kmu_metadata_key_usage_scheme enum.
+};
+
+/* Store translation table in the RAM
+TODO: It can be stored in the non-volatile space as well
+*/
+static kmu_slot_translation kmu_slot_table[CONFIG_CRACEN_TRANSLATE_ITS_TO_KMU_MAX_RANGES];
+static uint8_t kmu_slot_current_translations;
+#endif
+
 #define SECONDARY_SLOT_METADATA_VALUE UINT32_MAX
 
 extern nrf_security_mutex_t cracen_mutex_symmetric;
@@ -767,8 +789,8 @@ psa_status_t cracen_kmu_provision(const psa_key_attributes_t *key_attr, int slot
 #endif /* PSA_NEED_CRACEN_KMU_ENCRYPTED_KEYS */
 
 	/* Verify that required slots are empty */
-	const size_t num_slots =  DIV_ROUND_UP(MAX(encrypted_outlen, key_buffer_size),
-						   CRACEN_KMU_SLOT_KEY_SIZE);
+	const size_t num_slots =
+		DIV_ROUND_UP(MAX(encrypted_outlen, key_buffer_size), CRACEN_KMU_SLOT_KEY_SIZE);
 
 	for (size_t i = 0; i < num_slots; i++) {
 		if (!lib_kmu_is_slot_empty(slot_id + i)) {
@@ -838,6 +860,82 @@ psa_status_t cracen_kmu_get_key_slot(mbedtls_svc_key_id_t key_id, psa_key_lifeti
 	*slot_number = slot_id;
 
 	return PSA_SUCCESS;
+}
+
+psa_status_t cracen_register_kmu_range(mbedtls_svc_key_id_t its_start,
+				       psa_drv_slot_number_t kmu_start, uint16_t slot_count,
+				       uint8_t kmu_key_size,
+				       cracen_kmu_metadata_key_usage_scheme scheme)
+{
+	if (kmu_start + slot_count > AVAILABLE_KMU_SLOTS) {
+		return PSA_ERROR_INVALID_ARGUMENT;
+	}
+
+	/* Check if we have enough space to register a new range */
+	if (kmu_slot_current_translations < CONFIG_CRACEN_TRANSLATE_ITS_TO_KMU_MAX_RANGES) {
+		/* Check if the new range does not overlay any other already defined ranges */
+		for (size_t i = 0; i < kmu_slot_current_translations; i++) {
+			if ((kmu_start >= kmu_slot_table[i].kmu_base &&
+			     kmu_start <
+				     (kmu_slot_table[i].kmu_base + kmu_slot_table[i].slot_count)) ||
+			    ((kmu_start + slot_count) >= kmu_slot_table[i].kmu_base &&
+			     (kmu_start + slot_count) <
+				     (kmu_slot_table[i].kmu_base + kmu_slot_table[i].slot_count)) ||
+			    (kmu_start < kmu_slot_table[i].kmu_base &&
+			     (kmu_start + slot_count) >
+				     (kmu_slot_table[i].kmu_base + kmu_slot_table[i].slot_count)) ||
+			    ((kmu_start + slot_count) > AVAILABLE_KMU_SLOTS)) {
+				return PSA_ERROR_INVALID_ARGUMENT;
+			}
+		}
+		/* Save the new range */
+		kmu_slot_table[kmu_slot_current_translations].its_base = its_start;
+		kmu_slot_table[kmu_slot_current_translations].kmu_base = kmu_start;
+		kmu_slot_table[kmu_slot_current_translations].slot_count = slot_count;
+		kmu_slot_table[kmu_slot_current_translations].scheme = scheme;
+		kmu_slot_table[kmu_slot_current_translations].kmu_key_size = kmu_key_size;
+		kmu_slot_current_translations++;
+		return PSA_SUCCESS;
+	}
+
+	return PSA_ERROR_STORAGE_FAILURE;
+}
+
+psa_status_t cracen_kmu_translate_key_from_its(const psa_key_attributes_t *attributes,
+					       psa_drv_slot_number_t *slot_id)
+{
+	if (!attributes || !slot_id) {
+		return PSA_ERROR_INVALID_ARGUMENT;
+	}
+	/* Iterate through registered ranges and try to find matching translation by comparing the
+	 * ITS key base */
+	for (size_t i = 0; i < kmu_slot_current_translations; i++) {
+		if ((psa_get_key_id(attributes) & 0xFFFF0000) == kmu_slot_table[i].its_base) {
+			/* Found, translate to KMU slot */
+			/* First, get key id without the base */
+			psa_key_id_t key_id = psa_get_key_id(attributes) & 0x0000FFFF;
+			/* Allocate two additional slots if the found range should be encrypted */
+			key_id = kmu_slot_table[i].scheme == CRACEN_KMU_KEY_USAGE_SCHEME_ENCRYPTED
+					 ? key_id * 2
+					 : key_id;
+			/* Calculate a proper slot according to slots base and size of the key
+			 * (requested by the used algorithm) */
+			psa_drv_slot_number_t slot_no = kmu_slot_table[i].kmu_base +
+							key_id * kmu_slot_table[i].kmu_key_size;
+			/* Check if the request slot_number is located within the range */
+			if (slot_no > (kmu_slot_table[i].kmu_base + kmu_slot_table[i].slot_count) ||
+			    slot_no > AVAILABLE_KMU_SLOTS) {
+				return PSA_ERROR_INSUFFICIENT_STORAGE;
+			}
+			/* Save the key to return it */
+			*slot_id = PSA_KEY_HANDLE_FROM_CRACEN_KMU_SLOT(kmu_slot_table[i].scheme,
+								       slot_no);
+
+			return PSA_SUCCESS;
+		}
+	}
+
+	return PSA_ERROR_INVALID_HANDLE;
 }
 
 static psa_status_t push_kmu_key_to_ram(uint8_t *key_buffer, size_t key_buffer_size)

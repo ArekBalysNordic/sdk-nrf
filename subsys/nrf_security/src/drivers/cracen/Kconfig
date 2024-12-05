@@ -31,9 +31,34 @@ config CRACEN_LIB_KMU
 	help
 	  The CRACEN KMU library.
 
+if CRACEN_LIB_KMU
+
+config CRACEN_TRANSLATE_ITS_TO_KMU
+	bool "Translate all PSA keys to KMU slots"
+	help
+	  It will translate all PSA ITS keys to KMU slots if the range is defined.
+	  To use it you need to register a range to be translated, and specify the
+	  maximum number of keys. If it is enabled the ITS won't be used and all keys
+	  that are created by psa_generate_key or imported by psa_import_key will be
+	  stored in KMU automatically if the slot is available.
+
+config CRACEN_TRANSLATE_ITS_TO_KMU_ENCRYPTION
+	bool "Encrypt all PSA keys before translating to KMU"
+	depends on CRACEN_TRANSLATE_ITS_TO_KMU
+	help
+	  Encrypt all PSA keys before translating them to KMU slots.
+	  This operation will require two additional slots in KMU for each key.
+
+config CRACEN_TRANSLATE_ITS_TO_KMU_MAX_RANGES
+	int "Maximum number of ranges to translate"
+	depends on CRACEN_TRANSLATE_ITS_TO_KMU
+	range 1 10
+	default 3
+	help
+	  The maximum number of ranges to translate from PSA ITS to KMU slots.
+
 config CRACEN_IKG_SEED_LOAD
 	bool "Load the CRACEN IKG seed"
-	depends on CRACEN_LIB_KMU
 	default y
 	help
 	  The IKG seed is used to derive the keys in the IKG.
@@ -50,6 +75,8 @@ config CRACEN_IKG_SEED_KMU_SLOT
 	  the one defined here and the two subsequent ones.
 	  This defines the KMU slot (along with the two following it) to which
 	  the IKG seed is provisioned and that is pushed when loading the IKG seed.
+
+endif # CRACEN_LIB_KMU
 
 rsource 'psa_driver.Kconfig'
 
