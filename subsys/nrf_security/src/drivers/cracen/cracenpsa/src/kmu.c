@@ -62,7 +62,7 @@ enum kmu_metadata_algorithm {
 	METADATA_ALG_ED25519 = 10,
 	METADATA_ALG_ECDSA = 11,
 	METADATA_ALG_HMAC = 12,
-	METADATA_ALG_RESERVED3 = 13,
+	METADATA_ALG_NONE = 13,
 	METADATA_ALG_RESERVED4 = 14,
 	METADATA_ALG_RESERVED5 = 15,
 };
@@ -474,6 +474,10 @@ static psa_status_t convert_to_psa_attributes(kmu_metadata *metadata,
 		psa_set_key_type(key_attr, PSA_KEY_TYPE_HMAC);
 		psa_set_key_algorithm(key_attr, PSA_ALG_HMAC(PSA_ALG_SHA_256));
 		break;
+	case METADATA_ALG_NONE:
+		psa_set_key_type(key_attr, PSA_KEY_TYPE_RAW_DATA);
+		psa_set_key_algorithm(key_attr, PSA_ALG_NONE);
+		break;
 	default:
 		return PSA_ERROR_HARDWARE_FAILURE;
 	}
@@ -636,6 +640,9 @@ psa_status_t convert_from_psa_attributes(const psa_key_attributes_t *key_attr,
 			return PSA_ERROR_NOT_SUPPORTED;
 		}
 		metadata->algorithm = METADATA_ALG_HMAC;
+		break;
+	case PSA_ALG_NONE:
+		metadata->algorithm = METADATA_ALG_NONE;
 		break;
 	default:
 		return PSA_ERROR_NOT_SUPPORTED;
