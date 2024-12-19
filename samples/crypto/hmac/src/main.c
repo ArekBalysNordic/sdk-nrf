@@ -16,8 +16,12 @@
 #include <tfm_ns_interface.h>
 #endif
 
-#define APP_SUCCESS		(0)
-#define APP_ERROR		(-1)
+#include <cracen_psa_kmu.h>
+
+#define VARIANT_KMU 1
+
+#define APP_SUCCESS	    (0)
+#define APP_ERROR	    (-1)
 #define APP_SUCCESS_MESSAGE "Example finished successfully!"
 #define APP_ERROR_MESSAGE "Example exited with error!"
 
@@ -27,7 +31,6 @@
 		LOG_HEXDUMP_INF(p_text, len, "Content:");\
 		LOG_INF("---- %s end  ----", p_label);\
 	})
-
 LOG_MODULE_REGISTER(hmac, LOG_LEVEL_DBG);
 
 /* ====================================================================== */
@@ -43,7 +46,11 @@ static uint8_t m_plain_text[NRF_CRYPTO_EXAMPLE_HMAC_TEXT_SIZE] = {
 
 static uint8_t hmac[NRF_CRYPTO_EXAMPLE_HMAC_KEY_SIZE];
 
-static psa_key_id_t key_id;
+static psa_key_id_t key_id_generate;
+static psa_key_id_t key_id_sign;
+static psa_key_id_t key_id_verify;
+static uint8_t key[16] = {0x4a, 0x5e, 0x6a, 0x7b, 0x8c, 0x9d, 0xae, 0xbf,
+			  0x0a, 0x1b, 0x2c, 0x3d, 0x4e, 0x5f, 0x6a, 0x7b};
 /* ====================================================================== */
 
 int crypto_init(void)
@@ -63,11 +70,47 @@ int crypto_finish(void)
 	psa_status_t status;
 
 	/* Destroy the key handle */
-	status = psa_destroy_key(key_id);
+	status = psa_destroy_key(key_id_sign);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_destroy_key failed! (Error: %d)", status);
 		return APP_ERROR;
 	}
+	status = psa_destroy_key(key_id_verify);
+	if (status != PSA_SUCCESS) {
+		LOG_INF("psa_destroy_key failed! (Error: %d)", status);
+		return APP_ERROR;
+	}
+
+	return APP_SUCCESS;
+}
+
+int import_key(psa_key_id_t *key_id, uint32_t location)
+{
+	psa_status_t status;
+	LOG_INF("Importing HMAC key...");
+
+	/* Configure the key attributes */
+	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
+
+	psa_set_key_usage_flags(&key_attributes,
+				PSA_KEY_USAGE_VERIFY_HASH | PSA_KEY_USAGE_SIGN_HASH);
+	psa_set_key_lifetime(&key_attributes, location);
+	if(location != PSA_KEY_LIFETIME_VOLATILE){
+		psa_set_key_id(&key_attributes, *key_id);
+	}
+	psa_set_key_algorithm(&key_attributes, PSA_ALG_HMAC(PSA_ALG_SHA_256));
+	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_HMAC);
+	psa_set_key_bits(&key_attributes, 128);
+
+	status = psa_import_key(&key_attributes, key, sizeof(key), key_id);
+	if (status != PSA_SUCCESS) {
+		LOG_INF("psa_import_key failed! (Error: %d)", status);
+		return APP_ERROR;
+	}
+
+	psa_reset_key_attributes(&key_attributes);
+
+	LOG_INF("HMAC key imported successfully!");
 
 	return APP_SUCCESS;
 }
@@ -91,7 +134,7 @@ int generate_key(void)
 	/* Generate a random key. The key is not exposed to the application,
 	 * we can use it to encrypt/decrypt using the key handle
 	 */
-	status = psa_generate_key(&key_attributes, &key_id);
+	status = psa_generate_key(&key_attributes, &key_id_generate);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_generate_key failed! (Error: %d)", status);
 		return APP_ERROR;
@@ -114,7 +157,7 @@ int hmac_sign(void)
 	LOG_INF("Signing using HMAC ...");
 
 	/* Initialize the HMAC signing operation */
-	status = psa_mac_sign_setup(&operation, key_id, PSA_ALG_HMAC(PSA_ALG_SHA_256));
+	status = psa_mac_sign_setup(&operation, key_id_sign, PSA_ALG_HMAC(PSA_ALG_SHA_256));
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_mac_sign_setup failed! (Error: %d)", status);
 		return APP_ERROR;
@@ -149,7 +192,7 @@ int hmac_verify(void)
 	LOG_INF("Verifying the HMAC signature...");
 
 	/* Initialize the HMAC verification operation */
-	status = psa_mac_verify_setup(&operation, key_id, PSA_ALG_HMAC(PSA_ALG_SHA_256));
+	status = psa_mac_verify_setup(&operation, key_id_verify, PSA_ALG_HMAC(PSA_ALG_SHA_256));
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_mac_verify_setup failed! (Error: %d)", status);
 		return APP_ERROR;
@@ -186,7 +229,32 @@ int main(void)
 		return APP_ERROR;
 	}
 
-	status = generate_key();
+	// status = generate_key();
+	// if (status != APP_SUCCESS) {
+	// 	LOG_INF(APP_ERROR_MESSAGE);
+	// 	return APP_ERROR;
+	// }
+
+/* Import key for Signing*/
+#if VARIANT_KMU
+	key_id_sign = PSA_KEY_HANDLE_FROM_CRACEN_KMU_SLOT(CRACEN_KMU_KEY_USAGE_SCHEME_RAW, 100);
+	status = import_key(&key_id_sign,
+			    PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(
+				    PSA_KEY_PERSISTENCE_DEFAULT, PSA_KEY_LOCATION_CRACEN_KMU));
+	if (status != APP_SUCCESS) {
+		LOG_INF(APP_ERROR_MESSAGE);
+		return APP_ERROR;
+	}
+#else
+	status = import_key(&key_id_sign, PSA_KEY_LIFETIME_VOLATILE);
+	if (status != APP_SUCCESS) {
+		LOG_INF(APP_ERROR_MESSAGE);
+		return APP_ERROR;
+	}
+#endif
+
+	/* Import key for Verify */
+	status = import_key(&key_id_verify, PSA_KEY_LIFETIME_VOLATILE);
 	if (status != APP_SUCCESS) {
 		LOG_INF(APP_ERROR_MESSAGE);
 		return APP_ERROR;
