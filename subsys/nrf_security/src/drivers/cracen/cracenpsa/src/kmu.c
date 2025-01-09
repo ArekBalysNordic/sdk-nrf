@@ -63,7 +63,7 @@ enum kmu_metadata_algorithm {
 	METADATA_ALG_ECDSA = 11,
 	METADATA_ALG_ED25519PH = 12,
 	METADATA_ALG_HMAC = 13,
-	METADATA_ALG_RESERVED4 = 14,
+	METADATA_ALG_DETERMINISTIC_ECDSA = 14,
 	METADATA_ALG_RESERVED5 = 15,
 };
 
@@ -483,6 +483,13 @@ static psa_status_t convert_to_psa_attributes(kmu_metadata *metadata,
 		psa_set_key_type(key_attr, PSA_KEY_TYPE_HMAC);
 		psa_set_key_algorithm(key_attr, PSA_ALG_HMAC(PSA_ALG_SHA_256));
 		break;
+	case METADATA_ALG_DETERMINISTIC_ECDSA:
+		psa_set_key_type(key_attr,
+				 can_sign(key_attr)
+					 ? PSA_KEY_TYPE_ECC_KEY_PAIR(PSA_ECC_FAMILY_SECP_R1)
+					 : PSA_KEY_TYPE_ECC_PUBLIC_KEY(PSA_ECC_FAMILY_SECP_R1));
+		psa_set_key_algorithm(key_attr, PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256));
+		break;
 	default:
 		return PSA_ERROR_HARDWARE_FAILURE;
 	}
@@ -641,6 +648,7 @@ psa_status_t convert_from_psa_attributes(const psa_key_attributes_t *key_attr,
 	break;
 
 	case PSA_ALG_ECDSA(PSA_ALG_ANY_HASH):
+	case PSA_ALG_DETERMINISTIC_ECDSA(PSA_ALG_SHA_256):
 		if (PSA_KEY_TYPE_ECC_GET_FAMILY(psa_get_key_type(key_attr)) !=
 		    PSA_ECC_FAMILY_SECP_R1) {
 			return PSA_ERROR_NOT_SUPPORTED;
@@ -651,7 +659,11 @@ psa_status_t convert_from_psa_attributes(const psa_key_attributes_t *key_attr,
 		    PSA_KEY_TYPE_IS_ECC_KEY_PAIR(psa_get_key_type(key_attr))) {
 			return PSA_ERROR_NOT_SUPPORTED;
 		}
-		metadata->algorithm = METADATA_ALG_ECDSA;
+		if (PSA_ALG_ECDSA_IS_DETERMINISTIC(psa_get_key_algorithm(key_attr))) {
+			metadata->algorithm = METADATA_ALG_DETERMINISTIC_ECDSA;
+		} else {
+			metadata->algorithm = METADATA_ALG_ECDSA;
+		}
 		break;
 	case PSA_ALG_HMAC(PSA_ALG_SHA_256):
 		if (!can_sign(key_attr) && PSA_ALG_IS_HMAC(psa_get_key_type(key_attr))) {
