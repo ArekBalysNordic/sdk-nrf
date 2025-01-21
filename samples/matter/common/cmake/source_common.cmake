@@ -84,3 +84,7 @@ endif()
 if(CONFIG_NCS_SAMPLE_MATTER_TEST_SHELL)
     target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/test/test_shell.cpp)
 endif()
+
+if(CONFIG_NCS_SAMPLE_MATTER_TEST_FD_USER_DATA)
+    target_sources(app PRIVATE ${MATTER_COMMONS_SRC_DIR}/test/test_fd_user_data.cpp)
+endif()

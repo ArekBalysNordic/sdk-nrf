@@ -46,6 +46,10 @@
 #include <ram_pwrdn.h>
 #endif
 
+#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_FD_USER_DATA
+#include "test/test_fd_user_data.h"
+#endif
+
 #include <app/InteractionModelEngine.h>
 #include <app/clusters/network-commissioning/network-commissioning.h>
 #include <app/server/OnboardingCodesUtil.h>
@@ -248,6 +252,10 @@ void DoInitChipServer(intptr_t /* unused */)
 	SetDeviceInstanceInfoProvider(sLocalInitData.mFactoryDataProvider);
 	SetDeviceAttestationCredentialsProvider(sLocalInitData.mFactoryDataProvider);
 	SetCommissionableDataProvider(sLocalInitData.mFactoryDataProvider);
+
+#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_FD_USER_DATA
+	Nrf::Matter::ParseUserDataForTestingPurposes(sLocalInitData.mFactoryDataProvider);
+#endif /* CONFIG_NCS_SAMPLE_TEST_USER_DATA */
 
 #ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
 	/* Read the enable key from the factory data set */

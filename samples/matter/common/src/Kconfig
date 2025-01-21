@@ -107,6 +107,13 @@ config NCS_SAMPLE_MATTER_ZAP_FILES_PATH
 	help
 	  Path in sample, under which ZAP files are located
 
+config NCS_SAMPLE_MATTER_TEST_FD_USER_DATA
+	bool "Parse user data store in factory data"
+	help
+	  Parse user data store in factory data for testing purposes.
+	  Currently, it can be used to enable Bluetooth LE advertising of Matter service
+	  if in the user data there will be a key "matter_ble_adv" with a value "1".
+
 rsource "persistent_storage/Kconfig"
 rsource "watchdog/Kconfig"
 rsource "diagnostic/Kconfig"
