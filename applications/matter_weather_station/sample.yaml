@@ -52,7 +52,10 @@ tests:
       - matter_weather_station_SHIELD=nrf7002eb
       - FILE_SUFFIX=release
       - SB_CONFIG_WIFI_NRF70=y
-      - CONFIG_CHIP_WIFI=y
+      - PM_STATIC_YML_FILE=pm_static_factory_data.yml
+      - OVERLAY_CONFIG=overlay-factory_data.conf
+      - SB_CONFIG_MATTER_FACTORY_DATA_GENERATE=y
+      - CONFIG_CHIP_FACTORY_DATA=y
     platform_allow: thingy53/nrf5340/cpuapp
     platform_exclude: thingy53/nrf5340/cpuapp/ns
     integration_platforms:

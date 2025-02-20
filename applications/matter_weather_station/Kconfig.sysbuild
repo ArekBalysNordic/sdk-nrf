@@ -50,4 +50,16 @@ config DFU_MULTI_IMAGE_PACKAGE_NET
 config PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY
 	default y
 
+# Store WiFi firmware patches in external flash
+if WIFI_NRF70
+
+choice WIFI_PATCHES_EXT_FLASH_SUPPORT
+	default WIFI_PATCHES_EXT_FLASH_STORE
+endchoice
+
+config DFU_MULTI_IMAGE_PACKAGE_WIFI_FW_PATCH
+	default y
+
+endif
+
 source "share/sysbuild/Kconfig"
