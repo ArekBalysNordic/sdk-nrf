@@ -282,7 +282,11 @@ IPC radio firmware
 Matter Bridge
 -------------
 
-* Updated by enabling Link Time Optimization (LTO) by default for the ``release`` configuration.
+* Updated:
+
+  * By enabling Link Time Optimization (LTO) by default for the ``release`` configuration.
+  * By enabling the default storage of the Wi-Fi firmware patch in external flash.
+
 * Removed support for the nRF54H20 devices.
 
 nRF5340 Audio
@@ -649,6 +653,14 @@ Matter samples
 --------------
 
 * Added :ref:`matter_manufacturer_specific_sample` sample that demonstrates an implementation of custom manufacturer-specific clusters used by the application layer.
+* Updated all Matter samples that run Wi-Fi stack to store the Wi-Fi firmware patch in external flash.
+  The change affects the following samples on the nRF7002 DK:
+
+    * :ref:`matter_light_bulb_sample`
+    * :ref:`matter_light_switch_sample`
+    * :ref:`matter_lock_sample`
+    * :ref:`matter_template_sample`
+    * :ref:`matter_thermostat_sample`
 
 * :ref:`matter_template_sample` sample:
 
