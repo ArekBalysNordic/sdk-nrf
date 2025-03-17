@@ -12,6 +12,8 @@
 #include <psa/crypto.h>
 #include <psa/crypto_extra.h>
 
+#include <cracen_psa_kmu.h>
+
 #ifdef CONFIG_BUILD_WITH_TFM
 #include <tfm_ns_interface.h>
 #endif
@@ -57,7 +59,10 @@ static uint8_t m_encrypted_text[NRF_CRYPTO_EXAMPLE_AES_MAX_TEXT_SIZE +
 
 static uint8_t m_decrypted_text[NRF_CRYPTO_EXAMPLE_AES_MAX_TEXT_SIZE];
 
-static psa_key_id_t key_id;
+uint8_t input_key_buffer[16] = {0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0a, 0x0b, 0x0c, 0x0d, 0x0e, 0x0f};
+
+static psa_key_id_t key_id =
+	PSA_KEY_HANDLE_FROM_CRACEN_KMU_SLOT(CRACEN_KMU_KEY_USAGE_SCHEME_RAW, 80);
 /* ====================================================================== */
 
 int crypto_init(void)
@@ -93,23 +98,31 @@ int generate_key(void)
 
 	LOG_INF("Generating random AES key...");
 
+	psa_destroy_key(key_id);
+
 	/* Configure the key attributes */
 	psa_key_attributes_t key_attributes = PSA_KEY_ATTRIBUTES_INIT;
 
-	psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT);
-	psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_VOLATILE);
+	psa_set_key_usage_flags(&key_attributes, PSA_KEY_USAGE_ENCRYPT | PSA_KEY_USAGE_DECRYPT | PSA_KEY_USAGE_EXPORT);
+	// psa_set_key_lifetime(&key_attributes, PSA_KEY_LIFETIME_VOLATILE);
+	psa_set_key_lifetime(&key_attributes,
+				PSA_KEY_LIFETIME_FROM_PERSISTENCE_AND_LOCATION(
+					PSA_KEY_PERSISTENCE_DEFAULT, PSA_KEY_LOCATION_CRACEN_KMU));
 	psa_set_key_algorithm(&key_attributes, PSA_ALG_GCM);
 	psa_set_key_type(&key_attributes, PSA_KEY_TYPE_AES);
 	psa_set_key_bits(&key_attributes, 128);
+	psa_set_key_id(&key_attributes, key_id);
 
 	/* Generate a random key. The key is not exposed to the application,
 	 * we can use it to encrypt/decrypt using the key handle
 	 */
-	status = psa_generate_key(&key_attributes, &key_id);
+	status = psa_import_key(&key_attributes, input_key_buffer, sizeof(input_key_buffer), &key_id);
 	if (status != PSA_SUCCESS) {
 		LOG_INF("psa_generate_key failed! (Error: %d)", status);
 		return APP_ERROR;
 	}
+
+	LOG_HEXDUMP_INF(input_key_buffer, sizeof(input_key_buffer), "imported key");
 
 	/* After the key handle is acquired the attributes are not needed */
 	psa_reset_key_attributes(&key_attributes);
@@ -196,6 +209,25 @@ int decrypt_aes_gcm(void)
 	return APP_SUCCESS;
 }
 
+int aes_gcm_export(void)
+{
+	uint8_t buffer[16];
+	size_t bufferLength = 16;
+	size_t keyLength = 16;
+	psa_status_t status;
+
+	status = psa_export_key(key_id, buffer, bufferLength, &keyLength);
+	LOG_HEXDUMP_INF(buffer, keyLength, "exported key");
+	if (status != PSA_SUCCESS) {
+		LOG_INF("psa_export_key failed! (Error: %d)", status);
+		return APP_ERROR;
+	}
+
+	LOG_INF("AES key exported successfully!");
+
+	return APP_SUCCESS;
+}
+
 int main(void)
 {
 	int status;
@@ -221,6 +253,12 @@ int main(void)
 	}
 
 	status = decrypt_aes_gcm();
+	if (status != APP_SUCCESS) {
+		LOG_INF(APP_ERROR_MESSAGE);
+		return APP_ERROR;
+	}
+
+	status = aes_gcm_export();
 	if (status != APP_SUCCESS) {
 		LOG_INF(APP_ERROR_MESSAGE);
 		return APP_ERROR;
