@@ -6,6 +6,14 @@ source "${ZEPHYR_BASE}/modules/openthread/Kconfig"
 
 if OPENTHREAD
 
+config OPENTHREAD_PLATFORM_PKT_TXTIME
+	default y if NET_PKT_TXTIME
+	default y if !NET_L2_OPENTHREAD
+
+config OPENTHREAD_PLATFORM_CARRIER_FUNCTIONS
+	default y if OPENTHREAD_DIAG && IEEE802154_CARRIER_FUNCTIONS
+	default y if OPENTHREAD_DIAG && NRF5_CARRIER_FUNCTIONS
+
 # Load the nrf-specific OpenThread stack Kconfig file
 menu "OpenThread stack nrf features"
 rsource "Kconfig.features.nrf"
