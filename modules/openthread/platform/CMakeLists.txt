@@ -8,6 +8,7 @@ zephyr_library_sources(
   platform.c
   radio.c
   spi.c
+  openthread.c
   )
 
 
