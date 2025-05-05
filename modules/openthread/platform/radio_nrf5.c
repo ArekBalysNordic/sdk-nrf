@@ -38,6 +38,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 
 // TODO: AG: config
 #define CONFIG_NRF5_RX_STACK_SIZE 1024
+#define CONFIG_NRF5_MULTIPLE_CCA  1
 
 #if defined(CONFIG_NRF_802154_SER_HOST)
 #include "nrf_802154_serialization_error.h"
@@ -47,6 +48,12 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #include <soc_secure.h>
 #else
 #include <hal/nrf_ficr.h>
+#endif
+
+#if defined(CONFIG_OPENTHREAD_THREAD_VERSION_1_1)
+#define ACK_PKT_LENGTH 5
+#else
+#define ACK_PKT_LENGTH OT_RADIO_FRAME_MAX_SIZE
 #endif
 
 // TODO: AG: configs
@@ -83,7 +90,14 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #define NRF5_BROADCAST_ADDRESS	       0xffff
 #define NRF5_NO_SHORT_ADDRESS_ASSIGNED 0xfffe
 
+#if defined(CONFIG_NET_TC_THREAD_COOPERATIVE)
+#define OT_WORKER_PRIORITY K_PRIO_COOP(CONFIG_OPENTHREAD_THREAD_PRIORITY)
+#else
+#define OT_WORKER_PRIORITY K_PRIO_PREEMPT(CONFIG_OPENTHREAD_THREAD_PRIORITY)
+#endif
+
 enum nrf5_pending_events {
+	// TODO: AG: remove or reuse to remove work queue
 	PENDING_EVENT_FRAME_TO_SEND,	  /* There is a tx frame to send  */
 	PENDING_EVENT_FRAME_RECEIVED,	  /* Radio has received new frame */
 	PENDING_EVENT_RX_FAILED,	  /* The RX failed */
@@ -137,16 +151,12 @@ struct nrf5_header_ie {
 
 // TODO: AG: replace with otRadioFrame?
 struct nrf5_rx_frame {
-	// TODO: AG: remove?
-	void *fifo_reserved; /* 1st word reserved for use by fifo. */
-	uint8_t *psdu;	     /* Pointer to a received frame. */
-	// TODO: AG: remove?
+	uint8_t *psdu; /* Pointer to a received frame. */
 	uint64_t time; /* RX timestamp. */
 	uint8_t lqi;   /* Last received frame LQI value. */
 	int8_t rssi;   /* Last received frame RSSI value. */
 	bool ack_fpb;  /* FPB value in ACK sent for the received frame. */
-	// TODO: AG: remove?
-	bool ack_seb; /* SEB value in ACK sent for the received frame. */
+	bool ack_seb;  /* SEB value in ACK sent for the received frame. */
 };
 
 /** Energy scan callback */
@@ -170,23 +180,65 @@ struct nrf5_data {
 	/* Security Enabled bit value in ACK sent for the last received frame. */
 	bool last_frame_ack_seb;
 
+	/* CCA complete semaphore. Unlocked when CCA is complete. */
+	struct k_sem cca_wait;
+
+	/* CCA result. Holds information whether channel is free or not. */
+	bool channel_free;
+
 	/* Enable/disable RxOnWhenIdle MAC PIB attribute (Table 8-94). */
 	bool rx_on_when_idle;
 
 	/* Radio capabilities */
 	otRadioCaps capabilities;
 
+	/* Indicates if currently processed TX frame is secured. */
+	bool tx_frame_is_secured;
+
+	/* Indicates if currently processed TX frame has dynamic data updated. */
+	bool tx_frame_mac_hdr_rdy;
+
+#if defined(CONFIG_NRF5_MULTIPLE_CCA)
+	/* The maximum number of extra CCA attempts to be performed before transmission. */
+	uint8_t max_extra_cca_attempts;
+#endif
+
 	otError rx_result;
+
+	/* TX synchronization semaphore. Unlocked when frame has been
+	 * sent or send procedure failed.
+	 */
+	struct k_sem tx_wait;
+
+	/* TX buffer. First byte is PHR (length), remaining bytes are
+	 * MPDU data.
+	 */
+	uint8_t tx_psdu[PHR_SIZE + MAX_PACKET_SIZE];
+
+	/* TX result, updated in radio transmit callbacks. */
+	uint8_t tx_result;
+
+	/* A buffer for the received ACK frame. psdu pointer be NULL if no
+	 * ACK was requested/received.
+	 */
+	struct nrf5_rx_frame ack_frame;
+
+	uint8_t ack_psdu[ACK_PKT_LENGTH];
 
 	ATOMIC_DEFINE(pending_events, PENDING_EVENT_COUNT);
 };
 
 static struct nrf5_data nrf5_data;
 
+K_KERNEL_STACK_DEFINE(ot_task_stack, CONFIG_OPENTHREAD_RADIO_WORKQUEUE_STACK_SIZE);
+static struct k_work_q ot_work_q;
+
 K_SEM_DEFINE(radio_sem, 0, 1);
 
+// TODO: AG: move to nrf5_data
 static otRadioState sState = OT_RADIO_STATE_DISABLED;
 static otRadioFrame sTransmitFrame;
+static otRadioFrame ack_frame;
 
 #if defined(CONFIG_OPENTHREAD_TIME_SYNC)
 static otRadioIeInfo tx_ie_info;
@@ -232,6 +284,23 @@ static void reset_pending_event(enum nrf5_pending_events event)
 static inline void clear_pending_events(void)
 {
 	atomic_clear(nrf5_data.pending_events);
+}
+
+static int nrf5_cca(void)
+{
+	if (!nrf_802154_cca()) {
+		LOG_DBG("CCA failed");
+		return -EBUSY;
+	}
+
+	/* The nRF driver guarantees that a callback will be called once
+	 * the CCA function is done, thus unlocking the semaphore.
+	 */
+	k_sem_take(&nrf5_data.cca_wait, K_FOREVER);
+
+	LOG_DBG("Channel free? %d", nrf5_data.channel_free);
+
+	return nrf5_data.channel_free ? 0 : -EBUSY;
 }
 
 static int nrf5_set_channel(uint16_t channel)
@@ -364,11 +433,9 @@ static otRadioCaps nrf5_get_caps(void)
 	}
 #endif
 
-#if defined(CONFIG_NET_PKT_TXTIME)
 	if (radio_caps & NRF_802154_CAPABILITY_DELAYED_TX) {
 		caps |= OT_RADIO_CAPS_TRANSMIT_TIMING;
 	}
-#endif
 
 	if (radio_caps & NRF_802154_CAPABILITY_DELAYED_RX) {
 		caps |= OT_RADIO_CAPS_RECEIVE_TIMING;
@@ -377,8 +444,85 @@ static otRadioCaps nrf5_get_caps(void)
 	return caps;
 }
 
+/**
+ * @brief Convert 32-bit (potentially wrapped) OpenThread microsecond timestamps
+ * to 64-bit Zephyr network subsystem nanosecond timestamps.
+ *
+ * This is a workaround until OpenThread is able to schedule 64-bit RX/TX time.
+ *
+ * @param target_time_ns_wrapped time in nanoseconds referred to the radio clock
+ * modulo UINT32_MAX.
+ *
+ * @return 64-bit nanosecond timestamp
+ */
+static uint64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrapped)
+{
+	/**
+	 * OpenThread provides target time as a (potentially wrapped) 32-bit
+	 * integer defining a moment in time in the microsecond domain.
+	 *
+	 * The target time can point to a moment in the future, but can be
+	 * overdue as well. In order to determine what's the case and correctly
+	 * set the absolute (non-wrapped) target time, it's necessary to compare
+	 * the least significant 32 bits of the current 64-bit network subsystem
+	 * time with the provided 32-bit target time. Let's assume that half of
+	 * the 32-bit range can be used for specifying target times in the
+	 * future, and the other half - in the past.
+	 */
+	uint64_t now_us = otPlatTimeGet();
+	uint32_t now_us_wrapped = (uint32_t)now_us;
+	uint32_t time_diff = target_time_us_wrapped - now_us_wrapped;
+	uint64_t result = UINT64_C(0);
+
+	if (time_diff < 0x80000000) {
+		/**
+		 * Target time is assumed to be in the future. Check if a 32-bit overflow
+		 * occurs between the current time and the target time.
+		 */
+		if (now_us_wrapped > target_time_us_wrapped) {
+			/**
+			 * Add a 32-bit overflow and replace the least significant 32 bits
+			 * with the provided target time.
+			 */
+			result = now_us + UINT32_MAX + 1;
+			result &= ~(uint64_t)UINT32_MAX;
+			result |= target_time_us_wrapped;
+		} else {
+			/**
+			 * Leave the most significant 32 bits and replace the least significant
+			 * 32 bits with the provided target time.
+			 */
+			result = (now_us & (~(uint64_t)UINT32_MAX)) | target_time_us_wrapped;
+		}
+	} else {
+		/**
+		 * Target time is assumed to be in the past. Check if a 32-bit overflow
+		 * occurs between the target time and the current time.
+		 */
+		if (now_us_wrapped > target_time_us_wrapped) {
+			/**
+			 * Leave the most significant 32 bits and replace the least significant
+			 * 32 bits with the provided target time.
+			 */
+			result = (now_us & (~(uint64_t)UINT32_MAX)) | target_time_us_wrapped;
+		} else {
+			/**
+			 * Subtract a 32-bit overflow and replace the least significant
+			 * 32 bits with the provided target time.
+			 */
+			result = now_us - UINT32_MAX - 1;
+			result &= ~(uint64_t)UINT32_MAX;
+			result |= target_time_us_wrapped;
+		}
+	}
+
+	__ASSERT_NO_MSG(result <= INT64_MAX / NSEC_PER_USEC);
+	return result * NSEC_PER_USEC;
+}
+
 static void dataInit(void)
 {
+	// TODO: AG: replace with static buffer
 	sTransmitFrame.mPsdu = malloc(OT_RADIO_FRAME_MAX_SIZE);
 	__ASSERT_NO_MSG(sTransmitFrame.mPsdu != NULL);
 
@@ -417,11 +561,15 @@ void platformRadioInit(void)
 	nrf5_data.capabilities = nrf5_get_caps();
 
 	k_fifo_init(&nrf5_data.rx_fifo);
+	k_sem_init(&nrf5_data.tx_wait, 0, 1);
+	k_sem_init(&nrf5_data.cca_wait, 0, 1);
 
 	nrf5_data.rx_on_when_idle = true;
 	nrf5_irq_config();
 
-	// TODO: work queue?
+	k_work_queue_start(&ot_work_q, ot_task_stack, K_KERNEL_STACK_SIZEOF(ot_task_stack),
+			   OT_WORKER_PRIORITY, NULL);
+	k_thread_name_set(&ot_work_q.thread, "ot_radio_workq");
 
 	nrf_802154_init();
 }
@@ -442,11 +590,7 @@ static void openthread_handle_received_frame(otInstance *instance, struct nrf5_r
 	recv_frame.mInfo.mRxInfo.mLqi = rx_frame->lqi;
 	recv_frame.mInfo.mRxInfo.mRssi = rx_frame->rssi;
 	recv_frame.mInfo.mRxInfo.mAckedWithFramePending = rx_frame->ack_fpb;
-
-#define CONFIG_NET_PKT_TIMESTAMP
-#if defined(CONFIG_NET_PKT_TIMESTAMP)
 	recv_frame.mInfo.mRxInfo.mTimestamp = rx_frame->time;
-#endif
 
 	recv_frame.mInfo.mRxInfo.mAckedWithSecEnhAck = rx_frame->ack_seb;
 	// TODO: AG: ???
@@ -470,29 +614,408 @@ static void energy_detected(int16_t max_ed)
 	set_pending_event(PENDING_EVENT_DETECT_ENERGY_DONE);
 }
 
+static int handle_ack(void)
+{
+	uint8_t ack_len;
+	uint8_t frame_type;
+	int err = 0;
+
+	if (nrf5_data.ack_frame.time == NRF_802154_NO_TIMESTAMP) {
+		/* Ack timestamp is invalid and cannot be used by the upper layer.
+		 * Report the transmission as failed as if the Ack was not received at all.
+		 */
+		LOG_WRN("Invalid ACK timestamp.");
+		err = -ENOMSG;
+		goto free_nrf_ack;
+	}
+
+	// TODO: AG: validate
+	//  if (IS_ENABLED(CONFIG_IEEE802154_L2_PKT_INCL_FCS)) {
+	//  	ack_len = nrf5_radio->ack_frame.psdu[0];
+	//  } else {
+	//  	ack_len = nrf5_radio->ack_frame.psdu[0] - IEEE802154_FCS_LENGTH;
+	//  }
+	ack_len = nrf5_data.ack_frame.psdu[0];
+	if (ack_len > ACK_PKT_LENGTH) {
+		LOG_ERR("Invalid ACK length %u", ack_len);
+		err = -EINVAL;
+		goto free_nrf_ack;
+	}
+
+	frame_type = nrf5_data.ack_frame.psdu[1] & FRAME_TYPE_MASK;
+	if (frame_type != FRAME_TYPE_ACK) {
+		LOG_ERR("Invalid frame type %u", frame_type);
+		goto free_nrf_ack;
+	}
+
+	if (ack_frame.mLength != 0) {
+		LOG_ERR("Overwriting unhandled ACK frame.");
+	}
+
+	/* Upper layers expect the frame to start at the MAC header, skip the
+	 * PHY header (1 byte).
+	 */
+	memcpy(nrf5_data.ack_psdu, nrf5_data.ack_frame.psdu + 1, ack_len);
+
+	ack_frame.mPsdu = nrf5_data.ack_psdu;
+	ack_frame.mLength = ack_len;
+	ack_frame.mInfo.mRxInfo.mLqi = nrf5_data.ack_frame.lqi;
+	ack_frame.mInfo.mRxInfo.mRssi = nrf5_data.ack_frame.rssi;
+	ack_frame.mInfo.mRxInfo.mTimestamp = nrf5_data.ack_frame.time;
+
+free_nrf_ack:
+	nrf_802154_buffer_free_raw(nrf5_data.ack_frame.psdu);
+	nrf5_data.ack_frame.psdu = NULL;
+
+	return err;
+}
+
+static bool nrf5_tx_immediate(otRadioFrame *frame, uint8_t *payload, bool cca)
+{
+	nrf_802154_transmit_metadata_t metadata = {
+		.frame_props =
+			{
+				.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
+				.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
+			},
+		.cca = cca,
+		.tx_power =
+			{
+				.use_metadata_value = true,
+				.power = get_transmit_power_for_channel(frame->mChannel),
+			},
+	};
+
+	return nrf_802154_transmit_raw(payload, &metadata);
+}
+
+#if NRF_802154_CSMA_CA_ENABLED
+static bool nrf5_tx_csma_ca(otRadioFrame *frame, uint8_t *payload)
+{
+	nrf_802154_transmit_csma_ca_metadata_t metadata = {
+		.frame_props =
+			{
+				.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
+				.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
+			},
+		.tx_power =
+			{
+				.use_metadata_value = true,
+				.power = get_transmit_power_for_channel(frame->mChannel),
+			}
+
+	};
+
+	return nrf_802154_transmit_csma_ca_raw(payload, &metadata);
+}
+#endif
+
+// TODO: AG: remove
+enum ieee802154_tx_mode {
+	/** Transmit packet immediately, no CCA. */
+	IEEE802154_TX_MODE_DIRECT,
+
+	/** Perform CCA before packet transmission. */
+	IEEE802154_TX_MODE_CCA,
+
+	/**
+	 * Perform full CSMA/CA procedure before packet transmission.
+	 *
+	 * @note requires IEEE802154_HW_CSMA capability.
+	 */
+	IEEE802154_TX_MODE_CSMA_CA,
+
+	/**
+	 * Transmit packet in the future, at the specified time, no CCA.
+	 *
+	 * @note requires IEEE802154_HW_TXTIME capability.
+	 *
+	 * @note capability IEEE802154_HW_SELECTIVE_TXCHANNEL may apply.
+	 */
+	IEEE802154_TX_MODE_TXTIME,
+
+	/**
+	 * Transmit packet in the future, perform CCA before transmission.
+	 *
+	 * @note requires IEEE802154_HW_TXTIME capability.
+	 *
+	 * @note Required for Thread 1.2 Coordinated Sampled Listening feature
+	 * (see Thread specification 1.2.0, ch. 3.2.6.3).
+	 *
+	 * @note capability IEEE802154_HW_SELECTIVE_TXCHANNEL may apply.
+	 */
+	IEEE802154_TX_MODE_TXTIME_CCA,
+
+	/** Number of modes defined in ieee802154_tx_mode. */
+	IEEE802154_TX_MODE_COMMON_COUNT,
+
+	/** This and higher values are specific to the protocol- or driver-specific extensions. */
+	IEEE802154_TX_MODE_PRIV_START = IEEE802154_TX_MODE_COMMON_COUNT,
+
+	IEEE802154_OPENTHREAD_TX_MODE_TXTIME_MULTIPLE_CCA = IEEE802154_TX_MODE_PRIV_START
+};
+
+static bool nrf5_tx_at(otRadioFrame *frame, uint8_t *payload, enum ieee802154_tx_mode mode)
+{
+	bool cca = false;
+#if defined(CONFIG_NRF5_MULTIPLE_CCA)
+	uint8_t max_extra_cca_attempts = 0;
+#endif
+
+	switch (mode) {
+	case IEEE802154_TX_MODE_TXTIME:
+		break;
+	case IEEE802154_TX_MODE_TXTIME_CCA:
+		cca = true;
+		break;
+#if defined(CONFIG_NRF5_MULTIPLE_CCA)
+	case IEEE802154_OPENTHREAD_TX_MODE_TXTIME_MULTIPLE_CCA:
+		cca = true;
+		max_extra_cca_attempts = nrf5_data.max_extra_cca_attempts;
+		break;
+#endif
+		break;
+	default:
+		__ASSERT_NO_MSG(false);
+		return false;
+	}
+
+	nrf_802154_transmit_at_metadata_t metadata = {
+		.frame_props =
+			{
+				.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
+				.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
+			},
+		.cca = cca,
+		.channel = frame->mChannel,
+		// TODO: AG: selective channel
+		// #if defined(CONFIG_IEEE802154_SELECTIVE_TXCHANNEL)
+		// 		.channel = net_pkt_ieee802154_txchannel(pkt),
+		// #else
+		// 		.channel = nrf_802154_channel_get(),
+		// #endif
+		.tx_power =
+			{
+				.use_metadata_value = true,
+				.power = get_transmit_power_for_channel(frame->mChannel),
+			},
+#if defined(CONFIG_NRF5_MULTIPLE_CCA)
+		.extra_cca_attempts = max_extra_cca_attempts,
+#endif
+	};
+
+	/* The timestamp points to the start of PHR but `nrf_802154_transmit_raw_at`
+	 * expects a timestamp pointing to start of SHR.
+	 */
+	uint64_t tx_at = nrf_802154_timestamp_phr_to_shr_convert(
+		convert_32bit_us_wrapped_to_64bit_ns(sTransmitFrame.mInfo.mTxInfo.mTxDelayBaseTime +
+						     sTransmitFrame.mInfo.mTxInfo.mTxDelay) /
+		NSEC_PER_USEC);
+
+	return nrf_802154_transmit_raw_at(payload, tx_at, &metadata);
+}
+
+static int nrf5_tx(enum ieee802154_tx_mode mode, otRadioFrame *frame)
+{
+	bool ret = true;
+
+	if (frame->mLength > MAX_PACKET_SIZE) {
+		LOG_ERR("Payload (with FCS) too large: %d", frame->mLength);
+		return -EMSGSIZE;
+	}
+
+	LOG_DBG("%p (%u)", frame->mPsdu, frame->mLength);
+
+	nrf5_data.tx_psdu[0] = frame->mLength;
+	memcpy(nrf5_data.tx_psdu + 1, frame->mPsdu, frame->mLength);
+
+	/* Reset semaphore in case ACK was received after timeout */
+	k_sem_reset(&nrf5_data.tx_wait);
+
+	switch (mode) {
+	case IEEE802154_TX_MODE_DIRECT:
+	case IEEE802154_TX_MODE_CCA:
+		ret = nrf5_tx_immediate(frame, nrf5_data.tx_psdu, mode == IEEE802154_TX_MODE_CCA);
+		break;
+#if NRF_802154_CSMA_CA_ENABLED
+	case IEEE802154_TX_MODE_CSMA_CA:
+		ret = nrf5_tx_csma_ca(frame, nrf5_data.tx_psdu);
+		break;
+#endif
+	case IEEE802154_TX_MODE_TXTIME:
+	case IEEE802154_TX_MODE_TXTIME_CCA:
+#if defined(CONFIG_NRF5_MULTIPLE_CCA)
+	case IEEE802154_OPENTHREAD_TX_MODE_TXTIME_MULTIPLE_CCA:
+#endif
+		__ASSERT_NO_MSG(pkt);
+		ret = nrf5_tx_at(frame, nrf5_data.tx_psdu, mode);
+		break;
+	default:
+		LOG_ERR("TX mode %d not supported", mode);
+		return -ENOTSUP;
+	}
+
+	if (!ret) {
+		LOG_ERR("Cannot send frame");
+		return -EIO;
+	}
+
+	set_pending_event(PENDING_EVENT_TX_STARTED);
+
+	LOG_DBG("Sending frame (ch:%d, txpower:%d)", nrf_802154_channel_get(),
+		nrf_802154_tx_power_get());
+
+	/* Wait for the callback from the radio driver. */
+	k_sem_take(&nrf5_data.tx_wait, K_FOREVER);
+
+	LOG_DBG("Result: %d", nrf5_data.tx_result);
+
+#if defined(CONFIG_NRF_802154_ENCRYPTION)
+	/*
+	 * When frame encryption by the radio driver is enabled, the frame stored in
+	 * the tx_psdu buffer is:
+	 * 1) authenticated and encrypted in place which causes that after an unsuccessful
+	 *    TX attempt, this frame must be propagated back to the upper layer for retransmission.
+	 *    The upper layer must ensure that the exact same secured frame is used for
+	 *    retransmission
+	 * 2) frame counters are updated in place and for keeping the link frame counter up to date,
+	 *    this information must be propagated back to the upper layer
+	 */
+	memcpy(frame->mPsdu, nrf5_data.tx_psdu + 1, frame->mLength);
+#endif
+
+	frame->mInfo.mTxInfo.mIsSecurityProcessed = nrf5_data.tx_frame_is_secured;
+	frame->mInfo.mTxInfo.mIsHeaderUpdated = nrf5_data.tx_frame_mac_hdr_rdy;
+
+	switch (nrf5_data.tx_result) {
+	case NRF_802154_TX_ERROR_NONE:
+		if (nrf5_data.ack_frame.psdu == NULL) {
+			/* No ACK was requested. */
+			return 0;
+		}
+		/* Handle ACK packet. */
+		return handle_ack();
+	case NRF_802154_TX_ERROR_NO_MEM:
+		return -ENOBUFS;
+	case NRF_802154_TX_ERROR_BUSY_CHANNEL:
+		return -EBUSY;
+	case NRF_802154_TX_ERROR_INVALID_ACK:
+	case NRF_802154_TX_ERROR_NO_ACK:
+		return -ENOMSG;
+	case NRF_802154_TX_ERROR_ABORTED:
+	case NRF_802154_TX_ERROR_TIMESLOT_DENIED:
+	case NRF_802154_TX_ERROR_TIMESLOT_ENDED:
+	default:
+		return -EIO;
+	}
+}
+
+static inline void handle_tx_done(otInstance *aInstance)
+{
+	sTransmitFrame.mInfo.mTxInfo.mIsSecurityProcessed = nrf5_data.tx_frame_is_secured;
+	sTransmitFrame.mInfo.mTxInfo.mIsHeaderUpdated = nrf5_data.tx_frame_mac_hdr_rdy;
+
+	if (IS_ENABLED(CONFIG_OPENTHREAD_DIAG) && otPlatDiagModeGet()) {
+		otPlatDiagRadioTransmitDone(aInstance, &sTransmitFrame, nrf5_data.tx_result);
+	} else {
+		otPlatRadioTxDone(aInstance, &sTransmitFrame, ack_frame.mLength ? &ack_frame : NULL,
+				  nrf5_data.tx_result);
+		ack_frame.mLength = 0;
+	}
+}
+
+static void transmit_message(struct k_work *tx_job)
+{
+	int tx_err;
+
+	ARG_UNUSED(tx_job);
+
+#if defined(CONFIG_OPENTHREAD_TIME_SYNC)
+	if (sTransmitFrame.mInfo.mTxInfo.mIeInfo->mTimeIeOffset != 0) {
+		uint8_t *time_ie =
+			sTransmitFrame.mPsdu + sTransmitFrame.mInfo.mTxInfo.mIeInfo->mTimeIeOffset;
+		uint64_t offset_plat_time =
+			otPlatTimeGet() + sTransmitFrame.mInfo.mTxInfo.mIeInfo->mNetworkTimeOffset;
+
+		*(time_ie++) = sTransmitFrame.mInfo.mTxInfo.mIeInfo->mTimeSyncSeq;
+		sys_put_le64(offset_plat_time, time_ie);
+	}
+#endif
+
+	nrf5_data.tx_frame_is_secured = sTransmitFrame.mInfo.mTxInfo.mIsSecurityProcessed;
+	nrf5_data.tx_frame_mac_hdr_rdy = sTransmitFrame.mInfo.mTxInfo.mIsHeaderUpdated;
+
+	nrf5_set_channel(sTransmitFrame.mChannel);
+
+	if ((nrf5_data.capabilities & OT_RADIO_CAPS_TRANSMIT_TIMING) &&
+	    (sTransmitFrame.mInfo.mTxInfo.mTxDelay != 0)) {
+		tx_err = nrf5_tx(IEEE802154_TX_MODE_TXTIME_CCA, &sTransmitFrame);
+	} else if (sTransmitFrame.mInfo.mTxInfo.mCsmaCaEnabled) {
+		if (nrf5_data.capabilities & OT_RADIO_CAPS_CSMA_BACKOFF) {
+			tx_err = nrf5_tx(IEEE802154_TX_MODE_CSMA_CA, &sTransmitFrame);
+		} else {
+			tx_err = nrf5_cca();
+			if (tx_err == 0) {
+				tx_err = nrf5_tx(IEEE802154_TX_MODE_DIRECT, &sTransmitFrame);
+			}
+		}
+	} else {
+		tx_err = nrf5_tx(IEEE802154_TX_MODE_DIRECT, &sTransmitFrame);
+	}
+
+	/*
+	 * OpenThread handles the following errors:
+	 * - OT_ERROR_NONE
+	 * - OT_ERROR_NO_ACK
+	 * - OT_ERROR_CHANNEL_ACCESS_FAILURE
+	 * - OT_ERROR_ABORT
+	 * Any other error passed to `otPlatRadioTxDone` will result in assertion.
+	 */
+	switch (tx_err) {
+	case 0:
+		nrf5_data.tx_result = OT_ERROR_NONE;
+		break;
+	case -ENOMSG:
+		nrf5_data.tx_result = OT_ERROR_NO_ACK;
+		break;
+	case -EBUSY:
+		nrf5_data.tx_result = OT_ERROR_CHANNEL_ACCESS_FAILURE;
+		break;
+	case -EIO:
+		nrf5_data.tx_result = OT_ERROR_ABORT;
+		break;
+	default:
+		nrf5_data.tx_result = OT_ERROR_CHANNEL_ACCESS_FAILURE;
+		break;
+	}
+
+	set_pending_event(PENDING_EVENT_TX_DONE);
+}
+
+static int run_tx_task(otInstance *aInstance)
+{
+	static K_WORK_DEFINE(tx_job, transmit_message);
+
+	ARG_UNUSED(aInstance);
+
+	if (!k_work_is_pending(&tx_job)) {
+		sState = OT_RADIO_STATE_TRANSMIT;
+
+		k_work_submit_to_queue(&ot_work_q, &tx_job);
+		return 0;
+	} else {
+		return -EBUSY;
+	}
+}
+
 void platformRadioProcess(otInstance *aInstance)
 {
 	bool event_pending = false;
-
-	if (is_pending_event_set(PENDING_EVENT_FRAME_TO_SEND)) {
-		// TODO: AG: tx
-		// struct net_pkt *evt_pkt;
-
-		reset_pending_event(PENDING_EVENT_FRAME_TO_SEND);
-		// TODO: AG: tx
-		// while ((evt_pkt = (struct net_pkt *)k_fifo_get(&tx_pkt_fifo, K_NO_WAIT)) != NULL)
-		// { 	if (IS_ENABLED(CONFIG_OPENTHREAD_COPROCESSOR_RCP)) {
-		// net_pkt_unref(evt_pkt); 	} else {
-		// openthread_handle_frame_to_send(aInstance, evt_pkt);
-		// 	}
-		// }
-	}
 
 	if (is_pending_event_set(PENDING_EVENT_FRAME_RECEIVED)) {
 		struct nrf5_rx_frame *rx_frame;
 
 		reset_pending_event(PENDING_EVENT_FRAME_RECEIVED);
-		// TODO: AG: rx
 		while ((rx_frame = (struct nrf5_rx_frame *)k_fifo_get(&nrf5_data.rx_fifo,
 								      K_NO_WAIT)) != NULL) {
 			openthread_handle_received_frame(aInstance, rx_frame);
@@ -518,8 +1041,7 @@ void platformRadioProcess(otInstance *aInstance)
 
 		if (sState == OT_RADIO_STATE_TRANSMIT) {
 			sState = OT_RADIO_STATE_RECEIVE;
-			// TODO: AG: tx
-			//  handle_tx_done(aInstance);
+			handle_tx_done(aInstance);
 		}
 	}
 
@@ -846,24 +1368,6 @@ bool otPlatRadioIsEnabled(otInstance *aInstance)
 	return (sState != OT_RADIO_STATE_DISABLED) ? true : false;
 }
 
-// TODO: remove events
-// static void handle_radio_event(const struct device *dev, enum ieee802154_event evt,
-// 			       void *event_params)
-// {
-// 	ARG_UNUSED(event_params);
-//
-// 	switch (evt) {
-// 	case IEEE802154_EVENT_TX_STARTED:
-// 		if (sState == OT_RADIO_STATE_TRANSMIT) {
-// 			set_pending_event(PENDING_EVENT_TX_STARTED);
-// 		}
-// 		break;
-// 	default:
-// 		/* do nothing - ignore event */
-// 		break;
-// 	}
-// }
-
 otError otPlatRadioSleep(otInstance *aInstance)
 {
 	ARG_UNUSED(aInstance);
@@ -875,7 +1379,6 @@ otError otPlatRadioSleep(otInstance *aInstance)
 #if defined(CONFIG_OPENTHREAD_CSL_RECEIVER)
 	if (nrf_802154_sleep_if_idle() != NRF_802154_SLEEP_ERROR_NONE) {
 		set_pending_event(PENDING_EVENT_SLEEP);
-		// TODO: AG: needed?
 		Z_SPIN_DELAY(1);
 	}
 #else
@@ -919,82 +1422,6 @@ otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 }
 
 #if defined(CONFIG_OPENTHREAD_CSL_RECEIVER) || defined(CONFIG_OPENTHREAD_WAKEUP_END_DEVICE)
-/**
- * @brief Convert 32-bit (potentially wrapped) OpenThread microsecond timestamps
- * to 64-bit Zephyr network subsystem nanosecond timestamps.
- *
- * This is a workaround until OpenThread is able to schedule 64-bit RX/TX time.
- *
- * @param target_time_ns_wrapped time in nanoseconds referred to the radio clock
- * modulo UINT32_MAX.
- *
- * @return 64-bit nanosecond timestamp
- */
-static uint64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrapped)
-{
-	/**
-	 * OpenThread provides target time as a (potentially wrapped) 32-bit
-	 * integer defining a moment in time in the microsecond domain.
-	 *
-	 * The target time can point to a moment in the future, but can be
-	 * overdue as well. In order to determine what's the case and correctly
-	 * set the absolute (non-wrapped) target time, it's necessary to compare
-	 * the least significant 32 bits of the current 64-bit network subsystem
-	 * time with the provided 32-bit target time. Let's assume that half of
-	 * the 32-bit range can be used for specifying target times in the
-	 * future, and the other half - in the past.
-	 */
-	uint64_t now_us = otPlatTimeGet();
-	uint32_t now_us_wrapped = (uint32_t)now_us;
-	uint32_t time_diff = target_time_us_wrapped - now_us_wrapped;
-	uint64_t result = UINT64_C(0);
-
-	if (time_diff < 0x80000000) {
-		/**
-		 * Target time is assumed to be in the future. Check if a 32-bit overflow
-		 * occurs between the current time and the target time.
-		 */
-		if (now_us_wrapped > target_time_us_wrapped) {
-			/**
-			 * Add a 32-bit overflow and replace the least significant 32 bits
-			 * with the provided target time.
-			 */
-			result = now_us + UINT32_MAX + 1;
-			result &= ~(uint64_t)UINT32_MAX;
-			result |= target_time_us_wrapped;
-		} else {
-			/**
-			 * Leave the most significant 32 bits and replace the least significant
-			 * 32 bits with the provided target time.
-			 */
-			result = (now_us & (~(uint64_t)UINT32_MAX)) | target_time_us_wrapped;
-		}
-	} else {
-		/**
-		 * Target time is assumed to be in the past. Check if a 32-bit overflow
-		 * occurs between the target time and the current time.
-		 */
-		if (now_us_wrapped > target_time_us_wrapped) {
-			/**
-			 * Leave the most significant 32 bits and replace the least significant
-			 * 32 bits with the provided target time.
-			 */
-			result = (now_us & (~(uint64_t)UINT32_MAX)) | target_time_us_wrapped;
-		} else {
-			/**
-			 * Subtract a 32-bit overflow and replace the least significant
-			 * 32 bits with the provided target time.
-			 */
-			result = now_us - UINT32_MAX - 1;
-			result &= ~(uint64_t)UINT32_MAX;
-			result |= target_time_us_wrapped;
-		}
-	}
-
-	__ASSERT_NO_MSG(result <= INT64_MAX / NSEC_PER_USEC);
-	return result * NSEC_PER_USEC;
-}
-
 otError otPlatRadioReceiveAt(otInstance *aInstance, uint8_t aChannel, uint32_t aStart,
 
 			     uint32_t aDuration)
@@ -1034,10 +1461,10 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
 	__ASSERT_NO_MSG(aFrame == &sTransmitFrame);
 
 	if (sState == OT_RADIO_STATE_RECEIVE || sState == OT_RADIO_STATE_SLEEP) {
-		// TODO: AG:
-		//  if (run_tx_task(aInstance) == 0) {
-		error = OT_ERROR_NONE;
-		//  }
+		// TODO: AG: remove and post send event?
+		if (run_tx_task(aInstance) == 0) {
+			error = OT_ERROR_NONE;
+		}
 	}
 
 	return error;
@@ -1411,11 +1838,8 @@ void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 		nrf5_data.rx_frames[i].rssi = power;
 		nrf5_data.rx_frames[i].lqi = lqi;
 
-// TODO: AG: remove
-#if defined(CONFIG_NET_PKT_TIMESTAMP)
 		nrf5_data.rx_frames[i].time =
 			nrf_802154_timestamp_end_to_phr_convert(time, data[0]);
-#endif
 
 		nrf5_data.rx_frames[i].ack_fpb = nrf5_data.last_frame_ack_fpb;
 		nrf5_data.rx_frames[i].ack_seb = nrf5_data.last_frame_ack_seb;
@@ -1486,68 +1910,65 @@ void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 	}
 }
 
-// void nrf_802154_tx_ack_started(const uint8_t *data)
-// {
-// 	nrf5_data.last_frame_ack_fpb = data[FRAME_PENDING_OFFSET] & FRAME_PENDING_BIT;
-// 	nrf5_data.last_frame_ack_seb = data[SECURITY_ENABLED_OFFSET] & SECURITY_ENABLED_BIT;
-// }
-//
-// void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t
-// *metadata)
-// {
-// 	ARG_UNUSED(frame);
-//
-// 	nrf5_data.tx_result = NRF_802154_TX_ERROR_NONE;
-// 	nrf5_data.tx_frame_is_secured = metadata->frame_props.is_secured;
-// 	nrf5_data.tx_frame_mac_hdr_rdy = metadata->frame_props.dynamic_data_is_set;
-// 	nrf5_data.ack_frame.psdu = metadata->data.transmitted.p_ack;
-//
-// 	if (nrf5_data.ack_frame.psdu) {
-// 		nrf5_data.ack_frame.rssi = metadata->data.transmitted.power;
-// 		nrf5_data.ack_frame.lqi = metadata->data.transmitted.lqi;
-//
-// #if defined(CONFIG_NET_PKT_TIMESTAMP)
-// 		if (metadata->data.transmitted.time == NRF_802154_NO_TIMESTAMP) {
-// 			/* Ack timestamp is invalid. Keep this value to detect it when handling Ack
-// 			 */
-// 			nrf5_data.ack_frame.time = NRF_802154_NO_TIMESTAMP;
-// 		} else {
-// 			nrf5_data.ack_frame.time = nrf_802154_timestamp_end_to_phr_convert(
-// 				metadata->data.transmitted.time, nrf5_data.ack_frame.psdu[0]);
-// 		}
-// #endif
-// 	}
-//
-// 	k_sem_give(&nrf5_data.tx_wait);
-// }
-//
-// void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
-// 				const nrf_802154_transmit_done_metadata_t *metadata)
-// {
-// 	ARG_UNUSED(frame);
-//
-// 	nrf5_data.tx_result = error;
-// 	nrf5_data.tx_frame_is_secured = metadata->frame_props.is_secured;
-// 	nrf5_data.tx_frame_mac_hdr_rdy = metadata->frame_props.dynamic_data_is_set;
-//
-// 	k_sem_give(&nrf5_data.tx_wait);
-// }
-//
-// void nrf_802154_cca_done(bool channel_free)
-// {
-// 	nrf5_data.channel_free = channel_free;
-//
-// 	k_sem_give(&nrf5_data.cca_wait);
-// }
-//
-// void nrf_802154_cca_failed(nrf_802154_cca_error_t error)
-// {
-// 	ARG_UNUSED(error);
-//
-// 	nrf5_data.channel_free = false;
-//
-// 	k_sem_give(&nrf5_data.cca_wait);
-// }
+void nrf_802154_tx_ack_started(const uint8_t *data)
+{
+	nrf5_data.last_frame_ack_fpb = data[FRAME_PENDING_OFFSET] & FRAME_PENDING_BIT;
+	nrf5_data.last_frame_ack_seb = data[SECURITY_ENABLED_OFFSET] & SECURITY_ENABLED_BIT;
+}
+
+void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
+{
+	ARG_UNUSED(frame);
+
+	nrf5_data.tx_result = NRF_802154_TX_ERROR_NONE;
+	nrf5_data.tx_frame_is_secured = metadata->frame_props.is_secured;
+	nrf5_data.tx_frame_mac_hdr_rdy = metadata->frame_props.dynamic_data_is_set;
+	nrf5_data.ack_frame.psdu = metadata->data.transmitted.p_ack;
+
+	if (nrf5_data.ack_frame.psdu) {
+		nrf5_data.ack_frame.rssi = metadata->data.transmitted.power;
+		nrf5_data.ack_frame.lqi = metadata->data.transmitted.lqi;
+
+		if (metadata->data.transmitted.time == NRF_802154_NO_TIMESTAMP) {
+			/* Ack timestamp is invalid. Keep this value to detect it when handling Ack
+			 */
+			nrf5_data.ack_frame.time = NRF_802154_NO_TIMESTAMP;
+		} else {
+			nrf5_data.ack_frame.time = nrf_802154_timestamp_end_to_phr_convert(
+				metadata->data.transmitted.time, nrf5_data.ack_frame.psdu[0]);
+		}
+	}
+
+	k_sem_give(&nrf5_data.tx_wait);
+}
+
+void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
+				const nrf_802154_transmit_done_metadata_t *metadata)
+{
+	ARG_UNUSED(frame);
+
+	nrf5_data.tx_result = error;
+	nrf5_data.tx_frame_is_secured = metadata->frame_props.is_secured;
+	nrf5_data.tx_frame_mac_hdr_rdy = metadata->frame_props.dynamic_data_is_set;
+
+	k_sem_give(&nrf5_data.tx_wait);
+}
+
+void nrf_802154_cca_done(bool channel_free)
+{
+	nrf5_data.channel_free = channel_free;
+
+	k_sem_give(&nrf5_data.cca_wait);
+}
+
+void nrf_802154_cca_failed(nrf_802154_cca_error_t error)
+{
+	ARG_UNUSED(error);
+
+	nrf5_data.channel_free = false;
+
+	k_sem_give(&nrf5_data.cca_wait);
+}
 
 void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
