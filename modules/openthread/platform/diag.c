@@ -37,7 +37,9 @@ static uint32_t sTxPeriod = 1;
 static int32_t sTxCount;
 static int32_t sTxRequestedCount = 1;
 
+#if defined(CONFIG_IEEE802154_CARRIER_FUNCTIONS)
 static otError startModCarrier(otInstance *aInstance, uint8_t aArgsLength, char *aArgs[]);
+#endif
 static otError processTransmit(otInstance *aInstance, uint8_t aArgsLength, char *aArgs[]);
 
 static otError parse_long(char *aArgs, long *aValue)
