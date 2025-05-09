@@ -277,9 +277,9 @@ endif()
 # Create a library for the OpenThread Zephyr utils
 zephyr_library_named(openthread_utils)
 zephyr_library_sources(
-  openthread.c
+  ${ZEPHYR_BASE}/modules/openthread/openthread.c
 )
-zephyr_library_sources_ifdef(CONFIG_OPENTHREAD_SHELL shell.c)
+zephyr_library_sources_ifdef(CONFIG_OPENTHREAD_SHELL ${ZEPHYR_BASE}/modules/openthread/shell.c)
 
 add_subdirectory(platform)
 
