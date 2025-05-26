@@ -43,18 +43,18 @@ bool GetStorageFreeSpace(size_t &freeBytes)
 
 /* Currently the secure storage is available only for non-Wi-Fi builds,
    because NCS Wi-Fi implementation does not support PSA API yet. */
-#if defined(CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND) && defined(CONFIG_CHIP_WIFI)
-#error CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND is currently not available if CONFIG_CHIP_WIFI is set.
+#if defined(CONFIG_NCS_MATTER_SECURE_STORAGE_BACKEND) && defined(CONFIG_CHIP_WIFI)
+#error CONFIG_NCS_MATTER_SECURE_STORAGE_BACKEND is currently not available if CONFIG_CHIP_WIFI is set.
 #endif
 
-/* Prefer to use CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND if both backends are set simultaneously */
-#ifdef CONFIG_NCS_SAMPLE_MATTER_SECURE_STORAGE_BACKEND
+/* Prefer to use CONFIG_NCS_MATTER_SECURE_STORAGE_BACKEND if both backends are set simultaneously */
+#ifdef CONFIG_NCS_MATTER_SECURE_STORAGE_BACKEND
 #define PSInit SecureInit
 #define PSStore SecureStore
 #define PSRemove SecureRemove
 #define PSLoad SecureLoad
 #define PSFactoryReset SecureFactoryReset
-#elif defined(CONFIG_NCS_SAMPLE_MATTER_SETTINGS_STORAGE_BACKEND)
+#elif defined(CONFIG_NCS_MATTER_SETTINGS_STORAGE_BACKEND)
 #define PSInit NonSecureInit
 #define PSStore NonSecureStore
 #define PSLoad NonSecureLoad

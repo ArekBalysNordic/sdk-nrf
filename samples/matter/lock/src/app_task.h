@@ -17,7 +17,7 @@ struct Identify;
 enum class SwitchButtonAction : uint8_t { Pressed, Released };
 #endif
 
-#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+#ifdef CONFIG_NCS_MATTER_TEST_EVENT_TRIGGERS
 #include "event_triggers/event_triggers.h"
 #endif
 
@@ -54,7 +54,7 @@ private:
 	static void NUSUnlockCallback(void *context);
 #endif
 
-#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+#ifdef CONFIG_NCS_MATTER_TEST_EVENT_TRIGGERS
 	constexpr static Nrf::Matter::TestEventTrigger::EventTriggerId kDoorLockJammedEventTriggerId =
 		0xFFFF'FFFF'3277'4000;
 	static CHIP_ERROR DoorLockJammedEventCallback(Nrf::Matter::TestEventTrigger::TriggerValue);

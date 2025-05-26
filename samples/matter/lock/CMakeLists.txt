@@ -14,15 +14,12 @@ include(${ZEPHYR_CONNECTEDHOMEIP_MODULE_DIR}/config/nrfconnect/app/enable-gnu-st
 
 # NORDIC SDK APP START
 
-# Include all source files that are located in the Matter common directory.
-include(${ZEPHYR_NRF_MODULE_DIR}/samples/matter/common/cmake/source_common.cmake)
-
 # Include Data Model utils
 include(${ZEPHYR_NRF_MODULE_DIR}/samples/matter/common/cmake/data_model.cmake)
 
 target_include_directories(app PRIVATE
     src
-    ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}
+    ${CONFIG_NCS_MATTER_ZAP_FILES_PATH}
 )
 
 SET(access_srcs src/access/access_data_types.cpp
@@ -56,7 +53,7 @@ endif()
 target_compile_options(matter-data-model PRIVATE -Wno-error=maybe-uninitialized)
 
 ncs_configure_data_model(
-    ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}/lock.zap
+    ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_MATTER_ZAP_FILES_PATH}/lock.zap
 )
 
 # NORDIC SDK APP END

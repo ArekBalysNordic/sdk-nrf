@@ -335,7 +335,7 @@ void AppTask::SelfTestLedTimerEventHandler()
 	k_timer_start(&Instance().mSelfTestLedTimer, K_MSEC(kSelfTestLedUpdateTimeMs), K_NO_WAIT);
 }
 
-#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+#ifdef CONFIG_NCS_MATTER_TEST_EVENT_TRIGGERS
 CHIP_ERROR AppTask::PowerSourceOnEventCallback(Nrf::Matter::TestEventTrigger::TriggerValue endpointId)
 {
 	if (endpointId == kWiredPowerSourceEndpointId || endpointId == kBatteryPowerSourceEndpointId) {
@@ -424,7 +424,7 @@ CHIP_ERROR AppTask::Init()
 	ReturnErrorOnFailure(Nrf::Matter::RegisterEventHandler(Nrf::Board::DefaultMatterEventHandler, 0));
 
 	/* Register Smoke CO Alarm test event triggers */
-#ifdef CONFIG_NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS
+#ifdef CONFIG_NCS_MATTER_TEST_EVENT_TRIGGERS
 	/* Register Smoke CO alarm test events handler */
 	static chip::SmokeCOTestEventTriggerHandler sSmokeCoAlarmTestEventTrigger;
 	ReturnErrorOnFailure(Nrf::Matter::TestEventTrigger::Instance().RegisterTestEventTriggerHandler(

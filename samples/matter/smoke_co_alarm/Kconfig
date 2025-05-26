@@ -26,7 +26,7 @@ config CHIP_ICD_REPORT_ON_ACTIVE_MODE
 	default y
 
 # Increase the supported event triggers due to the multiple alarm triggers
-config NCS_SAMPLE_MATTER_TEST_EVENT_TRIGGERS_MAX
+config NCS_MATTER_TEST_EVENT_TRIGGERS_MAX
 	default 12
 
 # Reduce Thread TX output power to 0 dBm for SED device

@@ -23,7 +23,7 @@ include(${ZEPHYR_NRF_MODULE_DIR}/samples/matter/common/cmake/data_model.cmake)
 
 target_include_directories(app PRIVATE
     src
-    ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}
+    ${CONFIG_NCS_MATTER_ZAP_FILES_PATH}
 
 )
 
@@ -38,6 +38,6 @@ target_sources(app PRIVATE
 )
 
 ncs_configure_data_model(
-    ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}/light_switch.zap
+    ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_MATTER_ZAP_FILES_PATH}/light_switch.zap
 )
 # NORDIC SDK APP END

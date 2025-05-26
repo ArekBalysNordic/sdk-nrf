@@ -713,12 +713,12 @@ The following code snippet shows how to modify the Matter template :file:`CMakeL
       project(matter-template)
 
       # Override zap-generated directory.
-      get_filename_component(CHIP_APP_ZAP_DIR ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}/zap-generated REALPATH CACHE)
+      get_filename_component(CHIP_APP_ZAP_DIR ${CONFIG_NCS_MATTER_ZAP_FILES_PATH}/zap-generated REALPATH CACHE)
 
       # Existing code in CMakeList.txt
 
       ncs_configure_data_model(
-         ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}/template.zap
+         ZAP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/${CONFIG_NCS_MATTER_ZAP_FILES_PATH}/template.zap
          EXTERNAL_CLUSTERS "MY_NEW_CLUSTER" # Add EXTERNAL_CLUSTERS flag
       )
 
