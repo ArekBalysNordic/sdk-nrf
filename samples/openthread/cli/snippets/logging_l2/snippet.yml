@@ -4,7 +4,6 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
-# Enable asserts
-CONFIG_ASSERT=y
-CONFIG_ASSERT_NO_COND_INFO=y
-CONFIG_RESET_ON_FATAL_ERROR=n
+name: logging_l2
+append:
+  EXTRA_CONF_FILE: logging_l2.conf
