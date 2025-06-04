@@ -23,7 +23,6 @@ include(${ZEPHYR_NRF_MODULE_DIR}/samples/matter/common/cmake/data_model.cmake)
 
 target_include_directories(app PRIVATE
     src
-    ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}
 )
 
 if(CONFIG_AWS_IOT_INTEGRATION)
@@ -34,6 +33,7 @@ target_sources(app PRIVATE
     src/app_task.cpp
     src/main.cpp
     src/zcl_callbacks.cpp
+    ${CHIP_ROOT}/src/app/util/persistence/DeferredAttributePersistenceProvider.cpp
 )
 
 ncs_configure_data_model()
