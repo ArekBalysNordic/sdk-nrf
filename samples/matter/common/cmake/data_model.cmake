@@ -17,6 +17,11 @@ function(ncs_configure_data_model)
     ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}
   )
 
+  target_include_directories(app
+    PUBLIC
+    ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}
+  )
+
   chip_configure_data_model(matter-data-model
     BYPASS_IDL
     GEN_DIR ${CONFIG_NCS_SAMPLE_MATTER_ZAP_FILES_PATH}/zap-generated
