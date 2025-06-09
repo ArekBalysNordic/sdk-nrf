@@ -91,6 +91,9 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #define OT_WORKER_PRIORITY K_PRIO_PREEMPT(CONFIG_OPENTHREAD_THREAD_PRIORITY)
 #endif
 
+#define MIN_CHANNEL_NUMBER (11)
+#define MAX_CHANNEL_NUMBER (26)
+
 enum nrf5_pending_events {
 	PENDING_EVENT_FRAME_RECEIVED,	  /* Radio has received new frame */
 	PENDING_EVENT_RX_FAILED,	  /* The RX failed */
@@ -253,7 +256,7 @@ struct nrf5_data {
 		/* The last configured value of CSL period in units of 10 symbols. */
 		uint32_t period;
 		/* The last configured value of CSL phase time in nanoseconds. */
-		uint64_t rx_time;
+		int64_t rx_time;
 	} csl;
 #endif /* CONFIG_NRF_802154_SER_HOST && CONFIG_OPENTHREAD_CSL_RECEIVER */
 };
@@ -280,8 +283,8 @@ static int nrf5_set_channel(uint16_t channel)
 {
 	LOG_DBG("set channel %u", channel);
 
-	if (channel < 11 || channel > 26) {
-		return channel < 11 ? -ENOTSUP : -EINVAL;
+	if (channel < MIN_CHANNEL_NUMBER || channel > MAX_CHANNEL_NUMBER) {
+		return channel < MIN_CHANNEL_NUMBER ? -ENOTSUP : -EINVAL;
 	}
 
 	nrf_802154_channel_set(channel);
@@ -296,7 +299,7 @@ static int nrf5_energy_detection_start(uint16_t duration, nrf5_energy_detection_
 	if (nrf5_data.energy_detection.cb == NULL) {
 		nrf5_data.energy_detection.cb = done_cb;
 
-		if (nrf_802154_energy_detection((uint32_t)duration * 1000) == false) {
+		if (nrf_802154_energy_detection((uint32_t)duration * NSEC_PER_USEC) == false) {
 			nrf5_data.energy_detection.cb = NULL;
 			err = -EBUSY;
 		}
@@ -332,9 +335,10 @@ static int nrf5_set_tx_power(uint16_t channel)
 {
 	int8_t tx_power = get_transmit_power_for_channel(channel);
 
-	LOG_DBG("set tx_power %d", tx_power);
-
+	nrf5_data.tx_power = tx_power;
 	nrf_802154_tx_power_set(tx_power);
+
+	LOG_DBG("set tx_power %d", tx_power);
 
 	return 0;
 }
@@ -462,7 +466,7 @@ static otRadioCaps nrf5_get_caps(void)
  *
  * @return 64-bit nanosecond timestamp
  */
-static uint64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrapped)
+static int64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrapped)
 {
 	/**
 	 * OpenThread provides target time as a (potentially wrapped) 32-bit
@@ -524,7 +528,7 @@ static uint64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wra
 	}
 
 	__ASSERT_NO_MSG(result <= INT64_MAX / NSEC_PER_USEC);
-	return result * NSEC_PER_USEC;
+	return (int64_t)result * NSEC_PER_USEC;
 }
 
 void platformRadioInit(void)
@@ -847,6 +851,12 @@ static void handle_detect_energy_done(otInstance *aInstance)
 	otPlatRadioEnergyScanDone(aInstance, (int8_t)nrf5_data.energy_detection.value);
 }
 
+static void get_rssi_energy_detected(int16_t max_ed)
+{
+	nrf5_data.energy_detection.value = max_ed;
+	k_sem_give(&nrf5_data.rssi_wait);
+}
+
 void platformRadioProcess(otInstance *aInstance)
 {
 	bool event_pending = false;
@@ -1129,7 +1139,7 @@ void otPlatRadioSetMacFrameCounterIfLarger(otInstance *aInstance, uint32_t aMacF
 
 uint64_t otPlatTimeGet(void)
 {
-	return nrf_802154_time_get() * NSEC_PER_USEC;
+	return nrf_802154_time_get();
 }
 
 uint64_t otPlatRadioGetNow(otInstance *aInstance)
@@ -1193,10 +1203,11 @@ otError otPlatRadioSleep(otInstance *aInstance)
 #else
 	if (!nrf_802154_sleep()) {
 		LOG_ERR("Error while stopping radio");
+		return OT_ERROR_FAILED;
 	}
 #endif
 
-	LOG_DBG("nRF5 802154 radio stopped");
+	LOG_DBG("nRF5 OT radio stopped");
 
 	nrf5_data.state = OT_RADIO_STATE_SLEEP;
 
@@ -1221,9 +1232,9 @@ otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 		return OT_ERROR_FAILED;
 	}
 
-	LOG_DBG("nRF5 802154 radio started (channel: %d)", nrf_802154_channel_get());
-
 	nrf5_data.state = OT_RADIO_STATE_RECEIVE;
+
+	LOG_DBG("nRF5 OT radio RX started (channel: %d)", nrf5_data.channel);
 
 	return OT_ERROR_NONE;
 }
@@ -1247,8 +1258,8 @@ otError otPlatRadioReceiveAt(otInstance *aInstance, uint8_t aChannel, uint32_t a
 	result = nrf_802154_receive_at(convert_32bit_us_wrapped_to_64bit_ns(aStart) / NSEC_PER_USEC,
 				       aDuration, aChannel, DRX_SLOT_RX);
 
-	LOG_ERR("nRF5 802154 radio started (channel: %u, start: %llu, duration: %u)", aChannel,
-		convert_32bit_us_wrapped_to_64bit_ns(aStart) / NSEC_PER_USEC, aDuration);
+	LOG_DBG("nRF5 OT radio RX AT started (channel: %d, aStart: %u, aDuration: %u)", aChannel,
+		aStart, aDuration);
 
 	return result ? OT_ERROR_FAILED : OT_ERROR_NONE;
 }
@@ -1270,18 +1281,13 @@ otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
 
 	__ASSERT_NO_MSG(aFrame == &nrf5_data.tx.frame);
 
+	// OT_RADIO_STATE_SLEEP allowed assuming the nrf5 radio has HW_SLEEP_TO_TX capability
 	if (nrf5_data.state == OT_RADIO_STATE_RECEIVE || nrf5_data.state == OT_RADIO_STATE_SLEEP) {
 		nrf5_data.state = OT_RADIO_STATE_TRANSMIT;
 		error = transmit_frame(aInstance);
 	}
 
 	return error;
-}
-
-static void get_rssi_energy_detected(int16_t max_ed)
-{
-	nrf5_data.energy_detection.value = max_ed;
-	k_sem_give(&nrf5_data.rssi_wait);
 }
 
 int8_t otPlatRadioGetRssi(otInstance *aInstance)
@@ -1467,11 +1473,11 @@ void otPlatRadioUpdateCslSampleTime(otInstance *aInstance, uint32_t aCslSampleTi
 	/* CSL sample time points to "start of MAC" while the expected RX time
 	 * refers to "end of SFD".
 	 */
-	uint64_t expected_rx_time =
+	int64_t expected_rx_time =
 		convert_32bit_us_wrapped_to_64bit_ns(aCslSampleTime - PHR_DURATION_US);
 
 #if defined(CONFIG_NRF_802154_SER_HOST)
-	uint64_t period_ns = (uint64_t)nrf5_data.csl.period * NSEC_PER_TEN_SYMBOLS;
+	int64_t period_ns = (int64_t)nrf5_data.csl.period * NSEC_PER_TEN_SYMBOLS;
 	bool changed = (expected_rx_time - nrf5_data.csl.rx_time) % period_ns;
 
 	nrf5_data.csl.rx_time = expected_rx_time;
@@ -1489,7 +1495,7 @@ uint8_t otPlatRadioGetCslAccuracy(otInstance *aInstance)
 {
 	ARG_UNUSED(aInstance);
 
-	return CONFIG_CLOCK_CONTROL_NRF_ACCURACY;
+	return CONFIG_NRF5_DELAY_TRX_ACC;
 }
 
 #if defined(CONFIG_OPENTHREAD_PLATFORM_CSL_UNCERT)

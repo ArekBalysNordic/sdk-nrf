@@ -39,5 +39,5 @@ static struct openthread_state_changed_callback ot_state_chaged_cb = {
 
 void low_power_enable(void)
 {
-	openthread_state_changed_callback_register(&ot_state_chaged_cb);
+	// openthread_state_changed_callback_register(&ot_state_chaged_cb);
 }
