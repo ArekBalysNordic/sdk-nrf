@@ -94,6 +94,9 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #define MIN_CHANNEL_NUMBER (11)
 #define MAX_CHANNEL_NUMBER (26)
 
+#define PSDU_LENGTH(psdu) ((psdu)[0])
+#define PSDU_DATA(psdu)	  ((psdu) + 1)
+
 enum nrf5_pending_events {
 	PENDING_EVENT_FRAME_RECEIVED,	  /* Radio has received new frame */
 	PENDING_EVENT_RX_FAILED,	  /* The RX failed */
@@ -146,7 +149,7 @@ struct nrf5_header_ie {
 
 struct nrf5_rx_frame {
 	void *fifo_reserved; /* 1st word reserved for use by fifo. */
-	uint8_t *psdu;	     /* Pointer to a received frame. */
+	uint8_t *psdu;	     /* Pointer to a received frame. The first byte is PHR (length)*/
 	uint64_t time;	     /* RX timestamp. */
 	uint8_t lqi;	     /* Last received frame LQI value. */
 	int8_t rssi;	     /* Last received frame RSSI value. */
@@ -281,13 +284,13 @@ static void reset_pending_event(enum nrf5_pending_events event)
 
 static int nrf5_set_channel(uint16_t channel)
 {
-	LOG_DBG("set channel %u", channel);
-
 	if (channel < MIN_CHANNEL_NUMBER || channel > MAX_CHANNEL_NUMBER) {
 		return channel < MIN_CHANNEL_NUMBER ? -ENOTSUP : -EINVAL;
 	}
 
 	nrf_802154_channel_set(channel);
+
+	LOG_DBG("set channel %u", channel);
 
 	return 0;
 }
@@ -548,7 +551,7 @@ void platformRadioInit(void)
 
 	k_fifo_init(&nrf5_data.rx.fifo);
 
-	nrf5_data.tx.frame.mPsdu = &nrf5_data.tx.psdu[1];
+	nrf5_data.tx.frame.mPsdu = PSDU_DATA(nrf5_data.tx.psdu);
 #if defined(CONFIG_OPENTHREAD_TIME_SYNC)
 	nrf5_data.tx.frame.mInfo.mTxInfo.mIeInfo = &nrf5_data.tx.ie_info;
 #endif
@@ -571,9 +574,9 @@ static void openthread_handle_received_frame(otInstance *instance, struct nrf5_r
 
 	memset(&recv_frame, 0, sizeof(otRadioFrame));
 
-	recv_frame.mPsdu = &rx_frame->psdu[1];
+	recv_frame.mPsdu = PSDU_DATA(rx_frame->psdu);
 	/* Length inc. CRC. */
-	recv_frame.mLength = rx_frame->psdu[0];
+	recv_frame.mLength = PSDU_LENGTH(rx_frame->psdu);
 	recv_frame.mChannel = nrf5_data.channel;
 	recv_frame.mInfo.mRxInfo.mLqi = rx_frame->lqi;
 	recv_frame.mInfo.mRxInfo.mRssi = rx_frame->rssi;
@@ -707,7 +710,7 @@ static otError transmit_frame(otInstance *aInstance)
 
 	LOG_DBG("TX %p len: %u", (void *)nrf5_data.tx.frame.mPsdu, nrf5_data.tx.frame.mLength);
 
-	nrf5_data.tx.psdu[0] = nrf5_data.tx.frame.mLength;
+	PSDU_LENGTH(nrf5_data.tx.psdu) = nrf5_data.tx.frame.mLength;
 
 #if defined(CONFIG_OPENTHREAD_TIME_SYNC)
 	if (nrf5_data.tx.frame.mInfo.mTxInfo.mIeInfo->mTimeIeOffset != 0) {
@@ -769,14 +772,14 @@ static otError handle_ack(void)
 		goto free_nrf_ack;
 	}
 
-	ack_len = nrf5_data.ack.desc.psdu[0];
+	ack_len = PSDU_LENGTH(nrf5_data.ack.desc.psdu);
 	if (ack_len > ACK_PKT_LENGTH) {
 		LOG_ERR("Invalid ACK length %u", ack_len);
 		err = OT_ERROR_NO_ACK;
 		goto free_nrf_ack;
 	}
 
-	frame_type = nrf5_data.ack.desc.psdu[1] & FRAME_TYPE_MASK;
+	frame_type = *(PSDU_DATA(nrf5_data.ack.desc.psdu)) & FRAME_TYPE_MASK;
 	if (frame_type != FRAME_TYPE_ACK) {
 		LOG_ERR("Invalid frame type %u", frame_type);
 		err = OT_ERROR_NO_ACK;
@@ -790,7 +793,7 @@ static otError handle_ack(void)
 	/* Upper layers expect the frame to start at the MAC header, skip the
 	 * PHY header (1 byte).
 	 */
-	memcpy(nrf5_data.ack.psdu, nrf5_data.ack.desc.psdu + 1, ack_len);
+	memcpy(nrf5_data.ack.psdu, PSDU_DATA(nrf5_data.ack.desc.psdu), ack_len);
 
 	nrf5_data.ack.frame.mPsdu = nrf5_data.ack.psdu;
 	nrf5_data.ack.frame.mLength = ack_len;
