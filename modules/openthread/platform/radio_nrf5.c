@@ -78,7 +78,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #define NRF5_VENDOR_OUI (uint32_t)0xF4CE36
 #endif
 
-#define CHANNEL_COUNT		       OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MAX - OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN + 1
+#define CHANNEL_COUNT		       (OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MAX - \
+					OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN + 1)
 #define DRX_SLOT_RX		       0 /* Delayed reception window ID */
 #define PHR_DURATION_US		       32U
 #define NSEC_PER_TEN_SYMBOLS	       ((uint64_t)PHY_US_PER_SYMBOL * 1000 * 10)
@@ -396,6 +397,8 @@ static int nrf5_ack_data_clear(uint16_t short_addr, const otExtAddress *ext_addr
 
 static void nrf5_get_eui64(uint8_t *mac)
 {
+	__ASSERT(mac != NULL, "nrf5_get_eui64: mac is NULL");
+
 	uint64_t factoryAddress;
 	uint32_t index = 0;
 
@@ -604,8 +607,12 @@ static void energy_detected(int16_t max_ed)
 	set_pending_event(PENDING_EVENT_DETECT_ENERGY_DONE);
 }
 
-static bool nrf5_tx(otRadioFrame *frame, uint8_t *payload, bool cca)
+static bool nrf5_tx(const otRadioFrame *frame, uint8_t *payload, bool cca)
 {
+	if (payload == NULL) {
+		return false;
+	}
+
 	nrf_802154_transmit_metadata_t metadata = {
 		.frame_props =
 			{
@@ -626,6 +633,10 @@ static bool nrf5_tx(otRadioFrame *frame, uint8_t *payload, bool cca)
 #if NRF_802154_CSMA_CA_ENABLED
 static bool nrf5_tx_csma_ca(otRadioFrame *frame, uint8_t *payload)
 {
+	if (payload == NULL) {
+		return false;
+	}
+
 	nrf_802154_transmit_csma_ca_metadata_t metadata = {
 		.frame_props =
 			{
@@ -647,6 +658,10 @@ static bool nrf5_tx_csma_ca(otRadioFrame *frame, uint8_t *payload)
 
 static bool nrf5_tx_at(otRadioFrame *frame, uint8_t *payload)
 {
+	if (payload == NULL) {
+		return false;
+	}
+
 	nrf_802154_transmit_at_metadata_t metadata = {
 		.frame_props =
 			{
@@ -841,12 +856,9 @@ static void handle_sleep(otInstance *aInstance)
 
 static bool handle_detect_energy(otInstance *aInstance)
 {
-	int error;
-
 	nrf5_set_channel(nrf5_data.energy_detection.channel);
 
-	error = nrf5_energy_detection_start(nrf5_data.energy_detection.time, energy_detected);
-	return error == 0;
+	return nrf5_energy_detection_start(nrf5_data.energy_detection.time, energy_detected);
 }
 
 static void handle_detect_energy_done(otInstance *aInstance)
@@ -938,6 +950,8 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 {
 	ARG_UNUSED(aInstance);
+
+	__ASSERT(aIeeeEui64 != NULL, "aIeeeEui64 is NULL");
 
 	memcpy(aIeeeEui64, nrf5_data.mac, EXTENDED_ADDRESS_SIZE);
 }
