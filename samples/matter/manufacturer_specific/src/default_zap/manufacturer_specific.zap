@@ -19,7 +19,7 @@
   "package": [
     {
       "pathRelativity": "relativeToZap",
-      "path": "../../../../../../modules/lib/matter/src/app/zap-templates/zcl/zcl.json",
+      "path": "zcl.json",
       "type": "zcl-properties",
       "category": "matter",
       "version": 1,
