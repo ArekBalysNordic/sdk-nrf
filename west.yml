@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: ArekBalysNordic
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -157,7 +159,8 @@ manifest:
     - name: matter
       repo-path: sdk-connectedhomeip
       path: modules/lib/matter
-      revision: ee1f9441e70a1b103dd736201905d0a7d27de841
+      remote: ArekBalysNordic
+      revision: zap_gen_build_time
       west-commands: scripts/west/west-commands.yml
       submodules:
         - name: nlio
