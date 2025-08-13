@@ -1187,6 +1187,16 @@ Thread
 
 The issues in this section are related to the :ref:`ug_thread` protocol.
 
+.. rst-class:: v3-1-0
+
+KRKNWK-20701: SSED devices with the nRF54L15 SoC may experience communication issues
+  There may be communication issues while using SSED devices (CSL Receiver mode) with the nRF54L15 SoC due to the CSL accuracy value being set to ``20`` ppm by default.
+
+  **Affected platforms:** nRF54L15
+
+  **Workaround:** If you noticed communication issues while using CSL, try to increase the :kconfig:option:`CONFIG_NRF5_DELAY_TRX_ACC` Kconfig option.
+                  The value of this option is set to ``20`` ppm by default, whereas it may be set to ``40`` ppm to improve the system reliability.
+
 .. rst-class:: v2-9-0-nRF54H20-1 v2-9-2 v2-9-1 v2-9-0 v2-8-0
 
 KRKNWK-19628: On nRF54H20, persistence of keys is not yet supported

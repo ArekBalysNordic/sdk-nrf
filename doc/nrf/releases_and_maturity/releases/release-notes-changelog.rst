@@ -173,7 +173,8 @@ nRF IEEE 802.15.4 radio driver
 Thread
 ------
 
-|no_changes_yet_note|
+* Changed the default value of the :kconfig:option:`CONFIG_NRF5_DELAY_TRX_ACC` Kconfig option to ``40`` ppm.
+  This resolves the :ref:`known issue <known_issues>` KRKNWK-20701.
 
 Wi-Fi®
 ------
