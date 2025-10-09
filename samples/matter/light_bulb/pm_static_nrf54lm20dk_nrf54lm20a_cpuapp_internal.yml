@@ -46,7 +46,3 @@ factory_data:
   address: 0x1F0000
   region: flash_primary
   size: 0x1000
-settings_storage:
-  address: 0x1F1000
-  region: flash_primary
-  size: 0xC000

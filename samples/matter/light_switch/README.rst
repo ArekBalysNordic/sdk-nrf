@@ -1,14 +1,14 @@
 .. _matter_light_switch_sample:
 .. _chip_light_switch_sample:
 
-Matter: Light switch
-####################
+Matter: Window Covering
+########################
 
 .. contents::
    :local:
    :depth: 2
 
-This light switch sample demonstrates the usage of the :ref:`Matter <ug_matter>` application layer to build a switch device that binds with lighting devices and changes the state of their LEDs.
+This smoke co alarm sample demonstrates the usage of the :ref:`Matter <ug_matter>` application layer to build a switch device that binds with lighting devices and changes the state of their LEDs.
 You can use this sample as a reference for creating your own application.
 
 When configured together with the :ref:`Matter light bulb <matter_light_bulb_sample>` sample (or other lighting sample) and when using a Matter controller, the light switch can control one light bulb directly or a group of light bulbs remotely over a Matter network built on top of a low-power, 802.15.4 Thread, or on top of a Wi-Fi® network.
@@ -49,6 +49,7 @@ The development kits for this sample offer the following IPv6 network support fo
 Overview
 ********
 
+This window covering application demonstrates how to control devices.
 The sample controls the state of the state-indication LED on connected light bulbs devices.
 After configuring the light switch sample, the lighting devices get proper `Access Control List`_ from the Matter controller to start receiving commands sent from the light switch.
 Then, the light switch device prepares a new binding table to be able to discover light bulb devices and perform :ref:`matter_light_switch_sample_binding`.
@@ -112,6 +113,9 @@ Configuration
 
 Matter light switch custom configurations
 =========================================
+
+This thermostat configuration allows you to customize various aspects of the device behavior.
+The temperature sensor settings are inherited from the base configuration.
 
 .. include:: ../light_bulb/README.rst
     :start-after: matter_light_bulb_sample_configuration_file_types_start
@@ -606,3 +610,12 @@ The sample depends on the following Zephyr libraries:
 
 * :ref:`zephyr:logging_api`
 * :ref:`zephyr:kernel_api`
+
+See also
+========
+
+For related samples and examples, check out:
+
+* :ref:`matter_light_bulb_sample` - Compatible lighting device that can be controlled by this switch
+* The contact sensor sample provides similar binding functionality
+* Unlike the lock sample, this device does not require secure authentication
