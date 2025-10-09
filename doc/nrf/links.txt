@@ -174,16 +174,16 @@
 
 .. ### Matter links that need updated SHA per release
 
-.. _`other controller setups`: https://github.com/nrfconnect/sdk-connectedhomeip/tree/b5fc07b996/src/controller
+.. _`other controller setups`: https://github.com/nrfconnect/sdk-connectedhomeip/tree/aa02312/src/controller
 .. _`CHIP Certificate Tool source files`: https://github.com/nrfconnect/sdk-connectedhomeip/tree/b5fc07b996/src/tools
 .. _`Bluetooth LE Arbiter's header file`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/src/platform/Zephyr/BLEAdvertisingArbiter.h
 .. _`LogModule enumeration`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/src/lib/support/logging/Constants.h
 .. _`Matter SDK's Logging header`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/src/lib/support/logging/CHIPLogging.h
-.. _`Factory Data Provider`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/src/platform/nrfconnect/FactoryDataProvider.h
+.. _`Factory Data Provider`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/aabbccdd/src/platform/nrfconnect/FactoryDataProvider.h
 .. _`Matter nRF Connect platform source files`: https://github.com/nrfconnect/sdk-connectedhomeip/tree/b5fc07b996/src/platform/nrfconnect
 .. _`Generate factory data script`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/scripts/tools/nrfconnect/generate_nrfconnect_chip_factory_data.py
 .. _`Factory data schema`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/scripts/tools/nrfconnect/nrfconnect_factory_data.schema
-.. _`Generate partition script`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/scripts/tools/nrfconnect/nrfconnect_generate_partition.py
+.. _`Generate partition script`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/ddbbaa42/scripts/tools/nrfconnect/nrfconnect_generate_partition.py
 .. _`Matter nRF Connect scripts`: https://github.com/nrfconnect/sdk-connectedhomeip/tree/b5fc07b996/scripts/tools/nrfconnect
 .. _`Matter nRF Connect Kconfig`: https://github.com/nrfconnect/sdk-connectedhomeip/blob/b5fc07b996/config/nrfconnect/chip-module/Kconfig
 
