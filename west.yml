@@ -65,7 +65,7 @@ manifest:
     # https://developer.nordicsemi.com/nRF_Connect_SDK/doc/latest/zephyr/guides/modules.html
     - name: zephyr
       repo-path: sdk-zephyr
-      revision: f75ebf1d5b2a8ce3e3e1bfc02b16c492fe7b1417
+      revision: 34f1aa346560cdbb528caea4d52188ebdeb81c4f
       import:
         # In addition to the zephyr repository itself, NCS also
         # imports the contents of zephyr/west.yml at the above
@@ -128,7 +128,7 @@ manifest:
           compare-by-default: true
     - name: mcuboot
       repo-path: sdk-mcuboot
-      revision: 754f9586875dd72de367704e42c2121eb60696c3
+      revision: 1a0361b1403121995bb6da407a5394049d183999
       path: bootloader/mcuboot
     - name: qcbor
       url: https://github.com/laurencelundblade/QCBOR
@@ -145,11 +145,11 @@ manifest:
     - name: nrfxlib
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: 36ba54ade9f72909dff5fc1268eb59eb6e289f2d
+      revision: 396870a797af9434e1e957e5c741c30c8784e370
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
-      revision: b4dfb8e90f7a133a68fd6949bc24586af99a3e0c
+      revision: 2c9f9c6e20468ef9dcd433986adea2d3fc036b9d
     - name: psa-arch-tests
       repo-path: sdk-psa-arch-tests
       path: modules/tee/tf-m/psa-arch-tests
@@ -157,7 +157,7 @@ manifest:
     - name: matter
       repo-path: sdk-connectedhomeip
       path: modules/lib/matter
-      revision: 4031bf321f9eea476552639dd39d23c90b00d62a
+      revision: fb1680cf8ac4c6535c0b5efc754ab7ba08710c9d
       west-commands: scripts/west/west-commands.yml
       submodules:
         - name: nlio
@@ -176,14 +176,14 @@ manifest:
     - name: nrf-802154
       repo-path: sdk-nrf-802154
       path: nrf-802154
-      revision: 0f7ea29d2ae899d52c3dd0ce2355dc4d4176b2b8
+      revision: dd2f456a2f55e6d0445dc4b1e9b30efac56b8bd4
       groups:
         - nrf-802154
     - name: dragoon
       # Only for internal Nordic development
       repo-path: dragoon.git
       remote: dragoon
-      revision: 17f85a062d59bd6d8693fda3ba20fe5a458b4483
+      revision: 5c54225650b41a408287e05987bed02a3169b0f5
       groups:
         - dragoon
     - name: cjson

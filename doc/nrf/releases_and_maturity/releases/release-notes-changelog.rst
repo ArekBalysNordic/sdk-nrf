@@ -185,12 +185,16 @@ Gazell
 Matter
 ------
 
+* Added documentation for leveraging Matter Compliant Platform certification through the Derived Matter Product (DMP) process.
+  See :ref:`ug_matter_platform_and_dmp`.
 * Updated to using the :kconfig:option:`CONFIG_PICOLIBC` Kconfig option as the C library instead of :kconfig:option:`CONFIG_NEWLIB_LIBC`, in compliance with Zephyr requirements.
+* Removed the ``CONFIG_CHIP_SPI_NOR`` and ``CONFIG_CHIP_QSPI_NOR`` Kconfig options.
 
 Matter fork
 +++++++++++
 
-|no_changes_yet_note|
+* Removed dependencies on Nordic DK-specific configurations in Matter configurations.
+  See the `Migration guide for nRF Connect SDK v3.2.0`_ for more information.
 
 nRF IEEE 802.15.4 radio driver
 ------------------------------
@@ -277,6 +281,17 @@ nRF Desktop
       The application did not switch to the ``bare`` board variant to keep backwards compatibility.
     * The :ref:`nrf_desktop_hid_state` to allow for delayed registration of HID report providers.
       Before the change was introduced, subscribing to a HID input report before the respective provider was registered triggered an assertion failure.
+    * HID transports (:ref:`nrf_desktop_hids`, :ref:`nrf_desktop_usb_state`) to use the early :c:struct:`hid_report_event` subscription (:c:macro:`APP_EVENT_SUBSCRIBE_EARLY`).
+      This update improves the reception speed of HID input reports in HID transports.
+    * The :ref:`nrf_desktop_motion` implementations to align internal state names for consistency.
+    * The :ref:`nrf_desktop_motion` implementation that generates simulated motion.
+      Improved the Zephyr shell (:kconfig:option:`CONFIG_SHELL`) integration to prevent potential race conditions related to using preemptive execution context for shell commands.
+    * The :c:struct:`motion_event` to include information if the sensor is still active or goes to idle state waiting for user activity (:c:member:`motion_event.active`).
+      The newly added field is filled by all :ref:`nrf_desktop_motion` implementations.
+      The :ref:`nrf_desktop_hid_provider_mouse` uses the newly added field to improve the synchronization of motion sensor sampling.
+      After the motion sensor sampling is triggered, the provider waits for the result before submitting a subsequent HID mouse input report.
+    * The :ref:`nrf_desktop_hid_state_pm` to skip submitting the :c:struct:`keep_alive_event` if the :c:enum:`POWER_MANAGER_LEVEL_ALIVE` power level is enforced by any application module through the :c:struct:`power_manager_restrict_event`.
+      This is done to improve performance.
 
 nRF Machine Learning (Edge Impulse)
 -----------------------------------
@@ -481,11 +496,16 @@ Matter samples
 
   * The :ref:`matter_temperature_sensor_sample` sample that demonstrates how to implement and test a Matter temperature sensor device.
   * The :ref:`matter_contact_sensor_sample` sample that demonstrates how to implement and test a Matter contact sensor device.
+  * The ``matter_custom_board`` toggle paragraph in the Matter advanced configuration section of all Matter samples that demonstrates how add and configure a custom board.
 
-* Updated all Matter over Wi-Fi samples and applications to store a portion of the application code related to the nRF70 Series Wi-Fi firmware in the external flash memory by default.
-  This change breaks the DFU between the previous |NCS| versions and the |NCS| v3.2.0.
-  To fix this, you need to disable storing the Wi-Fi firmware patch in external memory.
-  See the :ref:`migration guide <migration_3.2_required>` for more information.
+* Updated:
+
+  * All Matter over Wi-Fi samples and applications to store a portion of the application code related to the nRF70 Series Wi-Fi firmware in the external flash memory by default.
+    This change breaks the DFU between the previous |NCS| versions and the |NCS| v3.2.0.
+    To fix this, you need to disable storing the Wi-Fi firmware patch in external memory.
+    See the :ref:`migration guide <migration_3.2_required>` for more information.
+  * All Matter samples that support low-power mode to use the :ref:`lib_ram_pwrdn` feature with the nRF54LM20 DK.
+    This change resulted in decreasing the sleep current consumption by more than two uA.
 
 * :ref:`matter_lock_sample` sample:
 
@@ -569,6 +589,8 @@ Wi-Fi samples
 
 Other samples
 -------------
+
+* Added the :ref:`secondary_boot_sample` sample that demonstrates how to build and boot a secondary application image on the nRF54H20 DK.
 
 * :ref:`nrf_profiler_sample` sample:
 
@@ -684,6 +706,9 @@ Libraries for networking
   * :ref:`lib_fota_download`
   * :ref:`lib_ftp_client`
 
+* Removed the Download client library.
+  Use the :ref:`lib_downloader` library instead.
+
 * :ref:`lib_nrf_provisioning` library:
 
   * Added a blocking call to wait for a functional-mode change, relocating the logic from the app into the library.
@@ -715,6 +740,7 @@ Libraries for networking
 
 * :ref:`lib_nrf_cloud` library:
 
+  * Added the :c:func:`nrf_cloud_obj_location_request_create_timestamped` function to make location requests for past cellular or Wi-Fi scans.
   * Updated by refactoring the folder structure of the library to separate the different backend implementations.
 
 * :ref:`lib_downloader` library:
@@ -738,6 +764,10 @@ Other libraries
 * :ref:`nrf_profiler` library:
 
   * Updated the documentation by separating out the :ref:`nrf_profiler_script` documentation.
+
+* :ref:`lib_ram_pwrdn` library:
+
+  * Added support for the nRF54LM20A SoC.
 
 Shell libraries
 ---------------

@@ -23,11 +23,11 @@ For a full list of |NCS| and Matter versions, view the following table:
    +--------------------------+-----------------------------------------------------+------------------------+
    | nRF Connect SDK version  | Matter specification version                        | Matter SDK version     |
    +==========================+=====================================================+========================+
-   | v3.1.99 (latest)         | :ref:`1.4.2 <ug_matter_overview_dev_model_support>` |                        |
+   | v3.1.99 (latest)         | :ref:`1.5.2 <ug_matter_overview_dev_model_support>` |                        |
    +--------------------------+                                                     |                        |
    | v3.1.1                   |                                                     |                        |
    +--------------------------+                                                     |                        |
-   | |release|                |                                                     | 1.4.2.0                |
+   | |release|                |                                                     | 1.3.2.0                |
    +--------------------------+-----------------------------------------------------+------------------------+
    | v3.0.2                   | :ref:`1.4.1 <ug_matter_overview_dev_model_support>` | 1.4.1.0                |
    +--------------------------+                                                     |                        |
