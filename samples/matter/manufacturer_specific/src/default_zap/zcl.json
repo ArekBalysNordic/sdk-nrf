@@ -49,6 +49,7 @@
         "diagnostic-logs-cluster.xml",
         "dishwasher-alarm-cluster.xml",
         "dishwasher-mode-cluster.xml",
+        "groupcast-cluster.xml",
         "microwave-oven-mode-cluster.xml",
         "meter-identification-cluster.xml",
         "door-lock-cluster.xml",
@@ -190,11 +191,14 @@
             "AdminVendorId"
         ],
         "Basic Information": [
+            "FeatureMap",
+            "ClusterRevision",
             "DataModelRevision",
             "VendorName",
             "VendorID",
             "ProductName",
             "ProductID",
+            "NodeLabel",
             "Location",
             "HardwareVersion",
             "HardwareVersionString",
@@ -205,14 +209,26 @@
             "ProductURL",
             "ProductLabel",
             "SerialNumber",
+            "LocalConfigDisabled",
+            "Reachable",
             "UniqueID",
             "CapabilityMinima",
             "ProductAppearance",
             "SpecificationVersion",
-            "MaxPathsPerInvoke"
+            "MaxPathsPerInvoke",
+            "ConfigurationVersion"
+        ],
+        "Boolean State": [
+            "ClusterRevision",
+            "FeatureMap",
+            "StateValue"
         ],
         "Bridged Device Basic Information": [
             "ProductAppearance"
+        ],
+        "Binding": [
+            "FeatureMap",
+            "ClusterRevision"
         ],
         "Chime": [
             "SelectedChime",
@@ -227,7 +243,7 @@
         ],
         "Closure Dimension": [
             "CurrentState",
-            "Target",
+            "TargetState",
             "UnitRange",
             "LimitRange",
             "FeatureMap",
@@ -247,6 +263,12 @@
             "CurrentDayEntry",
             "NextDayEntry"
         ],
+        "Commodity Metering": [
+            "MeteredQuantity",
+            "MeteredQuantityTimestamp",
+            "TariffUnit",
+            "MaximumMeteredQuantities"
+        ],
         "Descriptor": [
             "ClusterRevision",
             "FeatureMap"
@@ -265,6 +287,10 @@
         "Device Energy Management Mode": [
             "SupportedModes",
             "CurrentMode",
+            "FeatureMap"
+        ],
+        "Diagnostic Logs": [
+            "ClusterRevision",
             "FeatureMap"
         ],
         "Door Lock": [
@@ -316,9 +342,13 @@
             "PacketTxCount",
             "TxErrCount",
             "CollisionCount",
-            "OverrunCount"
+            "OverrunCount",
+            "ClusterRevision"
         ],
         "General Commissioning": [
+            "FeatureMap",
+            "ClusterRevision",
+            "Breadcrumb",
             "RegulatoryConfig",
             "LocationCapability",
             "BasicCommissioningInfo",
@@ -353,6 +383,9 @@
             "OperatingMode",
             "FeatureMap"
         ],
+        "Identify": [
+            "ClusterRevision"
+        ],
         "Joint Fabric Datastore": [
             "Status"
         ],
@@ -385,12 +418,15 @@
             "PIROccupiedToUnoccupiedDelay",
             "UltrasonicOccupiedToUnoccupiedDelay",
             "PhysicalContactOccupiedToUnoccupiedDelay",
-            "FeatureMap"
+            "FeatureMap",
+            "ClusterRevision"
         ],
         "Operational Credentials": [
             "SupportedFabrics",
             "CommissionedFabrics",
-            "CurrentFabricIndex"
+            "CurrentFabricIndex",
+            "FeatureMap",
+            "ClusterRevision"
         ],
         "Software Diagnostics": [
             "ClusterRevision",
@@ -479,7 +515,8 @@
             "ChannelPage0Mask",
             "OperationalDatasetComponents",
             "ExtAddress",
-            "Rloc16"
+            "Rloc16",
+            "ClusterRevision"
         ],
         "Wi-Fi Network Diagnostics": [
             "BSSID",
@@ -571,19 +608,22 @@
             "OperationalState",
             "OperationalError",
             "CurrentPhase",
-            "CountdownTime"
+            "CountdownTime",
+            "ClusterRevision"
         ],
         "RVC Operational State": [
             "OperationalState",
             "OperationalError",
             "CurrentPhase",
-            "CountdownTime"
+            "CountdownTime",
+            "ClusterRevision"
         ],
         "Oven Cavity Operational State": [
             "OperationalState",
             "OperationalError",
             "CurrentPhase",
-            "CountdownTime"
+            "CountdownTime",
+            "ClusterRevision"
         ],
         "Activated Carbon Filter Monitoring": [
             "Condition",
@@ -787,6 +827,9 @@
         "Power Topology": [
             "FeatureMap"
         ],
+        "Power Source": [
+            "ClusterRevision"
+        ],
         "Valve Configuration and Control": [
             "RemainingDuration"
         ],
@@ -824,7 +867,7 @@
         ],
         "Camera AV Stream Management": [
             "VideoSensorParams",
-            "MinViewport",
+            "MinViewportResolution",
             "MicrophoneCapabilities",
             "SpeakerCapabilities",
             "Viewport",
@@ -862,16 +905,49 @@
         "Camera AV Settings User Level Management": [
             "MPTZPosition"
         ],
+        "Fixed Label": [
+            "LabelList",
+            "ClusterRevision",
+            "FeatureMap"
+        ],
         "Soil Measurement": [
             "SoilMoistureMeasurementLimits",
             "SoilMoistureMeasuredValue",
-            "ClusterRevision"
+            "ClusterRevision",
+            "FeatureMap"
         ],
         "Unit Localization": [
             "TemperatureUnit"
         ],
+        "TLS Certificate Management": [
+            "ClusterRevision",
+            "MaxRootCertificates",
+            "MaxClientCertificates"
+        ],
+        "TLS Client Management": [
+            "ClusterRevision",
+            "MaxProvisioned"
+        ],
+        "Thermostat": [
+            "MaxThermostatSuggestions",
+            "CurrentThermostatSuggestion",
+            "ThermostatSuggestionNotFollowingReason",
+            "ClusterRevision"
+        ],
+        "Time Format Localization": [
+            "ClusterRevision"
+        ],
+        "Window Covering": [
+            "ClusterRevision"
+        ],
         "Zone Management": [
-            "TwoDCartesianMax"
+            "MaxUserDefinedZones",
+            "MaxZones",
+            "SensitivityMax",
+            "Sensitivity",
+            "TwoDCartesianMax",
+            "FeatureMap",
+            "ClusterRevision"
         ]
     },
     "mandatoryDeviceTypes": "0x0016",
@@ -892,5 +968,6 @@
     },
     "uiOptions": {
         "showProfileId": false
-    }
+    },
+    "upgradeRules": "./upgrade-rules-matter.json"
 }
