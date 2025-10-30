@@ -76,6 +76,9 @@ void emberAfClusterInitCallback(EndpointId endpoint, ClusterId clusterId)
 	case app::Clusters::OperationalCredentials::Id:
 		emberAfOperationalCredentialsClusterInitCallback(endpoint);
 		break;
+	case app::Clusters::ScenesManagement::Id:
+		emberAfScenesManagementClusterInitCallback(endpoint);
+		break;
 	case app::Clusters::SoftwareDiagnostics::Id:
 		emberAfSoftwareDiagnosticsClusterInitCallback(endpoint);
 		break;
@@ -167,6 +170,11 @@ void __attribute__((weak)) emberAfOnOffClusterInitCallback(EndpointId endpoint)
 	(void)endpoint;
 }
 void __attribute__((weak)) emberAfOperationalCredentialsClusterInitCallback(EndpointId endpoint)
+{
+	// To prevent warning
+	(void)endpoint;
+}
+void __attribute__((weak)) emberAfScenesManagementClusterInitCallback(EndpointId endpoint)
 {
 	// To prevent warning
 	(void)endpoint;
