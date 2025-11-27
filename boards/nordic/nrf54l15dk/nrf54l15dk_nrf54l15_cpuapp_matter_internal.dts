@@ -1,0 +1,47 @@
+/*
+ * Copyright (c) 2025 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+ #include <../boards/nordic/nrf54l15dk/nrf54l15dk_nrf54l15_cpuapp_matter.dts>
+
+ &mx25r64 {
+	status = "disabled";
+};
+
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+/delete-node/ &factory_data_partition;
+/delete-node/ &storage_partition;
+
+&cpuapp_rram {
+	reg = <0x0 DT_SIZE_K(1524)>;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		slot0_partition: partition@d000 {
+			label = "image-0";
+			reg = <0x0000d000 0xD8000>;
+		};
+
+        /* Compression ratio 34.75% */
+		slot1_partition: partition@E5000 {
+			label = "image-1";
+			reg = <0x00E5000 0x8D000>;
+		};
+
+        factory_data_partition: partition@172000 {
+			label = "factory-data";
+			reg = <0x00172000 0x1000>;
+		};
+
+		storage_partition: partition@173000 {
+			label = "storage";
+			reg = <0x00173000 0xA000>;
+		};
+	};
+};

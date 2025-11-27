@@ -96,4 +96,16 @@ endif # WIFI_NRF70
 config MATTER_FACTORY_DATA_GENERATE
 	default y if !BOARD_NRF21540DK
 
+# Enable the DFU image compression.
+if BOARD_NRF54L15DK_NRF54L15_CPUAPP_MATTER_INTERNAL
+
+choice MCUBOOT_MODE
+	default MCUBOOT_MODE_OVERWRITE_ONLY
+endchoice
+
+config MCUBOOT_COMPRESSED_IMAGE_SUPPORT
+	default y
+
+endif # BOARD_NRF54L15DK_NRF54L15_CPUAPP_MATTER_INTERNAL
+
 source "share/sysbuild/Kconfig"
