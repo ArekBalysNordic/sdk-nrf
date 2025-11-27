@@ -3,6 +3,8 @@ board:
   variants:
     - name: matter
       qualifier: nrf54l15/cpuapp
+    - name: matter/internal
+      qualifier: nrf54l15/cpuapp
 runners:
   run_once:
     '--recover':
@@ -14,6 +16,7 @@ runners:
           - boards:
               - nrf54l15dk/nrf54l15/cpuapp/matter
               - nrf54l15dk/nrf54l15/cpuflpr
+              - nrf54l15dk/nrf54l15/cpuapp/matter/internal
     '--erase':
       - runners:
           - nrfjprog
@@ -24,6 +27,7 @@ runners:
           - boards:
               - nrf54l15dk/nrf54l15/cpuapp/matter
               - nrf54l15dk/nrf54l15/cpuflpr
+              - nrf54l15dk/nrf54l15/cpuapp/matter/internal
     '--reset':
       - runners:
           - nrfjprog
@@ -34,3 +38,4 @@ runners:
           - boards:
               - nrf54l15dk/nrf54l15/cpuapp/matter
               - nrf54l15dk/nrf54l15/cpuflpr
+              - nrf54l15dk/nrf54l15/cpuapp/matter/internal
