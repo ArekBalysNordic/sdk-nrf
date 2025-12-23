@@ -625,6 +625,14 @@ Matter
 
 The issues in this section are related to the :ref:`ug_matter` protocol.
 
+.. rst-class:: v3-2-1 v3-2-0 v3-1-1 v3-1-0
+
+KRKNWK-21283: Device Instance Info Provider implementation does not work with custom factory data provider
+  The Device Instance Info Provider implementation does not work if the :kconfig:option:`CONFIG_CHIP_FACTORY_DATA_CUSTOM_BACKEND` Kconfig option is set to ``y``.
+  The root cause is that the implementation does not include the implementation of the GenericDeviceInstanceInfoProvider class in the file in case of using a custom factory data provider and there are many missing implementations during linking time.
+
+  **Workaround:** Manually cherry-pick and apply the commit with the fix to ``sdk-connectedhomeip`` (commit hash: TODO after merge).
+
 .. rst-class:: v3-2-1 v3-2-0
 
 KRKNWK-21176: Fail to flash the nRF7002 DK with Wi-Fi external patch without full erase
