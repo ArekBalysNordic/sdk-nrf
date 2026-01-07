@@ -3,6 +3,24 @@
 # Copyright (c) 2025 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
+choice OPENTHREAD_STACK_VERSION
+
+config OPENTHREAD_THREAD_VERSION_1_5_PREVIEW
+	bool "Version 1.5-preview"
+	select OPENTHREAD_PREVIEW
+
+endchoice # OPENTHREAD_STACK_VERSION
+
+if OPENTHREAD_THREAD_VERSION_1_5_PREVIEW
+
+config OPENTHREAD_THREAD_VERSION
+	default "1.5-preview"
+
+config OPENTHREAD_UPTIME
+	default y if OPENTHREAD_FTD || OPENTHREAD_MTD
+
+endif # OPENTHREAD_THREAD_VERSION_1_5_PREVIEW
+
 choice OPENTHREAD_PSA_NVM_BACKEND
 	prompt "Backend to store persistent crypto materials"
 	default OPENTHREAD_PSA_NVM_BACKEND_ITS
