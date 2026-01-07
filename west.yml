@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: ArekBalysNordic
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -145,7 +147,8 @@ manifest:
     - name: nrfxlib
       repo-path: sdk-nrfxlib
       path: nrfxlib
-      revision: cd973eca82fb2e44cc58a150476454d3e5e0d7d5
+      remote: ArekBalysNordic
+      revision: openthread_1_5_preview
     - name: trusted-firmware-m
       repo-path: sdk-trusted-firmware-m
       path: modules/tee/tf-m/trusted-firmware-m
@@ -225,11 +228,12 @@ manifest:
     - name: openthread
       repo-path: sdk-openthread
       path: modules/lib/openthread
-      revision: ncs-thread-reference-20250402
+      remote: ArekBalysNordic
+      revision: openthread_1_5_preview
       userdata:
         ncs:
           upstream-url: https://github.com/openthread/openthread
-          upstream-sha: c6eaeda5a1c1c5dbb24dce7e027340cb8893a77b
+          upstream-sha: 31631142c224912749ae01fca80b832a98576c0f
           compare-by-default: false
     - name: doc-internal
       repo-path: doc-internal

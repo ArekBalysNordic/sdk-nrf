@@ -115,6 +115,20 @@ if(CONFIG_OPENTHREAD)
     set(OT_BUILTIN_MBEDTLS_MANAGEMENT OFF CACHE BOOL "Use Zephyr's mbedTLS heap")
     set(OT_PLATFORM "zephyr" CACHE STRING "Zephyr as a target platform")
     set(OT_PLATFORM_POWER_CALIBRATION OFF CACHE BOOL "Use Zephyr's power calibration handled by Radio Driver")
+
+    # Use the last known OT_THREAD_VERSION to meet the stack requirements for the preview builds.
+    set(OT_THREAD_VERSION_STR "${CONFIG_OPENTHREAD_THREAD_VERSION}")
+    if(OT_THREAD_VERSION_STR MATCHES "preview")
+      string(REGEX MATCH "^([0-9]+)[.-]([0-9]+)" ver_match "${OT_THREAD_VERSION_STR}")
+      if(ver_match)
+        set(major "${CMAKE_MATCH_1}")
+        set(minor "${CMAKE_MATCH_2}")
+        math(EXPR minor_adj "${minor} - 1")
+        set(OT_THREAD_VERSION_STR "${major}.${minor_adj}")
+      endif()
+    endif()
+    kconfig_to_ot_option(OT_THREAD_VERSION_STR OT_THREAD_VERSION "Thread stack version" STRING)
+
     set(OT_CLI_TRANSPORT "CONSOLE" CACHE STRING "Set CLI to use console interpreter")
 
     set(BUILD_TESTING OFF CACHE BOOL "Disable openthread cmake testing targets" FORCE)
