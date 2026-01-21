@@ -25,6 +25,9 @@ LOG_MODULE_REGISTER(MODULE, CONFIG_BRIDGE_BULK_LOG_LEVEL);
 #include "usb_bulk_msosv2.h"
 
 #include <cmsis_dap.h>
+#include <zephyr/dap/dap_link.h>
+
+DAP_LINK_CONTEXT_DEFINE(usb_dap_ctx, DEVICE_DT_GET_ONE(zephyr_swdp_gpio));
 
 #define USB_BULK_PACKET_SIZE  64
 #define USB_BULK_PACKET_COUNT 4
@@ -175,9 +178,9 @@ static int dap_usb_process(void)
 	struct net_buf *buf = k_fifo_get(&dap_rx_queue, K_FOREVER);
 	uint8_t ep = dapusb_config.endpoint[DAP_USB_EP_IN_IDX].ep_addr;
 #if defined(CONFIG_BRIDGE_CMSIS_DAP_NORDIC_COMMANDS)
-	len = dap_execute_vendor_cmd(buf->data, tx_buf);
+	len = dap_execute_vendor_cmd(&usb_dap_ctx, buf->data, tx_buf);
 #else
-	len = dap_execute_cmd(buf->data, tx_buf);
+	len = dap_link_execute_cmd(&usb_dap_ctx, buf->data, tx_buf);
 #endif /* defined(CONFIG_BRIDGE_CMSIS_DAP_NORDIC_COMMANDS) */
 	LOG_DBG("response length %u, starting with [0x%02X, 0x%02X]", len, tx_buf[0], tx_buf[1]);
 	net_buf_unref(buf);
@@ -225,7 +228,7 @@ static bool app_event_handler(const struct app_event_header *aeh)
 				LOG_ERR("SWD device is not ready");
 			}
 
-			int ret = dap_setup(swd_dev);
+			int ret = dap_link_init(&usb_dap_ctx);
 
 			if (ret) {
 				LOG_ERR("Failed to initialize DAP controller, %d", ret);
