@@ -23,13 +23,12 @@ using namespace chip::app::Clusters;
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
 
-void LightSwitch::Init(chip::EndpointId lightSwitchEndpoint)
+void LightSwitch::Init()
 {
 	Nrf::Matter::BindingHandler::Init();
 #ifdef CONFIG_CHIP_LIB_SHELL
 	SwitchCommands::RegisterSwitchCommands();
 #endif
-	mLightSwitchEndpoint = lightSwitchEndpoint;
 }
 
 void LightSwitch::InitiateActionSwitch(Action action)
@@ -88,7 +87,7 @@ void LightSwitch::SwitchChangedHandler(const Binding::TableEntry &binding, Opera
 			LevelControlProcessCommand(bindingData.CommandId, binding, nullptr, bindingData);
 			break;
 		default:
-			ChipLogError(NotSpecified, "Invalid binding group command data");
+			LOG_ERR("Invalid binding group command data");
 			break;
 		}
 	} else if (binding.type == Binding::MATTER_UNICAST_BINDING) {
@@ -100,7 +99,7 @@ void LightSwitch::SwitchChangedHandler(const Binding::TableEntry &binding, Opera
 			LevelControlProcessCommand(bindingData.CommandId, binding, deviceProxy, bindingData);
 			break;
 		default:
-			ChipLogError(NotSpecified, "Invalid binding unicast command data");
+			LOG_ERR("Invalid binding unicast command data");
 			break;
 		}
 	}

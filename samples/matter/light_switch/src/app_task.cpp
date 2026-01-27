@@ -6,7 +6,11 @@
 
 #include "app_task.h"
 
+#if defined(CONFIG_LIGHT_SWITCH)
 #include "light_switch.h"
+#elif defined(CONFIG_GENERIC_SWITCH)
+#include "generic_switch.h"
+#endif
 
 #include "app/matter_init.h"
 #include "app/task_executor.h"
@@ -42,12 +46,18 @@ bool sWasDimmerTriggered = false;
 #ifdef CONFIG_CHIP_ICD_UAT_SUPPORT
 #define UAT_BUTTON_MASK DK_BTN3_MSK
 #endif
+
+#if defined(CONFIG_LIGHT_SWITCH)
+	LightSwitch sSwitchInstance(kLightSwitchEndpointId);
+#elif defined(CONFIG_GENERIC_SWITCH)
+	GenericSwitch sSwitchInstance(kLightSwitchEndpointId);
+#endif
 } /* namespace */
 
 void AppTask::DimmerTriggerEventHandler()
 {
 	if (!sWasDimmerTriggered) {
-		LightSwitch::GetInstance().InitiateActionSwitch(LightSwitch::Action::Toggle);
+		sSwitchInstance.InitiateActionSwitch(LightSwitch::Action::Toggle);
 	}
 
 	Instance().CancelTimer(Timer::Dimmer);
@@ -61,12 +71,12 @@ void AppTask::TimerEventHandler(const Timer &timerType)
 	case Timer::DimmerTrigger:
 		LOG_INF("Dimming started...");
 		sWasDimmerTriggered = true;
-		LightSwitch::GetInstance().InitiateActionSwitch(LightSwitch::Action::On);
+		sSwitchInstance.InitiateActionSwitch(LightSwitch::Action::On);
 		Instance().StartTimer(Timer::Dimmer, kDimmerInterval);
 		Instance().CancelTimer(Timer::DimmerTrigger);
 		break;
 	case Timer::Dimmer:
-		LightSwitch::GetInstance().DimmerChangeBrightness();
+		sSwitchInstance.DimmerChangeBrightness();
 		break;
 	default:
 		break;
@@ -138,7 +148,7 @@ CHIP_ERROR AppTask::Init()
 {
 	/* Initialize Matter stack */
 	ReturnErrorOnFailure(Nrf::Matter::PrepareServer(Nrf::Matter::InitData{ .mPostServerInitClbk = [] {
-		LightSwitch::GetInstance().Init(kLightSwitchEndpointId);
+		sSwitchInstance.Init();
 		return CHIP_NO_ERROR;
 	} }));
 

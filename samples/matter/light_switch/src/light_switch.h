@@ -9,6 +9,7 @@
 #include <lib/core/CHIPError.h>
 
 #include "binding/binding_handler.h"
+#include "switch.h"
 
 #include <atomic>
 
@@ -19,39 +20,29 @@
  *  - discovering a CHIP light bulb which advertises itself by sending Thread multicast packets
  *  - toggling and dimming the connected CHIP light bulb by sending appropriate CHIP messages
  */
-class LightSwitch {
+class LightSwitch : public Switch {
 public:
-	enum class Action : uint8_t {
-		Toggle, /* Switch state on lighting-app device */
-		On, /* Turn on light on lighting-app device */
-		Off /* Turn off light on lighting-app device */
-	};
+	LightSwitch(chip::EndpointId switchEndpoint) : Switch(switchEndpoint) {}
 
-	void Init(chip::EndpointId lightSwitchEndpoint);
-	void InitiateActionSwitch(Action action);
-	void DimmerChangeBrightness();
-	chip::EndpointId GetLightSwitchEndpointId() { return mLightSwitchEndpoint; }
-	static void SwitchChangedHandler(const chip::app::Clusters::Binding::TableEntry &binding,
-					 chip::OperationalDeviceProxy *deviceProxy,
-					 Nrf::Matter::BindingHandler::BindingData &bindingData);
-
-	static LightSwitch &GetInstance()
-	{
-		static LightSwitch sLightSwitch;
-		return sLightSwitch;
-	}
+	void Init() override;
+	void InitiateActionSwitch(Action action) override;
+	void DimmerChangeBrightness() override;
 
 private:
 	static void OnOffProcessCommand(chip::CommandId commandId,
 					const chip::app::Clusters::Binding::TableEntry &binding,
 					chip::OperationalDeviceProxy *device,
 					Nrf::Matter::BindingHandler::BindingData &bindingData);
+
 	static void LevelControlProcessCommand(chip::CommandId commandId,
 					       const chip::app::Clusters::Binding::TableEntry &binding,
 					       chip::OperationalDeviceProxy *device,
 					       Nrf::Matter::BindingHandler::BindingData &bindingData);
+
+	static void SwitchChangedHandler(const chip::app::Clusters::Binding::TableEntry &binding,
+					 chip::OperationalDeviceProxy *deviceProxy,
+					 Nrf::Matter::BindingHandler::BindingData &bindingData);
+
 	constexpr static auto kOnePercentBrightnessApproximation = 3;
 	constexpr static auto kMaximumBrightness = 254;
-
-	chip::EndpointId mLightSwitchEndpoint;
 };

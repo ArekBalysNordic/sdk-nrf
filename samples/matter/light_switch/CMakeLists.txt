@@ -33,11 +33,13 @@ target_compile_options(app PRIVATE -Wno-deprecated-declarations)
 
 target_sources(app PRIVATE
   src/app_task.cpp
-  src/light_switch.cpp
   src/main.cpp
   src/shell_commands.cpp
   ${ZEPHYR_NRF_MODULE_DIR}/samples/matter/common/src/binding/binding_handler.cpp
 )
+
+target_sources_ifdef(CONFIG_GENERIC_SWITCH app PRIVATE src/generic_switch.cpp)
+target_sources_ifdef(CONFIG_LIGHT_SWITCH app PRIVATE src/light_switch.cpp)
 
 ncs_configure_data_model()
 # NORDIC SDK APP END

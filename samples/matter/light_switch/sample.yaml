@@ -78,3 +78,57 @@ tests:
       - nrf52840dk/nrf52840
       - nrf5340dk/nrf5340/cpuapp
       - nrf54l15dk/nrf54l15/cpuapp
+  sample.matter.light_switch.low_power:
+    sysbuild: true
+    build_only: true
+    extra_args:
+      - FILE_SUFFIX=release
+      - CONFIG_CHIP_ICD_SLOW_POLL_INTERVAL=7500
+      - CONFIG_CHIP_ICD_ACTIVE_MODE_DURATION=800
+      - CONFIG_CHIP_ICD_FAST_POLLING_INTERVAL=100
+      - CONFIG_CHIP_ICD_ACTIVE_MODE_THRESHOLD=5000
+      - CONFIG_OPENTHREAD_DEFAULT_TX_POWER=0
+      - CONFIG_NCS_SAMPLE_MATTER_LEDS=n
+      - CONFIG_NCS_SAMPLE_MATTER_WATCHDOG=n
+      - CONFIG_CHIP_ENABLE_PAIRING_AUTOSTART=y
+      - OVERLAY_CONFIG=overlay-generic_switch.conf
+    integration_platforms:
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+    platform_allow:
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+  sample.matter.light_switch.low_power_dut:
+    sysbuild: true
+    build_only: true
+    extra_args:
+      - FILE_SUFFIX=release
+      - CONFIG_CHIP_ICD_SLOW_POLL_INTERVAL=7500
+      - CONFIG_CHIP_ICD_ACTIVE_MODE_DURATION=800
+      - CONFIG_CHIP_ICD_FAST_POLLING_INTERVAL=100
+      - CONFIG_CHIP_ICD_ACTIVE_MODE_THRESHOLD=5000
+      - CONFIG_OPENTHREAD_DEFAULT_TX_POWER=5
+      - CONFIG_NCS_SAMPLE_MATTER_LEDS=n
+      - CONFIG_NCS_SAMPLE_MATTER_WATCHDOG=n
+      - CONFIG_CHIP_ENABLE_PAIRING_AUTOSTART=y
+      - OVERLAY_CONFIG=overlay-generic_switch.conf
+    integration_platforms:
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+    platform_allow:
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+  sample.matter.light_switch.low_power_max:
+    sysbuild: true
+    build_only: true
+    extra_args:
+      - FILE_SUFFIX=release
+      - CONFIG_CHIP_ICD_SLOW_POLL_INTERVAL=7500
+      - CONFIG_CHIP_ICD_ACTIVE_MODE_DURATION=800
+      - CONFIG_CHIP_ICD_FAST_POLLING_INTERVAL=100
+      - CONFIG_CHIP_ICD_ACTIVE_MODE_THRESHOLD=5000
+      - CONFIG_OPENTHREAD_DEFAULT_TX_POWER=8
+      - CONFIG_NCS_SAMPLE_MATTER_LEDS=n
+      - CONFIG_NCS_SAMPLE_MATTER_WATCHDOG=n
+      - CONFIG_CHIP_ENABLE_PAIRING_AUTOSTART=y
+      - OVERLAY_CONFIG=overlay-generic_switch.conf
+    integration_platforms:
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+    platform_allow:
+      - nrf54lm20dk/nrf54lm20a/cpuapp

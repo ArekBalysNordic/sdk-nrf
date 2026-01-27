@@ -13,6 +13,24 @@ config STATE_LEDS
 	  the device into a network or the factory reset initiation. Note that setting this option to
 	  'n' does not disable the LED indicating the state of the simulated bolt.
 
+choice SWITCH_TYPE
+	prompt "Matter Switch Type"
+	default LIGHT_SWITCH
+	help
+	  Choose the type of switch to act as.
+
+config LIGHT_SWITCH
+	bool "Act as a Light Switch"
+	help
+	  Act as a Light Switch, which uses client application clusters (for example, Level Control) and bindings to send commands to the server clusters.
+
+config GENERIC_SWITCH
+	bool "Act as a Generic Switch"
+	help
+	  Act as a Generic Switch, which implements the Momentary Switch (`MS`) and Momentary Switch Release (`MSR`) features.
+
+endchoice
+
 # Sample configuration used for Thread networking
 if OPENTHREAD
 
