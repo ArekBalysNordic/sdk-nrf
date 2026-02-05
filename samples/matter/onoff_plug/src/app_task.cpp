@@ -24,12 +24,23 @@ using namespace ::chip::app::Clusters;
 using namespace ::chip::app::Clusters::OnOff;
 using namespace ::chip::DeviceLayer;
 
+void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged)
+{
+	if ((DK_BTN2_MSK & hasChanged) & state) {
+		Nrf::PostTask([] {
+			Nrf::GetBoard()
+				.GetLED(Nrf::DeviceLeds::LED2)
+				.Set(!Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).GetState());
+		});
+	}
+}
+
 CHIP_ERROR AppTask::Init()
 {
 	/* Initialize Matter stack */
 	ReturnErrorOnFailure(Nrf::Matter::PrepareServer());
 
-	if (!Nrf::GetBoard().Init()) {
+	if (!Nrf::GetBoard().Init(ButtonEventHandler)) {
 		LOG_ERR("User interface initialization failed.");
 		return CHIP_ERROR_INCORRECT_STATE;
 	}
