@@ -133,17 +133,17 @@ Building with factory data support
 
    .. code-block:: console
 
-      west build -b thingy53/nrf5340/cpuapp -- -DEXTRA_CONF_FILE=overlay-factory_data.conf -DPM_STATIC_YML_FILE=pm_static_factory_data.yml -DFILE_SUFFIX=factory_data
+      west build -b thingy53/nrf5340/cpuapp -- -DFILE_SUFFIX=factory_data
 
    .. note::
       Matter factory data support requires the dedicated partition layout.
-      This means that if you build the application using the ``overlay-factory_data`` configuration overlay, it will not be compatible with other :ref:`Thingy:53 applications and samples <thingy53_compatible_applications>`.
+      This means that if you build the application using the ``factory_data`` file suffix, it will not be compatible with other :ref:`Thingy:53 applications and samples <thingy53_compatible_applications>`.
 
    To generate a new factory data set when building for the given board target, invoke the following command:
 
    .. code-block:: console
 
-      west build -b thingy53/nrf5340/cpuapp -- -DEXTRA_CONF_FILE=overlay-factory_data.conf -DSB_CONFIG_MATTER_FACTORY_DATA_GENERATE=y -DFILE_SUFFIX=factory_data
+      west build -b thingy53/nrf5340/cpuapp -- -DFILE_SUFFIX=factory_data -DSB_CONFIG_MATTER_FACTORY_DATA_GENERATE=y
 
    This command builds the application with default certificates.
    After building for the board target, the generated :file:`factory_data.hex` file will be merged with the application target HEX file, so you can use the :ref:`regular command to flash it to the device <programming>`.
@@ -298,9 +298,9 @@ Use one of the following onboarding information formats to provide the commissio
        - MT:M1TJ342C00KA0648G00
        - 34970112332
 
-* Additionally, if the factory data build configuration overlay is selected:
+* Additionally, if the factory data build configuration is selected:
 
-  .. list-table:: Weather station application onboarding information for the factory data build configuration overlay
+  .. list-table:: Weather station application onboarding information for the factory data configuration variant
      :header-rows: 1
 
      * - QR Code
@@ -310,7 +310,7 @@ Use one of the following onboarding information formats to provide the commissio
 
          .. figure:: /images/matter_qr_code_weather_station_factory_data.png
             :width: 200px
-            :alt: QR code for commissioning the weather station device (factory data build configuration overlay)
+            :alt: QR code for commissioning the weather station device (factory data configuration variant)
 
        - MT:KAYA36PF1509673GE10
        - 14575339844

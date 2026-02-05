@@ -22,6 +22,8 @@
 
 &cpuapp_rram {
 	reg = <0x0 DT_SIZE_K(2036)>;
+	ranges = <0x0 0x0 DT_SIZE_K(2036)>;
+
 
 	partitions {
 		compatible = "fixed-partitions";

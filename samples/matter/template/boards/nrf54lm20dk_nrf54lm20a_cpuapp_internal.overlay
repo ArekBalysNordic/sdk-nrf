@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
+#include <samples/matter/nrf54lm20a_internal_partitions.dtsi>
+
 / {
 	aliases {
 		/* Use watchdog wdt31 as the application watchdog */

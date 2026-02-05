@@ -1,0 +1,76 @@
+/*
+ * Copyright (c) 2026 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/ {
+	chosen {
+		nordic,pm-ext-flash = &mx25r64;
+	};
+};
+
+/delete-node/ &boot_partition;
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+/delete-node/ &storage_partition;
+
+&flash0 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 DT_SIZE_K(48)>;
+		};
+
+		slot0_partition: partition@c000 {
+			label = "image-0";
+			reg = <0x0000c000 DT_SIZE_K(940)>;
+		};
+
+		factory_data_partition: partition@f7000 {
+			label = "factory-data";
+			reg = <0x000f7000 DT_SIZE_K(4)>;
+		};
+
+		storage_partition: partition@f8000 {
+			label = "storage";
+			reg = <0x000f8000 DT_SIZE_K(32)>;
+		};
+	};
+};
+
+&mx25r64 {
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		/* Application Core DFU */
+		slot1_partition: partition@0 {
+			label = "image-1";
+			reg = <0x00000000 DT_SIZE_K(940)>;
+		};
+
+		/* Network Core DFU */
+	    slot2_partition: partition@EB000 {
+			label = "image-2";
+			reg = <0x000EB000 DT_SIZE_K(256)>;
+		};
+
+		/* nRF70 Firmware */
+        nrf70_wifi_fw_partition: partition@12B000 {
+            label = "nrf70-wifi";
+            reg = <0x0012B000 DT_SIZE_K(128)>;
+        };
+
+		/* nRF70 Firmware DFU */
+		slot3_partition: partition@14C000 {
+            label = "image-3";
+            reg = <0x0014C000 DT_SIZE_K(128)>;
+		};
+	};
+};

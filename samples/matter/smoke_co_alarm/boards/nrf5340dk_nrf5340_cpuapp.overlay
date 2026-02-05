@@ -1,16 +1,11 @@
 /*
- * Copyright (c) 2024 Nordic Semiconductor ASA
+ * Copyright (c) 2021 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
+#include <samples/matter/nrf5340_partitions.dtsi>
 #include <zephyr/dt-bindings/ipc_service/static_vrings.h>
-
-/ {
-	chosen {
-		nordic,pm-ext-flash = &mx25r64;
-	};
-};
 
 /* Set IPC thread priority to the highest value to not collide with other threads. */
 &ipc0 {

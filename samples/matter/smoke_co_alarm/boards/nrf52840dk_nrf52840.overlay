@@ -1,14 +1,10 @@
 /*
- * Copyright (c) 2024 Nordic Semiconductor ASA
+ * Copyright (c) 2021 Nordic Semiconductor ASA
  *
  * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
  */
 
-/ {
-	chosen {
-		nordic,pm-ext-flash = &mx25r64;
-	};
-};
+#include <samples/matter/nrf52840_partitions.dtsi>
 
 /* Disable unused peripherals to reduce power consumption */
 &adc {
