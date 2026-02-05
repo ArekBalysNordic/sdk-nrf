@@ -20,6 +20,8 @@ LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
 
 using namespace ::chip;
 using namespace ::chip::app;
+using namespace ::chip::app::Clusters;
+using namespace ::chip::app::Clusters::OnOff;
 using namespace ::chip::DeviceLayer;
 
 CHIP_ERROR AppTask::Init()
@@ -48,4 +50,17 @@ CHIP_ERROR AppTask::StartApp()
 	}
 
 	return CHIP_NO_ERROR;
+}
+
+void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath &attributePath, uint8_t type,
+				       uint16_t size, uint8_t *value)
+{
+	ClusterId clusterId = attributePath.mClusterId;
+	AttributeId attributeId = attributePath.mAttributeId;
+
+	if (clusterId == OnOff::Id && attributeId == OnOff::Attributes::OnOff::Id) {
+		LOG_INF("Cluster OnOff: attribute OnOff set to %" PRIu8 "", *value);
+
+		Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).Set(*value);
+	}
 }
