@@ -14,6 +14,8 @@
 
 #include <setup_payload/OnboardingCodesUtil.h>
 
+#include <app-common/zap-generated/attributes/Accessors.h>
+
 #include <zephyr/logging/log.h>
 
 LOG_MODULE_DECLARE(app, CONFIG_CHIP_APP_LOG_LEVEL);
@@ -24,6 +26,8 @@ using namespace ::chip::app::Clusters;
 using namespace ::chip::app::Clusters::OnOff;
 using namespace ::chip::DeviceLayer;
 
+constexpr EndpointId kOnOffPlugEndpointId = 1;
+
 void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged)
 {
 	if ((DK_BTN2_MSK & hasChanged) & state) {
@@ -31,6 +35,15 @@ void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged)
 			Nrf::GetBoard()
 				.GetLED(Nrf::DeviceLeds::LED2)
 				.Set(!Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).GetState());
+
+			SystemLayer().ScheduleLambda([] {
+				Protocols::InteractionModel::Status status = Clusters::OnOff::Attributes::OnOff::Set(
+					kOnOffPlugEndpointId, Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).GetState());
+
+				if (status != Protocols::InteractionModel::Status::Success) {
+					LOG_ERR("Updating on/off cluster failed: %x", to_underlying(status));
+				}
+			});
 		});
 	}
 }
