@@ -3,6 +3,14 @@
 # Copyright (c) 2025 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
+config OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
+	bool "Enable 2.4 GHz HDR PHY (big packet) support"
+	depends on OPENTHREAD_SOURCES # For now let's stick to the build from sources
+	help
+	  Enable High Data Rate (HDR) PHY for big packets. When enabled, the
+	  platform radio driver will be called for big-packet send/receive via
+	  otPlatRadioTransmitBigPacket and otPlatRadioReceiveBigPacketDone.
+
 choice OPENTHREAD_PSA_NVM_BACKEND
 	prompt "Backend to store persistent crypto materials"
 	default OPENTHREAD_PSA_NVM_BACKEND_ITS
