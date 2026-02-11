@@ -36,4 +36,17 @@ zephyr_library_sources_ifdef(CONFIG_OPENTHREAD_PLATFORM_MESSAGE_MANAGEMENT ${ZEP
 zephyr_library_sources_ifdef(CONFIG_SETTINGS ${ZEPHYR_BASE}/modules/openthread/platform/settings.c)
 zephyr_library_sources_ifndef(CONFIG_LOG_BACKEND_SPINEL ${ZEPHYR_BASE}/modules/openthread/platform/logging.c)
 
+if(CONFIG_OPENTHREAD_RADIO_2P4GHZ_HDR_CLI_TEST)
+  target_compile_definitions(ot-config INTERFACE 
+    "OPENTHREAD_CONFIG_CLI_MAX_USER_CMD_ENTRIES=2"
+    "OPENTHREAD_CONFIG_CLI_VENDOR_COMMANDS_ENABLE=1"
+  )
+endif()
+
+if(CONFIG_OPENTHREAD_RADIO_2P4GHZ_HDR_ASSUME_NEIGHBOR_SUPPORT)
+  target_compile_definitions(ot-config INTERFACE 
+    "OPENTHREAD_CONFIG_RADIO_2P4GHZ_HDR_ASSUME_NEIGHBOR_SUPPORT=1"
+  )
+endif()
+
 zephyr_include_directories(. ${ZEPHYR_BASE}/modules/openthread/platform)

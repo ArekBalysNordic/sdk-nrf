@@ -3,6 +3,49 @@
 # Copyright (c) 2025 Nordic Semiconductor ASA
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 
+config OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
+	bool "Enable 2.4 GHz HDR PHY (big packet) support"
+	depends on OPENTHREAD_SOURCES # For now let's stick to the build from sources
+	help
+	  Enable High Data Rate (HDR) PHY for big packets. When enabled, the
+	  platform radio driver will be called for big-packet send/receive via
+	  otPlatRadioTransmitBigPacket and otPlatRadioReceiveBigPacketDone.
+
+choice OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT
+	prompt "2.4 GHz HDR PHY variant"
+	default OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_1_PHY_ONLY
+	depends on OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
+	help
+	  Choose the 2.4 GHz HDR PHY variant to use.
+	  The variant determines the maximum frame size and the fragmentation support.
+
+config OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_1_PHY_ONLY
+	bool "2.4 GHz HDR PHY variant 1 (phy only)"
+	help
+	  Use the 2.4 GHz HDR PHY variant 1 (phy only).
+	  This variant does not support fragmentation.
+
+config OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_2_FRAGMENTATION
+	bool "2.4 GHz HDR PHY variant 2 (fragmentation)"
+	help
+	  Use the 2.4 GHz HDR PHY variant 2 (fragmentation).
+	  This variant supports fragmentation.
+
+config OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_3_BIG_FRAME
+	bool "2.4 GHz HDR PHY variant 3 (big frame)"
+	help
+	  Use the 2.4 GHz HDR PHY variant 3 (big frame).
+	  This variant supports big frames.
+
+endchoice
+
+config OPENTHREAD_RADIO_2P4GHZ_HDR_DRY_RUN
+	bool "2.4 GHz HDR PHY dry run"
+	depends on OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
+	help
+	  Use the 2.4 GHz HDR PHY dry run.
+	  This will not actually transmit the frame, but will simulate the transmission.
+
 choice OPENTHREAD_PSA_NVM_BACKEND
 	prompt "Backend to store persistent crypto materials"
 	default OPENTHREAD_PSA_NVM_BACKEND_ITS

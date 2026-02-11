@@ -6,6 +6,7 @@
 &uart0 {
 	status = "okay";
 	hw-flow-control;
+	current-speed = <1000000>;
 };
 
 / {

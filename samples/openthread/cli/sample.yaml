@@ -3,6 +3,59 @@ sample:
   description: Test OpenThread Command Line Interface.
 
 tests:
+  sample.openthread.cli.hdr_v1:
+    sysbuild: true
+    build_only: true
+    tags:
+      - ci_build
+      - sysbuild
+      - ci_samples_openthread
+    platform_allow:
+      - nrf54l15dk/nrf54l15/cpuapp
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+      - nrf52840dk/nrf52840
+    extra_args:
+      - EXTRA_CONF_FILE="hdr_test.conf"
+    integration_platforms:
+      - nrf54l15dk/nrf54l15/cpuapp
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+      - nrf52840dk/nrf52840
+  sample.openthread.cli.hdr_v2:
+    sysbuild: true
+    build_only: true
+    tags:
+      - ci_build
+      - sysbuild
+      - ci_samples_openthread
+    platform_allow:
+      - nrf54l15dk/nrf54l15/cpuapp
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+      - nrf52840dk/nrf52840
+    extra_args:
+      - EXTRA_CONF_FILE="hdr_test.conf"
+      - CONFIG_OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_2_FRAGMENTATION=y
+    integration_platforms:
+      - nrf54l15dk/nrf54l15/cpuapp
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+      - nrf52840dk/nrf52840
+  sample.openthread.cli.hdr_v3:
+    sysbuild: true
+    build_only: true
+    tags:
+      - ci_build
+      - sysbuild
+      - ci_samples_openthread
+    platform_allow:
+      - nrf54l15dk/nrf54l15/cpuapp
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+      - nrf52840dk/nrf52840
+    extra_args:
+      - EXTRA_CONF_FILE="hdr_test.conf"
+      - CONFIG_OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_3_BIG_FRAME=y
+    integration_platforms:
+      - nrf54l15dk/nrf54l15/cpuapp
+      - nrf54lm20dk/nrf54lm20a/cpuapp
+      - nrf52840dk/nrf52840
   sample.openthread.cli:
     sysbuild: true
     build_only: true
