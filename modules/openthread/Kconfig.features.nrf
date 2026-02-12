@@ -11,6 +11,23 @@ config OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
 	  platform radio driver will be called for big-packet send/receive via
 	  otPlatRadioTransmitBigPacket and otPlatRadioReceiveBigPacketDone.
 
+config OPENTHREAD_RADIO_2P4GHZ_HDR_CLI_TEST
+	bool "Enable HDR PHY isolated test CLI command (hdr)"
+	depends on OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
+	help
+	  Add the "hdr" OpenThread CLI command to send large UDP packets through
+	  the OpenThread stack to test HDR transmission. Use for testing the
+	  complete HDR path including mesh forwarder and radio driver.
+
+config OPENTHREAD_RADIO_2P4GHZ_HDR_ASSUME_NEIGHBOR_SUPPORT
+	bool "Assume all neighbors support HDR (bypass capability check)"
+	depends on OPENTHREAD_RADIO_2P4GHZ_HDR_SUPPORT
+	help
+	  When enabled, skips the neighbor HDR capability check in the mesh
+	  forwarder and assumes all neighbors support HDR. This allows testing
+	  HDR transmission with a single device by bypassing the neighbor
+	  discovery requirement. FOR TESTING ONLY - do not use in production.
+
 choice OPENTHREAD_PSA_NVM_BACKEND
 	prompt "Backend to store persistent crypto materials"
 	default OPENTHREAD_PSA_NVM_BACKEND_ITS
