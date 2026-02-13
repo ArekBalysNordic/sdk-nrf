@@ -35,6 +35,8 @@ manifest:
       url-base: https://github.com/boschsensortec
     - name: eembc
       url-base: https://github.com/eembc
+    - name: ArekBalysNordic
+      url-base: https://github.com/ArekBalysNordic
 
   # If not otherwise specified, the projects below should be obtained
   # from the ncs remote.
@@ -225,7 +227,8 @@ manifest:
     - name: openthread
       repo-path: sdk-openthread
       path: modules/lib/openthread
-      revision: ncs-thread-reference-20250402
+      remote: ArekBalysNordic
+      revision: hdr_phy
       userdata:
         ncs:
           upstream-url: https://github.com/openthread/openthread
