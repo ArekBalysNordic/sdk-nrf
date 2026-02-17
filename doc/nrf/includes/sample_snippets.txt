@@ -1,5 +1,28 @@
-The sample provides predefined :ref:`zephyr:snippets` for typical use cases, and to activate sample extensions.
-You can find the snippets in the :file:`snippets` directory of the sample.
+The sample supports :ref:`zephyr:snippets` for typical use cases, and to activate sample extensions.
+You can find the OpenThread-related snippets in the :file:`snippets` directory of the |NCS| main directory.
+All snippets with the ``ot`` prefix are suitable for this sample.
 
 Specify the corresponding snippet names in the |SNIPPET| CMake option.
 For more information about using snippets, see :ref:`zephyr:using-snippets` in the Zephyr documentation.
+
+To use the snippets, you need to add the sample name as a prefix before the ``SNIPPET`` CMake argument.
+
+For example:
+
+.. parsed-literal::
+   :class: highlight
+
+   west build -b *board_target* -p -- -D|snippet|="ot-logging;ot-usb"
+
+The following snippets are available:
+
+* ``ot-ci`` - Disables boot banner and and shel prompt.
+* ``ot-debug`` - Enables logging using RTT and debugging the Thread sample by enabling :c:func:`__ASSERT()` statements globally.
+  For additional options, refer to :ref:`RTT logging <ug_logging_backends_rtt>`.
+* ``ot-diag_gpio`` - Configures DK's Buttons and LEDs for diagnostic GPIO commands.
+  For more information, see `OpenThread Factory Diagnostics Module Reference`_.
+* ``ot-zephyr-l2`` - Enables the Zephyr networking layer.
+* ``ot-usb`` - Enables USB transport support.
+
+  .. note::
+     The ``ot-usb`` snippet does not support the ``nrf54l15dk/nrf54l15/cpuapp`` and ``nrf54l15dk/nrf54l10/cpuapp`` board targets because these platform does not have USB peripheral.
