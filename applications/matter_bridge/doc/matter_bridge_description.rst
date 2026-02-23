@@ -606,7 +606,7 @@ Matter smart plug functionality
    .. parsed-literal::
       :class: highlight
 
-      west build -b *board_target* -p -- -Dmatter_bridge_SNIPPET=onoff_plug
+      west build -b *board_target* -p -- -DEXTRA_CONF_FILE=overlay-onoff_plug.conf
 
 .. _matter_bridge_testing:
 

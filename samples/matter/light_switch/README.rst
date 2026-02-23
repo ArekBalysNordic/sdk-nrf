@@ -98,23 +98,19 @@ Advanced configuration options
 .. include:: /includes/matter/configuration/advanced/custom_board.txt
 .. include:: /includes/matter/configuration/advanced/internal_memory.txt
 
-.. _matter_light_switch_snippets:
+.. _matter_light_switch_sample_lit_icd:
 
-Snippets
-========
+LIT ICD support
+---------------
 
-.. |snippet| replace:: :makevar:`light_switch_SNIPPET`
+.. toggle::
 
-.. include:: /includes/sample_snippets.txt
+   To enable the Long Idle Time (LIT) <ug_matter_device_low_power_icd_sit_lit>` ICD support, run the following command with *board_target* replaced with the board target name:
 
-The following snippet is available:
+   .. parsed-literal::
+      :class: highlight
 
-* ``lit_icd`` - Enables experimental LIT ICD support.
-
-  .. |snippet_zap_file| replace:: :file:`snippets/lit_icd/light_switch.zap`
-  .. |snippet_dir| replace:: :file:`snippets/lit_icd`
-
-.. include:: /includes/matter/configuration/snippets_note.txt
+      west build -b *board_target* -p -- -DEXTRA_CONF_FILE=overlay-lit_icd.conf
 
 .. _matter_light_switch_sample_ui:
 
@@ -146,7 +142,7 @@ Third Button:
    For more information about Intermittently Connected Devices (ICD) and User Active Mode Trigger, see the :ref:`ug_matter_device_low_power_icd` documentation section.
 
    .. note::
-      To enable this functionality, :ref:`activate the lit_icd snippet <matter_light_switch_snippets>`.
+      To enable this functionality, :ref:`enable the LIT ICD support <_matter_light_switch_sample_lit_icd>`.
       ICD and UAT functionality is currently supported only for Matter over Thread.
 
 .. include:: /includes/matter/interface/segger_usb.txt
