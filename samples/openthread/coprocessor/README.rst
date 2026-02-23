@@ -101,29 +101,6 @@ Check and configure the following library option that is used by the sample:
 
 * :kconfig:option:`CONFIG_OPENTHREAD_COPROCESSOR_RCP` - Selects the RCP architecture for the sample.
 
-.. _ot_coprocessor_sample_activating_variants:
-
-Snippets
-========
-
-.. |snippet| replace:: :makevar:`coprocessor_SNIPPET`
-
-.. include:: /includes/sample_snippets.txt
-
-The following snippets are available:
-
-* ``debug`` - Enables debugging the Thread sample by enabling :c:func:`__ASSERT()` statements globally.
-* ``logging`` - Enables logging using RTT.
-  For additional options, refer to :ref:`RTT logging <ug_logging_backends_rtt>`.
-* ``usb`` - Enables emulating a serial port over USB for Spinel communication with the host.
-
-  .. note::
-     The ``usb`` snippet does not support the ``nrf54l15dk/nrf54l15/cpuapp``, ``nrf54l15dk/nrf54l10/cpuapp`` and ``nrf54l15dk/nrf54l05/cpuapp`` board targets.
-
-* ``hci`` - Enables support for the Bluetooth HCI interface parallel to :ref:`Thread RCP <thread_architectures_designs_cp_rcp>`.
-
-FEM support
-===========
 
 .. include:: /includes/sample_fem_support.txt
 
@@ -144,6 +121,25 @@ HCI support
 Currently, HCI is only supported using the nRF USB interface.
 The device will show two virtual UART ports.
 Usually the first port will be associated with the HCI interface, and the second one with the Thread co-processor.
+
+To enable HCI support, use the following command with *board_target* replaced with the board target name:
+
+.. parsed-literal::
+   :class: highlight
+
+   west build -b *board_target* -p -- -DEXTRA_CONF_FILE=overlays/rcp_hci.conf -DEXTRA_DTC_OVERLAY_FILE=overlays/rcp_hci.overlay
+
+Vendor hooks
+============
+
+The sample supports vendor hooks for co-processor architecture allowing users to extend handled properties by their own, customized functionalities.
+
+To enable vendor hooks, set the :kconfig:option:`CONFIG_OPENTHREAD_COPROCESSOR_VENDOR_HOOK_SOURCE` option to the path to the vendor hook source file. run the following command with *board_target* replaced with the board target name:
+
+.. parsed-literal::
+   :class: highlight
+
+   west build -b *board_target* -p -- -DCONFIG_OPENTHREAD_COPROCESSOR_VENDOR_HOOK_SOURCE="/src/user_vendor_hook.cpp"
 
 Testing
 =======
