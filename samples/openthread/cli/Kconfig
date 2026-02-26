@@ -17,3 +17,6 @@ config CLI_SAMPLE_LOW_POWER
 
 config CLI_SAMPLE_MULTIPROTOCOL
 	bool "Multiprotocol for the CLI sample"
+
+config CLI_SAMPLE_AUTOSTART
+	bool "Autostart Thread network"

@@ -823,22 +823,31 @@ static otError transmit_frame(otInstance *aInstance)
 
 	ARG_UNUSED(aInstance);
 
-#if defined(CONFIG_OPENTHREAD_HDR_VARIANT_2)
-	LOG_INF("RADIO: Checking HDR fragmentation (%u fragments)",
-		nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentCount);
-	if (nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentCount > 0) {
+#if defined(CONFIG_OPENTHREAD_RADIO_2P4GHZ_HDR_VARIANT_2_FRAGMENTATION)
+	if (nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentCount > 0 &&
+	    nrf5_data.tx.frame.mInfo.mTxInfo.mIsHdrFrame) {
 
-		/* Check the length of all fragments to ensure they do not exceed
-		 * OT_RADIO_FRAME_MAX_SIZE */
-		for (uint8_t i = 0; i <= nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentCount; i++) {
-			if (nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentLengths[i] >
-			    OT_RADIO_FRAME_MAX_SIZE) {
-				LOG_ERR("Fragment %u (with FCS) too large: %u", i,
-					nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentLengths[i]);
+		/* Print statistics: number of fragments and their lengths.
+		 * Fragment 0 is the main frame (mLength); fragments 1..count-1 are in
+		 * mHdrFragmentLengths[].
+		 */
+		LOG_INF("RADIO: got %u HDR fragments",
+			nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentCount);
+
+		for (uint8_t i = 0; i < nrf5_data.tx.frame.mInfo.mTxInfo.mHdrFragmentCount; i++) {
+			uint16_t frag_len = (i == 0) ? nrf5_data.tx.frame.mLength
+						     : nrf5_data.tx.frame.mInfo.mTxInfo
+							       .mHdrFragmentLengths[i - 1];
+
+			LOG_INF("RADIO: Fragment %u has length %u Bytes", i,
+				frag_len);
+
+			if (frag_len > OT_RADIO_FRAME_MAX_SIZE) {
+				LOG_ERR("RADIO: Fragment %u (with FCS) too large: %u", i, frag_len);
 				return OT_ERROR_NONE;
 			}
 		}
-		LOG_INF("RADIO: HDR fragmentation is valid");
+		LOG_INF("RADIO: All HDR fragments are valid");
 		/* Call HDR transmit function which handles completion callback */
 #if !defined(CONFIG_OPENTHREAD_RADIO_2P4GHZ_HDR_DRY_RUN)
 		return transmitHdrFrame(aInstance, nrf5_data.tx.psdu, &nrf5_data.tx.frame);
