@@ -188,6 +188,7 @@ external_content_contents = [
     (NRF_BASE, "applications/**/doc"),
     (NRF_BASE, "samples/**/*.rst"),
     (NRF_BASE, "scripts/**/*.rst"),
+    (NRF_BASE, "snippets/**/*.rst"),
     (NRF_BASE, "tests/**/*.rst"),
 ]
 external_content_keep = ["versions.txt"]

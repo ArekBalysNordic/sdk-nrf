@@ -163,6 +163,13 @@ The library has the following dependencies:
   * :ref:`nrf_rpc`
   * :ref:`bluetooth`
 
+.. toctree::
+   :maxdepth: 1
+   :caption: Snippets
+   :glob:
+
+   ../../../../snippets/nordic-bt-rpc/README
+
 .. _ble_rpc_api:
 
 API documentation
