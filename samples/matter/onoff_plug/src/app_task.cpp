@@ -32,13 +32,14 @@ void ButtonEventHandler(Nrf::ButtonState state, Nrf::ButtonMask hasChanged)
 {
 	if ((DK_BTN2_MSK & hasChanged) & state) {
 		Nrf::PostTask([] {
-			Nrf::GetBoard()
-				.GetLED(Nrf::DeviceLeds::LED2)
-				.Set(!Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).GetState());
+			bool value_invert = !Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).GetState();
+			Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).Set(value_invert);
+			Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED3).Set(value_invert);
+			Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED4).Set(value_invert);
 
-			SystemLayer().ScheduleLambda([] {
-				Protocols::InteractionModel::Status status = Clusters::OnOff::Attributes::OnOff::Set(
-					kOnOffPlugEndpointId, Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).GetState());
+			SystemLayer().ScheduleLambda([ value_invert ] {
+				Protocols::InteractionModel::Status status =
+					Clusters::OnOff::Attributes::OnOff::Set(kOnOffPlugEndpointId, value_invert);
 
 				if (status != Protocols::InteractionModel::Status::Success) {
 					LOG_ERR("Updating on/off cluster failed: %x", to_underlying(status));
@@ -85,6 +86,10 @@ void MatterPostAttributeChangeCallback(const chip::app::ConcreteAttributePath &a
 	if (clusterId == OnOff::Id && attributeId == OnOff::Attributes::OnOff::Id) {
 		LOG_INF("Cluster OnOff: attribute OnOff set to %" PRIu8 "", *value);
 
-		Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).Set(*value);
+		bool value_invert = !*value;
+
+		Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED2).Set(value_invert);
+		Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED3).Set(value_invert);
+		Nrf::GetBoard().GetLED(Nrf::DeviceLeds::LED4).Set(value_invert);
 	}
 }
