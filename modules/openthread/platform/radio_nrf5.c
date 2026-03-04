@@ -621,6 +621,10 @@ void platformRadioInit(void)
 	nrf5_data.capabilities = nrf5_get_caps();
 }
 
+void openthread_nrf_802154_radio_init(void) {
+	// TODO: just call platformRadioInit()?
+}
+
 static void openthread_handle_received_frame(otInstance *instance, struct nrf5_rx_frame *rx_frame)
 {
 	otRadioFrame recv_frame;
@@ -1780,7 +1784,7 @@ otError platformRadioTransmitModulatedCarrier(otInstance *aInstance, bool aEnabl
 
 /* nRF5 radio driver callbacks */
 
-void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
+void openthread_nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
 {
 	for (uint32_t i = 0; i < ARRAY_SIZE(nrf5_data.rx.frames); i++) {
 		if (nrf5_data.rx.frames[i].psdu != NULL) {
@@ -1808,7 +1812,7 @@ void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 	__ASSERT(false, "Not enough rx frames allocated for nrf5 radio");
 }
 
-void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
+void openthread_nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 {
 #if defined(CONFIG_OPENTHREAD_CSL_RECEIVER)
 	if (id == DRX_SLOT_RX && error == NRF_802154_RX_ERROR_DELAYED_TIMEOUT) {
@@ -1861,7 +1865,7 @@ void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 	}
 }
 
-void nrf_802154_tx_ack_started(const uint8_t *data)
+void openthread_nrf_802154_tx_ack_started(const uint8_t *data)
 {
 	nrf5_data.rx.last_frame_ack_fpb = data[FRAME_PENDING_OFFSET] & FRAME_PENDING_BIT;
 	nrf5_data.rx.last_frame_ack_seb = data[SECURITY_ENABLED_OFFSET] & SECURITY_ENABLED_BIT;
@@ -1874,7 +1878,7 @@ static void update_tx_frame_info(otRadioFrame *frame,
 	frame->mInfo.mTxInfo.mIsHeaderUpdated = metadata->frame_props.dynamic_data_is_set;
 }
 
-void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
+void openthread_nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
 {
 	ARG_UNUSED(frame);
 
@@ -1918,7 +1922,7 @@ static otError nrf5_tx_error_to_ot_error(nrf_802154_tx_error_t error)
 	}
 }
 
-void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
+void openthread_nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 				const nrf_802154_transmit_done_metadata_t *metadata)
 {
 	ARG_UNUSED(frame);
@@ -1931,7 +1935,7 @@ void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 	set_pending_event(PENDING_EVENT_TX_DONE);
 }
 
-void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
+void openthread_nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
 	if (nrf5_data.energy_detection.cb != NULL) {
 		nrf5_energy_detection_done_cb_t callback = nrf5_data.energy_detection.cb;
@@ -1941,7 +1945,7 @@ void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 	}
 }
 
-void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
+void openthread_nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 {
 	if (nrf5_data.energy_detection.cb != NULL) {
 		nrf5_energy_detection_done_cb_t callback = nrf5_data.energy_detection.cb;
@@ -1952,7 +1956,7 @@ void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 }
 
 #if defined(CONFIG_NRF_802154_SER_HOST)
-void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
+void openthread_nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 {
 	__ASSERT(false, "802.15.4 serialization error: %d", err->reason);
 	k_oops();
