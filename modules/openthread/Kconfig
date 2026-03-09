@@ -6,6 +6,13 @@ source "$(ZEPHYR_BASE)/modules/openthread/Kconfig"
 
 if OPENTHREAD
 
+config OPENTHREAD_RADIO_DISPATCHER_AUTOREGISTER
+	bool "Automatically register the OpenThread stack and radio driver with the nRF 802.15.4 callbacks dispatcher"
+	default y
+    depends on NRF_802154_CALLBACKS_DISPATCHER
+	help
+	  Automatically register the OpenThread stack and radio driver with the nRF 802.15.4 callbacks dispatcher.
+
 # Load the nrf-specific OpenThread stack Kconfig file
 menu "OpenThread stack nrf features"
 rsource "Kconfig.features.nrf"
