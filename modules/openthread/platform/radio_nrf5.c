@@ -23,6 +23,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #include <zephyr/device.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/sys/byteorder.h>
+#include <string.h>
 
 #include <openthread/ip6.h>
 #include <openthread-system.h>
@@ -276,6 +277,28 @@ struct nrf5_data {
 };
 
 static struct nrf5_data nrf5_data;
+
+static void openthread_nrf_802154_release_rx_frames(void)
+{
+	for (size_t i = 0; i < ARRAY_SIZE(nrf5_data.rx.frames); i++) {
+		if (nrf5_data.rx.frames[i].psdu != NULL) {
+			nrf_802154_buffer_free_raw(nrf5_data.rx.frames[i].psdu);
+			nrf5_data.rx.frames[i].psdu = NULL;
+		}
+	}
+
+	if (nrf5_data.ack.desc.psdu != NULL) {
+		nrf_802154_buffer_free_raw(nrf5_data.ack.desc.psdu);
+		nrf5_data.ack.desc.psdu = NULL;
+	}
+}
+
+static void openthread_nrf_802154_pending_events_clear(void)
+{
+	for (size_t i = 0; i < PENDING_EVENT_COUNT; i++) {
+		atomic_clear_bit(nrf5_data.pending_events, i);
+	}
+}
 
 static inline bool is_pending_event_set(enum nrf5_pending_events event)
 {
@@ -592,8 +615,9 @@ static int64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrap
 	__ASSERT_NO_MSG(result <= INT64_MAX / NSEC_PER_USEC);
 	return (int64_t)result * NSEC_PER_USEC;
 }
-void openthread_nrf_802154_radio_init(void)
+static void openthread_nrf_802154_radio_client_init(void)
 {
+	memset(&nrf5_data, 0, sizeof(nrf5_data));
 	nrf5_data.state = OT_RADIO_STATE_DISABLED;
 
 	/* Get the default tx output power from Kconfig */
@@ -616,11 +640,41 @@ void openthread_nrf_802154_radio_init(void)
 
 	k_sem_init(&nrf5_data.rssi_wait, 0, 1);
 
-	nrf_802154_init();
-
 	nrf5_data.capabilities = nrf5_get_caps();
 
 	LOG_INF("OpenThread radio initialized");
+}
+
+static void openthread_nrf_802154_radio_client_deinit(void)
+{
+	(void)nrf_802154_transmit_at_cancel();
+	(void)nrf_802154_receive_at_cancel(DRX_SLOT_RX);
+	(void)nrf_802154_receive_at_scheduled_cancel(DRX_SLOT_RX);
+
+	nrf_802154_ack_data_remove_all(false, NRF_802154_ACK_DATA_IE);
+	nrf_802154_ack_data_remove_all(true, NRF_802154_ACK_DATA_IE);
+	nrf_802154_csl_writer_period_set(0);
+
+	openthread_nrf_802154_pending_events_clear();
+	openthread_nrf_802154_release_rx_frames();
+
+	nrf5_data.energy_detection.cb = NULL;
+	nrf5_data.ack.frame.mLength = 0;
+	nrf5_data.rx.last_frame_ack_fpb = false;
+	nrf5_data.rx.last_frame_ack_seb = false;
+	nrf5_data.state = OT_RADIO_STATE_DISABLED;
+}
+
+void openthread_nrf_802154_radio_init(void)
+{
+	nrf_802154_init();
+	openthread_nrf_802154_radio_client_init();
+}
+
+void openthread_nrf_802154_radio_deinit(void)
+{
+	openthread_nrf_802154_radio_client_deinit();
+	nrf_802154_deinit();
 }
 
 void platformRadioInit(void)
@@ -1982,10 +2036,10 @@ void openthread_platform_radio_set_eui64(uint8_t eui64[EXTENDED_ADDRESS_SIZE])
 }
 
 #ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
-
 #ifdef CONFIG_OPENTHREAD_RADIO_DISPATCHER_AUTOREGISTER
 static const struct nrf_802154_callbacks openthread_802154_callbacks = {
-	.init = openthread_nrf_802154_radio_init,
+	.init = openthread_nrf_802154_radio_client_init,
+	.deinit = openthread_nrf_802154_radio_client_deinit,
 	.received_timestamp_raw = openthread_nrf_802154_received_timestamp_raw,
 	.receive_failed = openthread_nrf_802154_receive_failed,
 	.tx_ack_started = openthread_nrf_802154_tx_ack_started,
@@ -1999,7 +2053,8 @@ static const struct nrf_802154_callbacks openthread_802154_callbacks = {
 };
 
 NRF_802154_CALLBACKS_DISPATCHER_REGISTER(openthread_nrf_802154_radio, openthread_802154_callbacks);
-#endif /* CONFIG_OPENTHREAD_RADIO_DISPATCHER_AUTOREGISTER */
+
+#endif
 
 #else
 

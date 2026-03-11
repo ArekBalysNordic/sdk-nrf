@@ -193,7 +193,10 @@ void nrf_802154_platform_sl_lptimer_hw_task_cross_domain_connections_setup(uint3
 
 void nrf_802154_platform_sl_lptimer_hw_task_cross_domain_connections_clear(void)
 {
-	/* @todo: implement */
+	nrfy_dppi_channels_disable(DPPIC_G1_INST, 1UL << DPPIC_G1_HT_CHANNEL);
+	nrfy_dppi_channels_disable(DPPIC_G2_INST, 1UL << DPPIC_G2_HT_CHANNEL);
+	nrf_ipct_subscribe_clear(IPCT_G1_INST, IPCT_G1_TASK_SEND);
+	nrf_ipct_shorts_disable(NRF_IPCT, IPCT_L_SHORTS);
 }
 
 void nrf_802154_platform_sl_lptimer_hw_task_local_domain_connections_setup(uint32_t dppi_ch,

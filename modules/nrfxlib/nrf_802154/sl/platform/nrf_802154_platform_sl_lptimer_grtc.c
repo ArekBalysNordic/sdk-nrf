@@ -23,8 +23,9 @@
 static atomic_t m_enabled;
 static bool     m_compare_int_lock_key;
 static uint32_t m_critical_section_cnt;
-static int32_t  m_callbacks_cc_channel;
-static int32_t  m_hw_task_cc_channel;
+static int32_t  m_callbacks_cc_channel = -1;
+static int32_t  m_hw_task_cc_channel = -1;
+static void     hw_task_state_force_idle(void);
 
 static inline bool is_lptimer_enabled(void)
 {
@@ -63,10 +64,24 @@ void nrf_802154_platform_sl_lp_timer_init(void)
 
 void nrf_802154_platform_sl_lp_timer_deinit(void)
 {
+	if (m_callbacks_cc_channel < 0 || m_hw_task_cc_channel < 0) {
+		return;
+	}
+
+	atomic_clear_bit(&m_enabled, 0);
+	nrf_802154_platform_sl_lptimer_hw_task_local_domain_connections_clear();
+	nrf_802154_platform_sl_lptimer_hw_task_cross_domain_connections_clear();
+	z_nrf_grtc_timer_abort(m_callbacks_cc_channel);
+	z_nrf_grtc_timer_abort(m_hw_task_cc_channel);
 	(void)z_nrf_grtc_timer_compare_int_lock(m_callbacks_cc_channel);
+	hw_task_state_force_idle();
 
 	z_nrf_grtc_timer_chan_free(m_callbacks_cc_channel);
 	z_nrf_grtc_timer_chan_free(m_hw_task_cc_channel);
+
+	m_callbacks_cc_channel = -1;
+	m_hw_task_cc_channel = -1;
+	m_critical_section_cnt = 0U;
 }
 
 uint64_t nrf_802154_platform_sl_lptimer_current_lpticks_get(void)
@@ -150,6 +165,12 @@ static bool hw_task_state_set(hw_task_state_t expected_state, hw_task_state_t ne
 {
 	return nrf_802154_sl_atomic_cas_u8(
 		(uint8_t *)&m_hw_task_state, &expected_state, new_state);
+}
+
+static void hw_task_state_force_idle(void)
+{
+	m_hw_task_state = HW_TASK_STATE_IDLE;
+	m_hw_task_fire_lpticks = 0U;
 }
 
 nrf_802154_sl_lptimer_platform_result_t nrf_802154_platform_sl_lptimer_hw_task_prepare(

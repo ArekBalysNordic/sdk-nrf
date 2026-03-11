@@ -11,42 +11,189 @@
 
 #include "nrf_802154_callbacks_dispatcher.h"
 #include <errno.h>
-#include <nrf_802154_types.h>
 #include <nrf_802154.h>
+#include <nrf_802154_types.h>
 #include <string.h>
+#include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/sys/iterable_sections.h>
 #include <zephyr/logging/log.h>
+#include <zephyr/spinlock.h>
+#include <platform/nrf_802154_platform_sl_lptimer.h>
+#include <platform/nrf_802154_platform_timestamper.h>
 
 LOG_MODULE_REGISTER(nrf_802154_callbacks_dispatcher, LOG_LEVEL_INF);
 
-static const struct nrf_802154_callbacks *s_active_client;
+static const struct nrf_802154_cb_dispatch_entry *s_active_entry;
+static bool s_driver_initialized;
+static struct k_spinlock s_dispatcher_lock;
+static K_MUTEX_DEFINE(s_switch_mutex);
+
+static const struct nrf_802154_cb_dispatch_entry *entry_lookup(const char *name)
+{
+	STRUCT_SECTION_FOREACH(nrf_802154_cb_dispatch_entry, entry)
+	{
+		if (entry->name != NULL && strcmp(entry->name, name) == 0) {
+			return entry;
+		}
+	}
+
+	return NULL;
+}
+
+static const struct nrf_802154_cb_dispatch_entry *active_entry_get(void)
+{
+	const struct nrf_802154_cb_dispatch_entry *entry;
+	k_spinlock_key_t key = k_spin_lock(&s_dispatcher_lock);
+
+	entry = s_active_entry;
+
+	k_spin_unlock(&s_dispatcher_lock, key);
+
+	return entry;
+}
+
+static void active_entry_set(const struct nrf_802154_cb_dispatch_entry *entry)
+{
+	k_spinlock_key_t key = k_spin_lock(&s_dispatcher_lock);
+
+	s_active_entry = entry;
+
+	k_spin_unlock(&s_dispatcher_lock, key);
+}
 
 static const struct nrf_802154_callbacks *active_client(void)
 {
-	return s_active_client;
+	const struct nrf_802154_cb_dispatch_entry *entry = active_entry_get();
+
+	return entry != NULL ? entry->callbacks : NULL;
+}
+
+static int driver_quiesce(void)
+{
+	for (int attempt = 0; attempt < 100; attempt++) {
+		(void)nrf_802154_transmit_at_cancel();
+
+		if (nrf_802154_sleep_if_idle() == NRF_802154_SLEEP_ERROR_NONE) {
+			return 0;
+		}
+
+		(void)nrf_802154_sleep();
+		k_busy_wait(50);
+	}
+
+	LOG_ERR("Timed out waiting for radio to enter sleep");
+	return -EBUSY;
+}
+
+static void driver_shutdown(void)
+{
+	nrf_802154_deinit();
+
+	/* These cleanups are called explicitly to cover platform resources that are
+	 * not fully released by all current driver teardown paths.
+	 */
+	nrf_802154_platform_timestamper_deinit();
+	nrf_802154_platform_sl_lp_timer_deinit();
+}
+
+static void driver_startup(void)
+{
+	nrf_802154_init();
 }
 
 int nrf_802154_callbacks_dispatcher_activate(const char *name)
 {
-	if (name == NULL || name[0] == '\0') {
-		s_active_client = NULL;
-		return 0;
-	}
+	const struct nrf_802154_cb_dispatch_entry *entry = NULL;
 
-	s_active_client = NULL;
-	STRUCT_SECTION_FOREACH(nrf_802154_cb_dispatch_entry, entry)
-	{
-		if (entry->name != NULL && strcmp(entry->name, name) == 0) {
-			s_active_client = entry->callbacks;
-
-			LOG_INF("Activated client: %s", name);
-			return 0;
+	if (name != NULL && name[0] != '\0') {
+		entry = entry_lookup(name);
+		if (entry == NULL) {
+			LOG_ERR("No client found with name: %s", name);
+			return -EINVAL;
 		}
 	}
 
-	LOG_ERR("No client found with name: %s", name);
-	return -EINVAL;
+	active_entry_set(entry);
+
+	if (entry != NULL) {
+		LOG_INF("Activated client: %s", entry->name);
+	} else {
+		LOG_INF("Activated client: none");
+	}
+
+	return 0;
+}
+
+int nrf_802154_callbacks_dispatcher_switch(const char *name, bool reinit_clients)
+{
+	const struct nrf_802154_cb_dispatch_entry *prev_entry;
+	const struct nrf_802154_cb_dispatch_entry *next_entry = NULL;
+	const struct nrf_802154_callbacks *prev_client;
+	const struct nrf_802154_callbacks *next_client;
+	int err = 0;
+
+	if (name != NULL && name[0] != '\0') {
+		next_entry = entry_lookup(name);
+		if (next_entry == NULL) {
+			LOG_ERR("No client found with name: %s", name);
+			return -EINVAL;
+		}
+	}
+
+	prev_entry = active_entry_get();
+	prev_client = prev_entry != NULL ? prev_entry->callbacks : NULL;
+	next_client = next_entry != NULL ? next_entry->callbacks : NULL;
+
+	k_mutex_lock(&s_switch_mutex, K_FOREVER);
+
+	prev_entry = active_entry_get();
+	prev_client = prev_entry != NULL ? prev_entry->callbacks : NULL;
+
+	if (prev_entry == next_entry && (!reinit_clients || s_driver_initialized)) {
+		k_mutex_unlock(&s_switch_mutex);
+		return 0;
+	}
+
+	if (reinit_clients) {
+		active_entry_set(NULL);
+
+		if (s_driver_initialized && prev_client != NULL && prev_client->deinit != NULL) {
+			prev_client->deinit();
+		}
+
+		if (s_driver_initialized) {
+			err = driver_quiesce();
+			if (err != 0) {
+				active_entry_set(prev_entry);
+				k_mutex_unlock(&s_switch_mutex);
+				return err;
+			}
+
+			driver_shutdown();
+			s_driver_initialized = false;
+		}
+
+		if (next_client != NULL) {
+			driver_startup();
+			s_driver_initialized = true;
+
+			if (next_client->init != NULL) {
+				next_client->init();
+			}
+		}
+	}
+
+	active_entry_set(next_entry);
+	k_mutex_unlock(&s_switch_mutex);
+
+	if (next_entry != NULL) {
+		LOG_INF("Switched client: %s (reinit=%d)", next_entry->name, reinit_clients);
+	} else {
+		LOG_INF("Switched client: none (reinit=%d)", reinit_clients);
+	}
+
+	return 0;
 }
 
 void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
@@ -126,28 +273,7 @@ void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 
 static int nrf_802154_callbacks_dispatcher_init(void)
 {
-	STRUCT_SECTION_FOREACH(nrf_802154_cb_dispatch_entry, entry)
-	{
-		if (entry->callbacks != NULL && entry->callbacks->init != NULL) {
-
-			/* Deinitialize the radio driver prior to initializing it again, but skip for the first entry */
-			static bool first_entry = true;
-			if (!first_entry) {
-				nrf_802154_deinit();
-			} else {
-				first_entry = false;
-			}
-
-			/* Initialize the radio driver */
-			entry->callbacks->init();
-
-			/* Activate the last registered client to start receiving and transmitting
-			 * packets */
-			nrf_802154_callbacks_dispatcher_activate(entry->name);
-		}
-	}
-
-	return 0;
+	return nrf_802154_callbacks_dispatcher_switch("zigbee_nrf_802154_radio", true);
 }
 
 SYS_INIT(nrf_802154_callbacks_dispatcher_init, POST_KERNEL,

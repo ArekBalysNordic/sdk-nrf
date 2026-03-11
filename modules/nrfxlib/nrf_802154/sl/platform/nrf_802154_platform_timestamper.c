@@ -17,7 +17,8 @@
 #include <assert.h>
 #include <zephyr/drivers/timer/nrf_grtc_timer.h>
 
-static int32_t m_timestamp_cc_channel;
+static int32_t m_timestamp_cc_channel = -1;
+static uint32_t m_local_dppi_channel = UINT32_MAX;
 
 #if defined(NRF54H_SERIES)
 /* To trigger GRTC.TASKS_CAPTURE[#cc] with RADIO.EVENT_{?}, the following connection chain must be
@@ -232,6 +233,7 @@ void nrf_802154_platform_timestamper_local_domain_connections_setup(uint32_t dpp
 
 static nrfx_gppi_handle_t rad_peri_handle;
 static uint32_t ppib_chan;
+static bool rad_peri_handle_valid;
 
 void nrf_802154_platform_timestamper_cross_domain_connections_setup(void)
 {
@@ -260,10 +262,13 @@ void nrf_802154_platform_timestamper_cross_domain_connections_setup(void)
 	nrf_ppib_subscribe_clear(NRF_PPIB11, nrf_ppib_send_task_get(ppib_chan));
 
 	nrfx_gppi_conn_enable(rad_peri_handle);
+	rad_peri_handle_valid = true;
 }
 
 void nrf_802154_platform_timestamper_local_domain_connections_setup(uint32_t dppi_ch)
 {
+	m_local_dppi_channel = dppi_ch;
+
 	z_nrf_grtc_timer_capture_prepare(m_timestamp_cc_channel);
 	/* Configure PPIB to forward provided DPPI channel from Radio domain and enable
 	 * the connection.
@@ -279,17 +284,59 @@ void nrf_802154_platform_timestamper_init(void)
 	assert(m_timestamp_cc_channel >= 0);
 }
 
+void nrf_802154_platform_timestamper_deinit(void)
+{
+	if (m_timestamp_cc_channel < 0) {
+		return;
+	}
+
+	if (m_local_dppi_channel != UINT32_MAX) {
+		nrf_802154_platform_timestamper_local_domain_connections_clear(m_local_dppi_channel);
+	}
+
+	nrf_802154_platform_timestamper_cross_domain_connections_clear();
+	z_nrf_grtc_timer_chan_free(m_timestamp_cc_channel);
+
+	m_timestamp_cc_channel = -1;
+	m_local_dppi_channel = UINT32_MAX;
+}
+
 void nrf_802154_platform_timestamper_cross_domain_connections_clear(void)
 {
+	if (m_timestamp_cc_channel < 0) {
+		return;
+	}
+
 	nrf_grtc_task_t capture_task =
 		nrfy_grtc_sys_counter_capture_task_get(m_timestamp_cc_channel);
 
 	NRF_DPPI_ENDPOINT_CLEAR(nrfy_grtc_task_address_get(NRF_GRTC, capture_task));
+
+#if defined(NRF54H_SERIES)
+	nrfy_dppi_channels_disable(DPPIC_G1_INST, 1UL << DPPIC_G1_TS_CHANNEL);
+	nrfy_dppi_channels_disable(DPPIC_G2_INST, 1UL << DPPIC_G2_TS_CHANNEL);
+	nrf_ipct_publish_clear(IPCT_G1_INST, IPCT_G1_EVENT_RECEIVE);
+	nrf_ipct_shorts_disable(IPCT_G1_INST, IPCT_G1_SHORTS);
+#elif defined(NRF54L_SERIES)
+	if (rad_peri_handle_valid) {
+		nrfx_gppi_conn_disable(rad_peri_handle);
+		nrfx_gppi_domain_conn_free(rad_peri_handle);
+		rad_peri_handle_valid = false;
+	}
+#endif
 }
 
 void nrf_802154_platform_timestamper_local_domain_connections_clear(uint32_t dppi_ch)
 {
-	/* Intentionally empty. */
+	(void)dppi_ch;
+
+#if defined(NRF54H_SERIES)
+	nrf_ipct_subscribe_clear(NRF_IPCT, IPCT_L_TASK_SEND);
+#elif defined(NRF54L_SERIES)
+	nrf_ppib_subscribe_clear(NRF_PPIB11, nrf_ppib_send_task_get(ppib_chan));
+#endif
+
+	m_local_dppi_channel = UINT32_MAX;
 }
 
 bool nrf_802154_platform_timestamper_captured_timestamp_read(uint64_t *p_captured)

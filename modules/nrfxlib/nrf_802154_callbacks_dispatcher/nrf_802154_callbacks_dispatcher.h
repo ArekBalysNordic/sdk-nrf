@@ -9,6 +9,7 @@
 
 #include <nrf_802154_const.h>
 #include <nrf_802154_types.h>
+#include <stdbool.h>
 #include <stdint.h>
 
 #ifdef __cplusplus
@@ -100,11 +101,11 @@ struct nrf_802154_cb_dispatch_entry {
 #endif
 
 /**
- * @brief Set the active client by name.
+ * @brief Set the active client by name without restarting the shared driver.
  *
- * Radio driver callbacks are dispatched only to the active client.
- * The client must be registered with @ref NRF_802154_CALLBACKS_DISPATCHER_REGISTER
- * before it can be activated.
+ * This helper preserves the original dispatcher behavior and only changes
+ * callback routing. Prefer @ref nrf_802154_callbacks_dispatcher_switch for
+ * full owner handover.
  *
  * @param name Client name (same as used in REGISTER, e.g. "zigbee_nrf_802154_radio").
  *             Pass NULL or empty string to deactivate (no callbacks will be dispatched).
@@ -113,6 +114,31 @@ struct nrf_802154_cb_dispatch_entry {
  * @retval -EINVAL Name not found (no client registered with that name).
  */
 int nrf_802154_callbacks_dispatcher_activate(const char *name);
+
+/**
+ * @brief Switch active client and optionally restart the shared radio driver.
+ *
+ * When @p reinit_clients is true, this API performs a full handover:
+ * 1. Stops callback routing to the current client.
+ * 2. Calls the current client's @c deinit callback (if present) so it can
+ *    cancel delayed operations and release stack-owned buffers.
+ * 3. Quiesces and deinitializes the shared nRF 802.15.4 driver.
+ * 4. Initializes the shared driver again for the next owner.
+ * 5. Calls the next client's @c init callback (if present).
+ * 6. Activates callback routing for the next client.
+ *
+ * When @p reinit_clients is false, this API only changes callback routing.
+ *
+ * @param name            New client name (same name used in REGISTER).
+ *                        Pass NULL or empty string to deactivate all clients.
+ * @param reinit_clients  If true, perform a full driver teardown/startup for
+ *                        the handover. If false, only switch callback routing.
+ *
+ * @retval 0         Success.
+ * @retval -EINVAL   Name not found.
+ * @retval -EBUSY    The current radio owner could not be quiesced safely.
+ */
+int nrf_802154_callbacks_dispatcher_switch(const char *name, bool reinit_clients);
 
 #ifdef __cplusplus
 }
