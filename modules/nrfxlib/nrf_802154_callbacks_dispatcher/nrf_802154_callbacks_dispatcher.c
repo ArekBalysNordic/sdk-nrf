@@ -71,6 +71,8 @@ static const struct nrf_802154_callbacks *active_client(void)
 
 static int driver_quiesce(void)
 {
+	LOG_INF("%s", __func__);
+
 	for (int attempt = 0; attempt < 100; attempt++) {
 		(void)nrf_802154_transmit_at_cancel();
 
@@ -88,6 +90,8 @@ static int driver_quiesce(void)
 
 static void driver_shutdown(void)
 {
+	LOG_INF("%s", __func__);
+
 	nrf_802154_deinit();
 
 	/* These cleanups are called explicitly to cover platform resources that are
@@ -99,12 +103,16 @@ static void driver_shutdown(void)
 
 static void driver_startup(void)
 {
+	LOG_INF("%s", __func__);
+
 	nrf_802154_init();
 }
 
 int nrf_802154_callbacks_dispatcher_activate(const char *name)
 {
 	const struct nrf_802154_cb_dispatch_entry *entry = NULL;
+
+	LOG_INF("%s(name=%s)", __func__, name != NULL ? name : "null");
 
 	if (name != NULL && name[0] != '\0') {
 		entry = entry_lookup(name);
@@ -133,6 +141,9 @@ int nrf_802154_callbacks_dispatcher_switch(const char *name, bool reinit_clients
 	const struct nrf_802154_callbacks *next_client;
 	int err = 0;
 
+	LOG_INF("%s(name=%s, reinit_clients=%d)", __func__, name != NULL ? name : "null",
+		reinit_clients);
+
 	if (name != NULL && name[0] != '\0') {
 		next_entry = entry_lookup(name);
 		if (next_entry == NULL) {
@@ -145,47 +156,84 @@ int nrf_802154_callbacks_dispatcher_switch(const char *name, bool reinit_clients
 	prev_client = prev_entry != NULL ? prev_entry->callbacks : NULL;
 	next_client = next_entry != NULL ? next_entry->callbacks : NULL;
 
+	LOG_INF("%s resolved next_entry=%s prev_entry=%s driver_initialized=%d", __func__,
+		(next_entry != NULL && next_entry->name != NULL) ? next_entry->name : "null",
+		(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null",
+		s_driver_initialized);
+	LOG_INF("%s locking switch mutex", __func__);
+
 	k_mutex_lock(&s_switch_mutex, K_FOREVER);
+	LOG_INF("%s switch mutex locked", __func__);
 
 	prev_entry = active_entry_get();
 	prev_client = prev_entry != NULL ? prev_entry->callbacks : NULL;
 
+	LOG_INF("%s rechecked state prev_entry=%s driver_initialized=%d", __func__,
+		(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null",
+		s_driver_initialized);
+
 	if (prev_entry == next_entry && (!reinit_clients || s_driver_initialized)) {
+		LOG_INF("%s no switch needed prev_entry=%s reinit_clients=%d driver_initialized=%d",
+			__func__,
+			(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null",
+			reinit_clients, s_driver_initialized);
 		k_mutex_unlock(&s_switch_mutex);
+		LOG_INF("%s switch mutex unlocked", __func__);
 		return 0;
 	}
 
 	if (reinit_clients) {
+		LOG_INF("%s reinit path start", __func__);
 		active_entry_set(NULL);
+		LOG_INF("%s active entry cleared", __func__);
 
 		if (s_driver_initialized && prev_client != NULL && prev_client->deinit != NULL) {
+			LOG_INF("%s calling prev_client->deinit for %s", __func__,
+				(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null");
 			prev_client->deinit();
+			LOG_INF("%s prev_client->deinit completed", __func__);
 		}
 
 		if (s_driver_initialized) {
+			LOG_INF("%s quiescing driver", __func__);
 			err = driver_quiesce();
 			if (err != 0) {
+				LOG_ERR("%s driver_quiesce failed: %d", __func__, err);
 				active_entry_set(prev_entry);
 				k_mutex_unlock(&s_switch_mutex);
+				LOG_INF("%s restored previous entry and unlocked switch mutex", __func__);
 				return err;
 			}
 
+			LOG_INF("%s shutting down driver", __func__);
 			driver_shutdown();
 			s_driver_initialized = false;
+			LOG_INF("%s driver shutdown complete", __func__);
 		}
 
 		if (next_client != NULL) {
+			LOG_INF("%s starting driver for next client %s", __func__,
+				(next_entry != NULL && next_entry->name != NULL) ? next_entry->name : "null");
 			driver_startup();
 			s_driver_initialized = true;
+			LOG_INF("%s driver startup complete", __func__);
 
 			if (next_client->init != NULL) {
+				LOG_INF("%s calling next_client->init for %s", __func__,
+					(next_entry != NULL && next_entry->name != NULL) ? next_entry->name : "null");
 				next_client->init();
+				LOG_INF("%s next_client->init completed", __func__);
 			}
+		} else {
+			LOG_INF("%s no next client, driver remains stopped", __func__);
 		}
+	} else {
+		LOG_INF("%s reinit skipped", __func__);
 	}
 
 	active_entry_set(next_entry);
 	k_mutex_unlock(&s_switch_mutex);
+	LOG_INF("%s active entry updated and switch mutex unlocked", __func__);
 
 	if (next_entry != NULL) {
 		LOG_INF("Switched client: %s (reinit=%d)", next_entry->name, reinit_clients);
@@ -200,6 +248,8 @@ void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 {
 	const struct nrf_802154_callbacks *cb = active_client();
 
+	LOG_INF("%s", __func__);
+
 	if (cb != NULL && cb->received_timestamp_raw != NULL) {
 		cb->received_timestamp_raw(data, power, lqi, time);
 	}
@@ -208,6 +258,8 @@ void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 {
 	const struct nrf_802154_callbacks *cb = active_client();
+
+	LOG_INF("%s", __func__);
 
 	if (cb != NULL && cb->receive_failed != NULL) {
 		cb->receive_failed(error, id);
@@ -218,6 +270,8 @@ void nrf_802154_tx_ack_started(const uint8_t *data)
 {
 	const struct nrf_802154_callbacks *cb = active_client();
 
+	LOG_INF("%s", __func__);
+
 	if (cb != NULL && cb->tx_ack_started != NULL) {
 		cb->tx_ack_started(data);
 	}
@@ -226,6 +280,8 @@ void nrf_802154_tx_ack_started(const uint8_t *data)
 void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
 {
 	const struct nrf_802154_callbacks *cb = active_client();
+
+	LOG_INF("%s", __func__);
 
 	if (cb != NULL && cb->transmitted_raw != NULL) {
 		cb->transmitted_raw(frame, metadata);
@@ -237,6 +293,8 @@ void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 {
 	const struct nrf_802154_callbacks *cb = active_client();
 
+	LOG_INF("%s", __func__);
+
 	if (cb != NULL && cb->transmit_failed != NULL) {
 		cb->transmit_failed(frame, error, metadata);
 	}
@@ -246,6 +304,8 @@ void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
 	const struct nrf_802154_callbacks *cb = active_client();
 
+	LOG_INF("%s", __func__);
+
 	if (cb != NULL && cb->energy_detected != NULL) {
 		cb->energy_detected(result);
 	}
@@ -254,6 +314,8 @@ void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 {
 	const struct nrf_802154_callbacks *cb = active_client();
+
+	LOG_INF("%s", __func__);
 
 	if (cb != NULL && cb->energy_detection_failed != NULL) {
 		cb->energy_detection_failed(error);
@@ -265,6 +327,8 @@ void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 {
 	const struct nrf_802154_callbacks *cb = active_client();
 
+	LOG_INF("%s", __func__);
+
 	if (cb != NULL && cb->serialization_error != NULL) {
 		cb->serialization_error(err);
 	}
@@ -273,6 +337,9 @@ void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 
 static int nrf_802154_callbacks_dispatcher_init(void)
 {
+	LOG_INF("%s", __func__);
+
+	/* We need to initialize at least one client. Without that OpenThread fails. */
 	return nrf_802154_callbacks_dispatcher_switch("zigbee_nrf_802154_radio", true);
 }
 

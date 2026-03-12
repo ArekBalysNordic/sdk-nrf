@@ -19,6 +19,9 @@
 #include <zephyr/logging/log.h>
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 
+// #define TRACE_ENTRY() LOG_INF("%s", __func__)
+#define TRACE_ENTRY() do { } while (0)
+
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
 #include <zephyr/sys/__assert.h>
@@ -280,6 +283,8 @@ static struct nrf5_data nrf5_data;
 
 static void openthread_nrf_802154_release_rx_frames(void)
 {
+	TRACE_ENTRY();
+
 	for (size_t i = 0; i < ARRAY_SIZE(nrf5_data.rx.frames); i++) {
 		if (nrf5_data.rx.frames[i].psdu != NULL) {
 			nrf_802154_buffer_free_raw(nrf5_data.rx.frames[i].psdu);
@@ -295,6 +300,8 @@ static void openthread_nrf_802154_release_rx_frames(void)
 
 static void openthread_nrf_802154_pending_events_clear(void)
 {
+	TRACE_ENTRY();
+
 	for (size_t i = 0; i < PENDING_EVENT_COUNT; i++) {
 		atomic_clear_bit(nrf5_data.pending_events, i);
 	}
@@ -302,22 +309,30 @@ static void openthread_nrf_802154_pending_events_clear(void)
 
 static inline bool is_pending_event_set(enum nrf5_pending_events event)
 {
+	TRACE_ENTRY();
+
 	return atomic_test_bit(nrf5_data.pending_events, event);
 }
 
 static void set_pending_event(enum nrf5_pending_events event)
 {
+	TRACE_ENTRY();
+
 	atomic_set_bit(nrf5_data.pending_events, event);
 	otSysEventSignalPending();
 }
 
 static void reset_pending_event(enum nrf5_pending_events event)
 {
+	TRACE_ENTRY();
+
 	atomic_clear_bit(nrf5_data.pending_events, event);
 }
 
 static int nrf5_set_channel(uint16_t channel)
 {
+	TRACE_ENTRY();
+
 	if (channel < MIN_CHANNEL_NUMBER || channel > MAX_CHANNEL_NUMBER) {
 		return channel < MIN_CHANNEL_NUMBER ? -ENOTSUP : -EINVAL;
 	}
@@ -333,6 +348,8 @@ static int nrf5_set_channel(uint16_t channel)
 static int nrf5_energy_detection_start(uint16_t duration, nrf5_energy_detection_done_cb_t done_cb)
 {
 	int err = 0;
+
+	TRACE_ENTRY();
 
 	if (nrf5_data.energy_detection.cb == NULL) {
 		nrf5_data.energy_detection.cb = done_cb;
@@ -353,6 +370,8 @@ static int8_t get_transmit_power_for_channel(uint8_t aChannel)
 	int8_t channel_max_power = OT_RADIO_POWER_INVALID;
 	int8_t power = 0; /* 0 dbm as default value */
 
+	TRACE_ENTRY();
+
 	if (aChannel >= OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN &&
 	    aChannel <= OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MAX) {
 		channel_max_power =
@@ -372,6 +391,8 @@ static int8_t get_transmit_power_for_channel(uint8_t aChannel)
 static int nrf5_set_tx_power(uint16_t channel)
 {
 	int8_t tx_power = get_transmit_power_for_channel(channel);
+
+	TRACE_ENTRY();
 
 	nrf5_data.tx_power = tx_power;
 	nrf_802154_tx_power_set(tx_power);
@@ -400,6 +421,8 @@ static int nrf5_ack_data_set(uint16_t short_addr, const otExtAddress *ext_addr,
 	uint8_t ext_addr_le[EXTENDED_ADDRESS_SIZE];
 	uint8_t short_addr_le[SHORT_ADDRESS_SIZE];
 
+	TRACE_ENTRY();
+
 	if (short_addr == NRF5_BROADCAST_ADDRESS || ext_addr == NULL) {
 		return -ENOTSUP;
 	}
@@ -421,6 +444,8 @@ static int nrf5_ack_data_clear(uint16_t short_addr, const otExtAddress *ext_addr
 {
 	uint8_t ext_addr_le[EXTENDED_ADDRESS_SIZE];
 	uint8_t short_addr_le[SHORT_ADDRESS_SIZE];
+
+	TRACE_ENTRY();
 
 	if (short_addr == NRF5_BROADCAST_ADDRESS || ext_addr == NULL) {
 		return -ENOTSUP;
@@ -450,6 +475,8 @@ static int nrf5_ack_data_clear(uint16_t short_addr, const otExtAddress *ext_addr
  */
 static size_t create_csl_ie(uint32_t csl_period, uint8_t *ie_buffer)
 {
+	TRACE_ENTRY();
+
 	if (ie_buffer == NULL) {
 		return 0;
 	}
@@ -476,6 +503,8 @@ static size_t create_csl_ie(uint32_t csl_period, uint8_t *ie_buffer)
 
 static void nrf5_get_eui64(uint8_t *mac)
 {
+	TRACE_ENTRY();
+
 	__ASSERT(mac != NULL, "nrf5_get_eui64: mac is NULL");
 
 	uint64_t factoryAddress;
@@ -513,6 +542,8 @@ static void nrf5_get_eui64(uint8_t *mac)
 static otRadioCaps nrf5_get_caps(void)
 {
 	otRadioCaps caps = OT_RADIO_CAPS_NONE;
+
+	TRACE_ENTRY();
 
 	nrf_802154_capabilities_t radio_caps = nrf_802154_capabilities_get();
 
@@ -553,6 +584,8 @@ static otRadioCaps nrf5_get_caps(void)
  */
 static int64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrapped)
 {
+	TRACE_ENTRY();
+
 	/**
 	 * OpenThread provides target time as a (potentially wrapped) 32-bit
 	 * integer defining a moment in time in the microsecond domain.
@@ -617,6 +650,8 @@ static int64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrap
 }
 static void openthread_nrf_802154_radio_client_init(void)
 {
+	TRACE_ENTRY();
+
 	memset(&nrf5_data, 0, sizeof(nrf5_data));
 	nrf5_data.state = OT_RADIO_STATE_DISABLED;
 
@@ -647,6 +682,8 @@ static void openthread_nrf_802154_radio_client_init(void)
 
 static void openthread_nrf_802154_radio_client_deinit(void)
 {
+	TRACE_ENTRY();
+
 	(void)nrf_802154_transmit_at_cancel();
 	(void)nrf_802154_receive_at_cancel(DRX_SLOT_RX);
 	(void)nrf_802154_receive_at_scheduled_cancel(DRX_SLOT_RX);
@@ -667,12 +704,16 @@ static void openthread_nrf_802154_radio_client_deinit(void)
 
 void openthread_nrf_802154_radio_init(void)
 {
+	TRACE_ENTRY();
+
 	nrf_802154_init();
 	openthread_nrf_802154_radio_client_init();
 }
 
 void openthread_nrf_802154_radio_deinit(void)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_radio_client_deinit();
 	nrf_802154_deinit();
 }
@@ -680,6 +721,7 @@ void openthread_nrf_802154_radio_deinit(void)
 void platformRadioInit(void)
 {
 #ifndef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	TRACE_ENTRY();
 	openthread_nrf_802154_radio_init();
 #endif /* CONFIG_NRF_802154_CALLBACKS_DISPATCHER */
 }
@@ -688,6 +730,8 @@ static void openthread_handle_received_frame(otInstance *instance, struct nrf5_r
 {
 	otRadioFrame recv_frame;
 	uint8_t *psdu;
+
+	TRACE_ENTRY();
 
 	ARG_UNUSED(instance);
 
@@ -721,12 +765,16 @@ static void openthread_handle_received_frame(otInstance *instance, struct nrf5_r
 
 static void energy_detected(int16_t max_ed)
 {
+	TRACE_ENTRY();
+
 	nrf5_data.energy_detection.value = max_ed;
 	set_pending_event(PENDING_EVENT_DETECT_ENERGY_DONE);
 }
 
 static bool nrf5_tx(const otRadioFrame *frame, uint8_t *payload, bool cca)
 {
+	TRACE_ENTRY();
+
 	if (payload == NULL) {
 		return false;
 	}
@@ -754,6 +802,8 @@ static bool nrf5_tx(const otRadioFrame *frame, uint8_t *payload, bool cca)
 #if NRF_802154_CSMA_CA_ENABLED
 static bool nrf5_tx_csma_ca(otRadioFrame *frame, uint8_t *payload)
 {
+	TRACE_ENTRY();
+
 	if (payload == NULL) {
 		return false;
 	}
@@ -782,6 +832,8 @@ static bool nrf5_tx_csma_ca(otRadioFrame *frame, uint8_t *payload)
 
 static bool nrf5_tx_at(otRadioFrame *frame, uint8_t *payload)
 {
+	TRACE_ENTRY();
+
 	if (payload == NULL) {
 		return false;
 	}
@@ -824,6 +876,8 @@ static void handle_frame_received(otInstance *aInstance)
 {
 	struct nrf5_rx_frame *rx_frame;
 
+	TRACE_ENTRY();
+
 	while ((rx_frame = (struct nrf5_rx_frame *)k_fifo_get(&nrf5_data.rx.fifo, K_NO_WAIT)) !=
 	       NULL) {
 		openthread_handle_received_frame(aInstance, rx_frame);
@@ -832,6 +886,8 @@ static void handle_frame_received(otInstance *aInstance)
 
 static void handle_rx_failed(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	if (IS_ENABLED(CONFIG_OPENTHREAD_DIAG) && otPlatDiagModeGet()) {
 		otPlatDiagRadioReceiveDone(aInstance, NULL, nrf5_data.rx.result);
 	} else {
@@ -842,6 +898,8 @@ static void handle_rx_failed(otInstance *aInstance)
 static otError transmit_frame(otInstance *aInstance)
 {
 	bool result = true;
+
+	TRACE_ENTRY();
 
 	ARG_UNUSED(aInstance);
 
@@ -907,6 +965,8 @@ static otError handle_ack(void)
 	uint8_t frame_type;
 	otError err = OT_ERROR_NONE;
 
+	TRACE_ENTRY();
+
 	if (nrf5_data.ack.desc.time == NRF_802154_NO_TIMESTAMP) {
 		/* Ack timestamp is invalid and cannot be used by the upper layer.
 		 * Report the transmission as failed as if the Ack was not received at all.
@@ -954,6 +1014,8 @@ free_nrf_ack:
 
 static void handle_tx_done(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	if (nrf5_data.state == OT_RADIO_STATE_TRANSMIT) {
 		nrf5_data.state = OT_RADIO_STATE_RECEIVE;
 
@@ -982,11 +1044,15 @@ static void handle_tx_done(otInstance *aInstance)
 
 static void handle_sleep(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(otPlatRadioSleep(aInstance));
 }
 
 static bool handle_detect_energy(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	nrf5_set_channel(nrf5_data.energy_detection.channel);
 
 	return nrf5_energy_detection_start(nrf5_data.energy_detection.time, energy_detected);
@@ -994,11 +1060,15 @@ static bool handle_detect_energy(otInstance *aInstance)
 
 static void handle_detect_energy_done(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	otPlatRadioEnergyScanDone(aInstance, (int8_t)nrf5_data.energy_detection.value);
 }
 
 static void get_rssi_energy_detected(int16_t max_ed)
 {
+	TRACE_ENTRY();
+
 	nrf5_data.energy_detection.value = max_ed;
 	k_sem_give(&nrf5_data.rssi_wait);
 }
@@ -1006,6 +1076,8 @@ static void get_rssi_energy_detected(int16_t max_ed)
 void platformRadioProcess(otInstance *aInstance)
 {
 	bool event_pending = false;
+
+	TRACE_ENTRY();
 
 	if (is_pending_event_set(PENDING_EVENT_FRAME_RECEIVED)) {
 		reset_pending_event(PENDING_EVENT_FRAME_RECEIVED);
@@ -1050,6 +1122,8 @@ void platformRadioProcess(otInstance *aInstance)
 
 uint16_t platformRadioChannelGet(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return nrf5_data.channel;
@@ -1058,6 +1132,8 @@ uint16_t platformRadioChannelGet(otInstance *aInstance)
 #if defined(CONFIG_OPENTHREAD_DIAG)
 void platformRadioChannelSet(uint8_t aChannel)
 {
+	TRACE_ENTRY();
+
 	nrf5_data.channel = aChannel;
 }
 #endif
@@ -1066,6 +1142,8 @@ void platformRadioChannelSet(uint8_t aChannel)
 
 otRadioCaps otPlatRadioGetCaps(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return nrf5_data.capabilities;
@@ -1073,6 +1151,8 @@ otRadioCaps otPlatRadioGetCaps(otInstance *aInstance)
 
 int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return CONFIG_OPENTHREAD_DEFAULT_RX_SENSITIVITY;
@@ -1080,6 +1160,8 @@ int8_t otPlatRadioGetReceiveSensitivity(otInstance *aInstance)
 
 void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	__ASSERT(aIeeeEui64 != NULL, "aIeeeEui64 is NULL");
@@ -1090,6 +1172,8 @@ void otPlatRadioGetIeeeEui64(otInstance *aInstance, uint8_t *aIeeeEui64)
 void otPlatRadioSetPanId(otInstance *aInstance, otPanId aPanId)
 {
 	uint8_t pan_id_le[2];
+
+	TRACE_ENTRY();
 
 	ARG_UNUSED(aInstance);
 
@@ -1103,6 +1187,8 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aE
 {
 	const uint8_t *ieee_addr = aExtAddress->m8;
 
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	LOG_DBG("IEEE address %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x", ieee_addr[7], ieee_addr[6],
@@ -1115,6 +1201,8 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, otShortAddress aShortAddr
 {
 	uint8_t short_addr_le[2];
 
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	LOG_DBG("Short Address: 0x%x", aShortAddress);
@@ -1125,6 +1213,8 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, otShortAddress aShortAddr
 
 otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (aPower == NULL) {
@@ -1138,6 +1228,8 @@ otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
 
 otError otPlatRadioSetTransmitPower(otInstance *aInstance, int8_t aPower)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	nrf5_data.tx_power = aPower;
@@ -1147,6 +1239,8 @@ otError otPlatRadioSetTransmitPower(otInstance *aInstance, int8_t aPower)
 
 otError otPlatRadioGetCcaEnergyDetectThreshold(otInstance *aInstance, int8_t *aThreshold)
 {
+	TRACE_ENTRY();
+
 	OT_UNUSED_VARIABLE(aInstance);
 	OT_UNUSED_VARIABLE(aThreshold);
 
@@ -1155,6 +1249,8 @@ otError otPlatRadioGetCcaEnergyDetectThreshold(otInstance *aInstance, int8_t *aT
 
 otError otPlatRadioSetCcaEnergyDetectThreshold(otInstance *aInstance, int8_t aThreshold)
 {
+	TRACE_ENTRY();
+
 	OT_UNUSED_VARIABLE(aInstance);
 	OT_UNUSED_VARIABLE(aThreshold);
 
@@ -1163,6 +1259,8 @@ otError otPlatRadioSetCcaEnergyDetectThreshold(otInstance *aInstance, int8_t aTh
 
 bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	LOG_DBG("PromiscuousMode=%d", nrf5_data.promiscuous ? 1 : 0);
@@ -1172,6 +1270,8 @@ bool otPlatRadioGetPromiscuous(otInstance *aInstance)
 
 void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	LOG_DBG("PromiscuousMode=%d", aEnable ? 1 : 0);
@@ -1183,6 +1283,8 @@ void otPlatRadioSetPromiscuous(otInstance *aInstance, bool aEnable)
 
 void otPlatRadioSetRxOnWhenIdle(otInstance *aInstance, bool aEnable)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	LOG_DBG("RxOnWhenIdle=%d", aEnable ? 1 : 0);
@@ -1199,6 +1301,8 @@ void otPlatRadioSetRxOnWhenIdle(otInstance *aInstance, bool aEnable)
 static void nrf5_key_store(uint8_t *key_value, nrf_802154_key_id_mode_t key_id_mode,
 			   uint8_t *key_id)
 {
+	TRACE_ENTRY();
+
 	nrf_802154_key_t key = {
 		.value.p_cleartext_key = key_value,
 		.id.mode = key_id_mode,
@@ -1219,6 +1323,8 @@ void otPlatRadioSetMacKey(otInstance *aInstance, uint8_t aKeyIdMode, uint8_t aKe
 			  const otMacKeyMaterial *aPrevKey, const otMacKeyMaterial *aCurrKey,
 			  const otMacKeyMaterial *aNextKey, otRadioKeyType aKeyType)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 	__ASSERT_NO_MSG(aPrevKey != NULL && aCurrKey != NULL && aNextKey != NULL);
 
@@ -1270,6 +1376,8 @@ void otPlatRadioSetMacKey(otInstance *aInstance, uint8_t aKeyIdMode, uint8_t aKe
 
 void otPlatRadioSetMacFrameCounter(otInstance *aInstance, uint32_t aMacFrameCounter)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	nrf_802154_security_global_frame_counter_set(aMacFrameCounter);
@@ -1277,6 +1385,8 @@ void otPlatRadioSetMacFrameCounter(otInstance *aInstance, uint32_t aMacFrameCoun
 
 void otPlatRadioSetMacFrameCounterIfLarger(otInstance *aInstance, uint32_t aMacFrameCounter)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	nrf_802154_security_global_frame_counter_set_if_larger(aMacFrameCounter);
@@ -1287,11 +1397,15 @@ void otPlatRadioSetMacFrameCounterIfLarger(otInstance *aInstance, uint32_t aMacF
 
 uint64_t otPlatTimeGet(void)
 {
+	TRACE_ENTRY();
+
 	return nrf_802154_time_get();
 }
 
 uint64_t otPlatRadioGetNow(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return otPlatTimeGet();
@@ -1299,6 +1413,8 @@ uint64_t otPlatRadioGetNow(otInstance *aInstance)
 
 otRadioState otPlatRadioGetState(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return nrf5_data.state;
@@ -1306,6 +1422,8 @@ otRadioState otPlatRadioGetState(otInstance *aInstance)
 
 otError otPlatRadioEnable(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (nrf5_data.state != OT_RADIO_STATE_DISABLED && nrf5_data.state != OT_RADIO_STATE_SLEEP) {
@@ -1318,6 +1436,8 @@ otError otPlatRadioEnable(otInstance *aInstance)
 
 otError otPlatRadioDisable(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (nrf5_data.state != OT_RADIO_STATE_DISABLED && nrf5_data.state != OT_RADIO_STATE_SLEEP) {
@@ -1330,6 +1450,8 @@ otError otPlatRadioDisable(otInstance *aInstance)
 
 bool otPlatRadioIsEnabled(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return (nrf5_data.state != OT_RADIO_STATE_DISABLED) ? true : false;
@@ -1337,6 +1459,8 @@ bool otPlatRadioIsEnabled(otInstance *aInstance)
 
 otError otPlatRadioSleep(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (nrf5_data.state != OT_RADIO_STATE_SLEEP && nrf5_data.state != OT_RADIO_STATE_RECEIVE) {
@@ -1364,6 +1488,8 @@ otError otPlatRadioSleep(otInstance *aInstance)
 
 otError otPlatRadioReceive(otInstance *aInstance, uint8_t aChannel)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (nrf5_data.state == OT_RADIO_STATE_DISABLED) {
@@ -1394,6 +1520,8 @@ otError otPlatRadioReceiveAt(otInstance *aInstance, uint8_t aChannel, uint32_t a
 {
 	bool result;
 
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	/* Note that even if the nrf_802154_receive_at function is not called in time
@@ -1415,6 +1543,8 @@ otError otPlatRadioReceiveAt(otInstance *aInstance, uint8_t aChannel, uint32_t a
 
 otRadioFrame *otPlatRadioGetTransmitBuffer(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return &nrf5_data.tx.frame;
@@ -1423,6 +1553,8 @@ otRadioFrame *otPlatRadioGetTransmitBuffer(otInstance *aInstance)
 otError otPlatRadioTransmit(otInstance *aInstance, otRadioFrame *aFrame)
 {
 	otError error = OT_ERROR_INVALID_STATE;
+
+	TRACE_ENTRY();
 
 	ARG_UNUSED(aInstance);
 	ARG_UNUSED(aFrame);
@@ -1444,6 +1576,8 @@ int8_t otPlatRadioGetRssi(otInstance *aInstance)
 	int error = 0;
 	const uint16_t detection_time = 1;
 
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	/*
@@ -1463,6 +1597,8 @@ int8_t otPlatRadioGetRssi(otInstance *aInstance)
 otError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, uint16_t aScanDuration)
 {
 	int error = 0;
+
+	TRACE_ENTRY();
 
 	nrf5_data.energy_detection.time = aScanDuration;
 	nrf5_data.energy_detection.channel = aScanChannel;
@@ -1490,6 +1626,8 @@ otError otPlatRadioEnergyScan(otInstance *aInstance, uint8_t aScanChannel, uint1
 
 void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (aEnable) {
@@ -1501,6 +1639,8 @@ void otPlatRadioEnableSrcMatch(otInstance *aInstance, bool aEnable)
 
 otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, otShortAddress aShortAddress)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	uint8_t short_address[SHORT_ADDRESS_SIZE];
@@ -1516,6 +1656,8 @@ otError otPlatRadioAddSrcMatchShortEntry(otInstance *aInstance, otShortAddress a
 
 otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (!nrf_802154_pending_bit_for_addr_set((uint8_t *)aExtAddress->m8, true)) {
@@ -1527,6 +1669,8 @@ otError otPlatRadioAddSrcMatchExtEntry(otInstance *aInstance, const otExtAddress
 
 otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, otShortAddress aShortAddress)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	uint8_t short_address[SHORT_ADDRESS_SIZE];
@@ -1542,6 +1686,8 @@ otError otPlatRadioClearSrcMatchShortEntry(otInstance *aInstance, otShortAddress
 
 otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddress *aExtAddress)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (!nrf_802154_pending_bit_for_addr_clear((uint8_t *)aExtAddress->m8, true)) {
@@ -1553,6 +1699,8 @@ otError otPlatRadioClearSrcMatchExtEntry(otInstance *aInstance, const otExtAddre
 
 void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	nrf_802154_pending_bit_for_addr_reset(false);
@@ -1560,6 +1708,8 @@ void otPlatRadioClearSrcMatchShortEntries(otInstance *aInstance)
 
 void otPlatRadioClearSrcMatchExtEntries(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	nrf_802154_pending_bit_for_addr_reset(true);
@@ -1570,6 +1720,8 @@ otError otPlatRadioEnableCsl(otInstance *aInstance, uint32_t aCslPeriod, otShort
 			     const otExtAddress *aExtAddr)
 {
 	int result;
+
+	TRACE_ENTRY();
 
 	ARG_UNUSED(aInstance);
 
@@ -1592,6 +1744,8 @@ otError otPlatRadioEnableCsl(otInstance *aInstance, uint32_t aCslPeriod, otShort
 
 otError otPlatRadioResetCsl(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	nrf_802154_csl_writer_period_set(0);
@@ -1607,6 +1761,8 @@ otError otPlatRadioResetCsl(otInstance *aInstance)
 
 void otPlatRadioUpdateCslSampleTime(otInstance *aInstance, uint32_t aCslSampleTime)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	/* CSL sample time points to "start of MAC" while the expected RX time
@@ -1633,6 +1789,8 @@ void otPlatRadioUpdateCslSampleTime(otInstance *aInstance, uint32_t aCslSampleTi
 
 uint8_t otPlatRadioGetCslAccuracy(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return CONFIG_NRF5_DELAY_TRX_ACC;
@@ -1641,6 +1799,8 @@ uint8_t otPlatRadioGetCslAccuracy(otInstance *aInstance)
 #if defined(CONFIG_OPENTHREAD_PLATFORM_CSL_UNCERT)
 uint8_t otPlatRadioGetCslUncertainty(otInstance *aInstance)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	return CONFIG_OPENTHREAD_PLATFORM_CSL_UNCERT;
@@ -1650,6 +1810,8 @@ uint8_t otPlatRadioGetCslUncertainty(otInstance *aInstance)
 otError otPlatRadioSetChannelMaxTransmitPower(otInstance *aInstance, uint8_t aChannel,
 					      int8_t aMaxPower)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (aChannel < OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN ||
@@ -1698,6 +1860,8 @@ otError otPlatRadioSetChannelMaxTransmitPower(otInstance *aInstance, uint8_t aCh
  */
 static void set_vendor_ie_header_lm(bool lqi, bool link_margin, bool rssi, uint8_t *ie_header)
 {
+	TRACE_ENTRY();
+
 	/* OpenThread vendor-specific constants */
 	const uint8_t ie_vendor_id = NRF5_HEADER_IE_ELEMENT_ID_VENDOR_SPECIFIC_IE;
 	const uint8_t ie_vendor_thread_ack_probing_id = 0x00;
@@ -1758,6 +1922,8 @@ otError otPlatRadioConfigureEnhAckProbing(otInstance *aInstance, otLinkMetrics a
 					  const otShortAddress aShortAddress,
 					  const otExtAddress *aExtAddress)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	/* Use the proper IEEE 802.15.4 driver configure interface */
@@ -1792,6 +1958,8 @@ otError otPlatRadioConfigureEnhAckProbing(otInstance *aInstance, otLinkMetrics a
 #if defined(CONFIG_NRF5_CARRIER_FUNCTIONS)
 otError platformRadioTransmitCarrier(otInstance *aInstance, bool aEnable)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if ((aEnable) && (nrf5_data.state == OT_RADIO_STATE_RECEIVE)) {
@@ -1818,6 +1986,8 @@ otError platformRadioTransmitCarrier(otInstance *aInstance, bool aEnable)
 otError platformRadioTransmitModulatedCarrier(otInstance *aInstance, bool aEnable,
 					      const uint8_t *aData)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(aInstance);
 
 	if (aEnable && nrf5_data.state == OT_RADIO_STATE_RECEIVE) {
@@ -1852,6 +2022,8 @@ otError platformRadioTransmitModulatedCarrier(otInstance *aInstance, bool aEnabl
 void openthread_nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 						  uint64_t time)
 {
+	TRACE_ENTRY();
+
 	for (uint32_t i = 0; i < ARRAY_SIZE(nrf5_data.rx.frames); i++) {
 		if (nrf5_data.rx.frames[i].psdu != NULL) {
 			continue;
@@ -1880,6 +2052,8 @@ void openthread_nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, u
 
 void openthread_nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 {
+	TRACE_ENTRY();
+
 #if defined(CONFIG_OPENTHREAD_CSL_RECEIVER)
 	if (id == DRX_SLOT_RX && error == NRF_802154_RX_ERROR_DELAYED_TIMEOUT) {
 		if (!nrf5_data.rx_on_when_idle) {
@@ -1933,6 +2107,8 @@ void openthread_nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t 
 
 void openthread_nrf_802154_tx_ack_started(const uint8_t *data)
 {
+	TRACE_ENTRY();
+
 	nrf5_data.rx.last_frame_ack_fpb = data[FRAME_PENDING_OFFSET] & FRAME_PENDING_BIT;
 	nrf5_data.rx.last_frame_ack_seb = data[SECURITY_ENABLED_OFFSET] & SECURITY_ENABLED_BIT;
 }
@@ -1940,6 +2116,8 @@ void openthread_nrf_802154_tx_ack_started(const uint8_t *data)
 static void update_tx_frame_info(otRadioFrame *frame,
 				 const nrf_802154_transmit_done_metadata_t *metadata)
 {
+	TRACE_ENTRY();
+
 	frame->mInfo.mTxInfo.mIsSecurityProcessed = metadata->frame_props.is_secured;
 	frame->mInfo.mTxInfo.mIsHeaderUpdated = metadata->frame_props.dynamic_data_is_set;
 }
@@ -1947,6 +2125,8 @@ static void update_tx_frame_info(otRadioFrame *frame,
 void openthread_nrf_802154_transmitted_raw(uint8_t *frame,
 					   const nrf_802154_transmit_done_metadata_t *metadata)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(frame);
 
 	nrf5_data.tx.result = OT_ERROR_NONE;
@@ -1973,6 +2153,8 @@ void openthread_nrf_802154_transmitted_raw(uint8_t *frame,
 
 static otError nrf5_tx_error_to_ot_error(nrf_802154_tx_error_t error)
 {
+	TRACE_ENTRY();
+
 	switch (error) {
 	case NRF_802154_TX_ERROR_BUSY_CHANNEL:
 	case NRF_802154_TX_ERROR_TIMESLOT_ENDED:
@@ -1992,6 +2174,8 @@ static otError nrf5_tx_error_to_ot_error(nrf_802154_tx_error_t error)
 void openthread_nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 					   const nrf_802154_transmit_done_metadata_t *metadata)
 {
+	TRACE_ENTRY();
+
 	ARG_UNUSED(frame);
 
 	nrf5_data.tx.result = nrf5_tx_error_to_ot_error(error);
@@ -2004,6 +2188,8 @@ void openthread_nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t
 
 void openthread_nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
+	TRACE_ENTRY();
+
 	if (nrf5_data.energy_detection.cb != NULL) {
 		nrf5_energy_detection_done_cb_t callback = nrf5_data.energy_detection.cb;
 
@@ -2014,6 +2200,8 @@ void openthread_nrf_802154_energy_detected(const nrf_802154_energy_detected_t *r
 
 void openthread_nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 {
+	TRACE_ENTRY();
+
 	if (nrf5_data.energy_detection.cb != NULL) {
 		nrf5_energy_detection_done_cb_t callback = nrf5_data.energy_detection.cb;
 
@@ -2025,6 +2213,8 @@ void openthread_nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 #if defined(CONFIG_NRF_802154_SER_HOST)
 void openthread_nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 {
+	TRACE_ENTRY();
+
 	__ASSERT(false, "802.15.4 serialization error: %d", err->reason);
 	k_oops();
 }
@@ -2032,6 +2222,8 @@ void openthread_nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *
 
 void openthread_platform_radio_set_eui64(uint8_t eui64[EXTENDED_ADDRESS_SIZE])
 {
+	TRACE_ENTRY();
+
 	memcpy(nrf5_data.mac, eui64, EXTENDED_ADDRESS_SIZE);
 }
 
@@ -2061,43 +2253,59 @@ NRF_802154_CALLBACKS_DISPATCHER_REGISTER(openthread_nrf_802154_radio, openthread
 /* Translate the openthread callbacks to nrf_802154_callbacks for backward compatibility */
 void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_received_timestamp_raw(data, power, lqi, time);
 }
 
 void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_receive_failed(error, id);
 }
 
 void nrf_802154_tx_ack_started(const uint8_t *data)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_tx_ack_started(data);
 }
 
 void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_transmitted_raw(frame, metadata);
 }
 
 void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 				const nrf_802154_transmit_done_metadata_t *metadata)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_transmit_failed(frame, error, metadata);
 }
 
 void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_energy_detected(result);
 }
 
 void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_energy_detection_failed(error);
 }
 
 #if defined(CONFIG_NRF_802154_SER_HOST)
 void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 {
+	TRACE_ENTRY();
+
 	openthread_nrf_802154_serialization_error(err);
 }
 #endif
