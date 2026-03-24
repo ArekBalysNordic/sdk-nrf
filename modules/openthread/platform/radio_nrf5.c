@@ -20,7 +20,9 @@
 LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 
 // #define TRACE_ENTRY() LOG_INF("%s", __func__)
-#define TRACE_ENTRY() do { } while (0)
+#define TRACE_ENTRY()                                                                              \
+	do {                                                                                       \
+	} while (0)
 
 #include <zephyr/kernel.h>
 #include <zephyr/device.h>
@@ -280,6 +282,11 @@ struct nrf5_data {
 };
 
 static struct nrf5_data nrf5_data;
+static bool ot_nrf5_radio_client_reinit_follows_deinit;
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+static struct nrf_802154_radio_client_config radio_client_config;
+#endif /* CONFIG_NRF_802154_CALLBACKS_DISPATCHER */
 
 static void openthread_nrf_802154_release_rx_frames(void)
 {
@@ -653,7 +660,6 @@ static void openthread_nrf_802154_radio_client_init(void)
 	TRACE_ENTRY();
 
 	memset(&nrf5_data, 0, sizeof(nrf5_data));
-	nrf5_data.state = OT_RADIO_STATE_DISABLED;
 
 	/* Get the default tx output power from Kconfig */
 	nrf5_data.tx_power = CONFIG_OPENTHREAD_DEFAULT_TX_POWER;
@@ -662,9 +668,9 @@ static void openthread_nrf_802154_radio_client_init(void)
 		nrf5_data.max_tx_power_table[i] = OT_RADIO_POWER_INVALID;
 	}
 
-	nrf5_data.rx_on_when_idle = true;
-
 	nrf5_get_eui64(nrf5_data.mac);
+
+	nrf5_data.rx_on_when_idle = true;
 
 	k_fifo_init(&nrf5_data.rx.fifo);
 
@@ -677,12 +683,16 @@ static void openthread_nrf_802154_radio_client_init(void)
 
 	nrf5_data.capabilities = nrf5_get_caps();
 
+	nrf5_data.state = OT_RADIO_STATE_SLEEP;
+
 	LOG_INF("OpenThread radio initialized");
 }
 
 static void openthread_nrf_802154_radio_client_deinit(void)
 {
 	TRACE_ENTRY();
+
+	ot_nrf5_radio_client_reinit_follows_deinit = true;
 
 	(void)nrf_802154_transmit_at_cancel();
 	(void)nrf_802154_receive_at_cancel(DRX_SLOT_RX);
@@ -699,7 +709,7 @@ static void openthread_nrf_802154_radio_client_deinit(void)
 	nrf5_data.ack.frame.mLength = 0;
 	nrf5_data.rx.last_frame_ack_fpb = false;
 	nrf5_data.rx.last_frame_ack_seb = false;
-	nrf5_data.state = OT_RADIO_STATE_DISABLED;
+	nrf5_data.state = OT_RADIO_STATE_SLEEP;
 }
 
 void openthread_nrf_802154_radio_init(void)
@@ -708,6 +718,7 @@ void openthread_nrf_802154_radio_init(void)
 
 	nrf_802154_init();
 	openthread_nrf_802154_radio_client_init();
+	ot_nrf5_radio_client_reinit_follows_deinit = false;
 }
 
 void openthread_nrf_802154_radio_deinit(void)
@@ -1177,10 +1188,14 @@ void otPlatRadioSetPanId(otInstance *aInstance, otPanId aPanId)
 
 	ARG_UNUSED(aInstance);
 
-	LOG_DBG("PanId: 0x%x", aPanId);
+	LOG_INF("PlatRadioSetPanId: PanId: 0x%x", aPanId);
 
-	sys_put_le16(aPanId, pan_id_le);
+	memcpy(pan_id_le, &aPanId, sizeof(pan_id_le));
 	nrf_802154_pan_id_set(pan_id_le);
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	memcpy(radio_client_config.pan_id, pan_id_le, sizeof(radio_client_config.pan_id));
+#endif
 }
 
 void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddress)
@@ -1191,24 +1206,36 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aE
 
 	ARG_UNUSED(aInstance);
 
-	LOG_DBG("IEEE address %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x", ieee_addr[7], ieee_addr[6],
-		ieee_addr[5], ieee_addr[4], ieee_addr[3], ieee_addr[2], ieee_addr[1], ieee_addr[0]);
+	LOG_INF("PlatRadioSetExtendedAddress: IEEE address %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+		ieee_addr[7], ieee_addr[6], ieee_addr[5], ieee_addr[4], ieee_addr[3], ieee_addr[2],
+		ieee_addr[1], ieee_addr[0]);
 
+	memcpy(nrf5_data.mac, ieee_addr, EXTENDED_ADDRESS_SIZE);
 	nrf_802154_extended_address_set(ieee_addr);
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	memcpy(radio_client_config.mac, ieee_addr, sizeof(radio_client_config.mac));
+#endif
 }
 
 void otPlatRadioSetShortAddress(otInstance *aInstance, otShortAddress aShortAddress)
 {
-	uint8_t short_addr_le[2];
-
 	TRACE_ENTRY();
+
+	uint8_t short_addr_le[2];
 
 	ARG_UNUSED(aInstance);
 
-	LOG_DBG("Short Address: 0x%x", aShortAddress);
+	LOG_INF("PlatRadioSetShortAddress: Short Address: 0x%x", aShortAddress);
 
-	sys_put_le16(aShortAddress, short_addr_le);
+	memcpy(short_addr_le, &aShortAddress, sizeof(short_addr_le));
+
 	nrf_802154_short_address_set(short_addr_le);
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	memcpy(radio_client_config.short_address, short_addr_le,
+	       sizeof(radio_client_config.short_address));
+#endif
 }
 
 otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
@@ -2225,10 +2252,21 @@ void openthread_platform_radio_set_eui64(uint8_t eui64[EXTENDED_ADDRESS_SIZE])
 	TRACE_ENTRY();
 
 	memcpy(nrf5_data.mac, eui64, EXTENDED_ADDRESS_SIZE);
+#if defined(CONFIG_NRF_802154_CALLBACKS_DISPATCHER)
+	memcpy(radio_client_config.mac, eui64, EXTENDED_ADDRESS_SIZE);
+#endif
 }
 
 #ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
 #ifdef CONFIG_OPENTHREAD_RADIO_DISPATCHER_AUTOREGISTER
+
+static struct nrf_802154_radio_client_config *openthread_nrf_802154_radio_client_get_config(void)
+{
+	TRACE_ENTRY();
+
+	return &radio_client_config;
+}
+
 static const struct nrf_802154_callbacks openthread_802154_callbacks = {
 	.init = openthread_nrf_802154_radio_client_init,
 	.deinit = openthread_nrf_802154_radio_client_deinit,
@@ -2242,9 +2280,10 @@ static const struct nrf_802154_callbacks openthread_802154_callbacks = {
 #if defined(CONFIG_NRF_802154_SER_HOST)
 	.serialization_error = openthread_nrf_802154_serialization_error,
 #endif
+	.get_config = openthread_nrf_802154_radio_client_get_config,
 };
 
-NRF_802154_CALLBACKS_DISPATCHER_REGISTER(openthread_nrf_802154_radio, openthread_802154_callbacks);
+NRF_802154_CALLBACKS_DISPATCHER_REGISTER(openthread, openthread_802154_callbacks);
 
 #endif
 

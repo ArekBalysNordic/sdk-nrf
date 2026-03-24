@@ -13,23 +13,19 @@
 #include <errno.h>
 #include <nrf_802154.h>
 #include <nrf_802154_types.h>
-#include <string.h>
 #include <zephyr/kernel.h>
 #include <zephyr/init.h>
 #include <zephyr/sys/iterable_sections.h>
 #include <zephyr/logging/log.h>
 #include <zephyr/spinlock.h>
-#include <platform/nrf_802154_platform_sl_lptimer.h>
-#include <platform/nrf_802154_platform_timestamper.h>
 
 LOG_MODULE_REGISTER(nrf_802154_callbacks_dispatcher, LOG_LEVEL_INF);
 
-static const struct nrf_802154_cb_dispatch_entry *s_active_entry;
-static bool s_driver_initialized;
+static struct nrf_802154_cb_dispatch_entry *s_active_entry;
 static struct k_spinlock s_dispatcher_lock;
 static K_MUTEX_DEFINE(s_switch_mutex);
 
-static const struct nrf_802154_cb_dispatch_entry *entry_lookup(const char *name)
+static struct nrf_802154_cb_dispatch_entry *entry_lookup(const char *name)
 {
 	STRUCT_SECTION_FOREACH(nrf_802154_cb_dispatch_entry, entry)
 	{
@@ -41,9 +37,14 @@ static const struct nrf_802154_cb_dispatch_entry *entry_lookup(const char *name)
 	return NULL;
 }
 
-static const struct nrf_802154_cb_dispatch_entry *active_entry_get(void)
+/**
+ * @brief Get the active client entry.
+ *
+ * @return The active client entry.
+ */
+static struct nrf_802154_cb_dispatch_entry *active_entry_get(void)
 {
-	const struct nrf_802154_cb_dispatch_entry *entry;
+	struct nrf_802154_cb_dispatch_entry *entry;
 	k_spinlock_key_t key = k_spin_lock(&s_dispatcher_lock);
 
 	entry = s_active_entry;
@@ -53,7 +54,14 @@ static const struct nrf_802154_cb_dispatch_entry *active_entry_get(void)
 	return entry;
 }
 
-static void active_entry_set(const struct nrf_802154_cb_dispatch_entry *entry)
+/**
+ * @brief Set the active client.
+ *
+ * @param entry The client to set as active.
+ *
+ * This function sets the active client.
+ */
+static void active_entry_set(struct nrf_802154_cb_dispatch_entry *entry)
 {
 	k_spinlock_key_t key = k_spin_lock(&s_dispatcher_lock);
 
@@ -62,183 +70,85 @@ static void active_entry_set(const struct nrf_802154_cb_dispatch_entry *entry)
 	k_spin_unlock(&s_dispatcher_lock, key);
 }
 
-static const struct nrf_802154_callbacks *active_client(void)
+/**
+ * @brief Get the active client callbacks.
+ *
+ * @return The active client callbacks.
+ */
+static const struct nrf_802154_callbacks *active_client_callbacks(void)
 {
-	const struct nrf_802154_cb_dispatch_entry *entry = active_entry_get();
+	struct nrf_802154_cb_dispatch_entry *entry = active_entry_get();
 
 	return entry != NULL ? entry->callbacks : NULL;
 }
 
-static int driver_quiesce(void)
+int nrf_802154_callbacks_dispatcher_switch(const char *name)
 {
-	LOG_INF("%s", __func__);
-
-	for (int attempt = 0; attempt < 100; attempt++) {
-		(void)nrf_802154_transmit_at_cancel();
-
-		if (nrf_802154_sleep_if_idle() == NRF_802154_SLEEP_ERROR_NONE) {
-			return 0;
-		}
-
-		(void)nrf_802154_sleep();
-		k_busy_wait(50);
-	}
-
-	LOG_ERR("Timed out waiting for radio to enter sleep");
-	return -EBUSY;
-}
-
-static void driver_shutdown(void)
-{
-	LOG_INF("%s", __func__);
-
-	nrf_802154_deinit();
-
-	/* These cleanups are called explicitly to cover platform resources that are
-	 * not fully released by all current driver teardown paths.
-	 */
-	nrf_802154_platform_timestamper_deinit();
-	nrf_802154_platform_sl_lp_timer_deinit();
-}
-
-static void driver_startup(void)
-{
-	LOG_INF("%s", __func__);
-
-	nrf_802154_init();
-}
-
-int nrf_802154_callbacks_dispatcher_activate(const char *name)
-{
-	const struct nrf_802154_cb_dispatch_entry *entry = NULL;
+	struct nrf_802154_cb_dispatch_entry *prev_entry;
+	struct nrf_802154_cb_dispatch_entry *next_entry = NULL;
+	const struct nrf_802154_callbacks *prev_client;
+	const struct nrf_802154_callbacks *next_client;
 
 	LOG_INF("%s(name=%s)", __func__, name != NULL ? name : "null");
 
-	if (name != NULL && name[0] != '\0') {
-		entry = entry_lookup(name);
-		if (entry == NULL) {
-			LOG_ERR("No client found with name: %s", name);
-			return -EINVAL;
-		}
-	}
-
-	active_entry_set(entry);
-
-	if (entry != NULL) {
-		LOG_INF("Activated client: %s", entry->name);
-	} else {
-		LOG_INF("Activated client: none");
-	}
-
-	return 0;
-}
-
-int nrf_802154_callbacks_dispatcher_switch(const char *name, bool reinit_clients)
-{
-	const struct nrf_802154_cb_dispatch_entry *prev_entry;
-	const struct nrf_802154_cb_dispatch_entry *next_entry = NULL;
-	const struct nrf_802154_callbacks *prev_client;
-	const struct nrf_802154_callbacks *next_client;
-	int err = 0;
-
-	LOG_INF("%s(name=%s, reinit_clients=%d)", __func__, name != NULL ? name : "null",
-		reinit_clients);
-
+	/* Check whether the new client is valid and exists */
 	if (name != NULL && name[0] != '\0') {
 		next_entry = entry_lookup(name);
 		if (next_entry == NULL) {
-			LOG_ERR("No client found with name: %s", name);
+			LOG_ERR("No client found with name: %s", name ? name : "null");
 			return -EINVAL;
 		}
 	}
 
+	/* Lock the switch mutex to prevent concurrent switches */
+	k_mutex_lock(&s_switch_mutex, K_FOREVER);
+
+	/* Get the current active client and its callbacks */
 	prev_entry = active_entry_get();
 	prev_client = prev_entry != NULL ? prev_entry->callbacks : NULL;
 	next_client = next_entry != NULL ? next_entry->callbacks : NULL;
 
-	LOG_INF("%s resolved next_entry=%s prev_entry=%s driver_initialized=%d", __func__,
-		(next_entry != NULL && next_entry->name != NULL) ? next_entry->name : "null",
-		(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null",
-		s_driver_initialized);
-	LOG_INF("%s locking switch mutex", __func__);
-
-	k_mutex_lock(&s_switch_mutex, K_FOREVER);
-	LOG_INF("%s switch mutex locked", __func__);
-
-	prev_entry = active_entry_get();
-	prev_client = prev_entry != NULL ? prev_entry->callbacks : NULL;
-
-	LOG_INF("%s rechecked state prev_entry=%s driver_initialized=%d", __func__,
-		(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null",
-		s_driver_initialized);
-
-	if (prev_entry == next_entry && (!reinit_clients || s_driver_initialized)) {
-		LOG_INF("%s no switch needed prev_entry=%s reinit_clients=%d driver_initialized=%d",
-			__func__,
-			(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null",
-			reinit_clients, s_driver_initialized);
+	/* If the new client is the same as the current active client, no switch is needed */
+	if (prev_entry == next_entry) {
+		LOG_INF("No switch needed for %s", next_entry != NULL ? next_entry->name : "null");
 		k_mutex_unlock(&s_switch_mutex);
-		LOG_INF("%s switch mutex unlocked", __func__);
 		return 0;
 	}
 
-	if (reinit_clients) {
-		LOG_INF("%s reinit path start", __func__);
-		active_entry_set(NULL);
-		LOG_INF("%s active entry cleared", __func__);
+	/* Deinitialize the previous client, and save its configuration to be restored later if
+	 * needed */
+	if (prev_client != NULL && prev_client->deinit != NULL) {
+		prev_client->deinit();
+	}
 
-		if (s_driver_initialized && prev_client != NULL && prev_client->deinit != NULL) {
-			LOG_INF("%s calling prev_client->deinit for %s", __func__,
-				(prev_entry != NULL && prev_entry->name != NULL) ? prev_entry->name : "null");
-			prev_client->deinit();
-			LOG_INF("%s prev_client->deinit completed", __func__);
-		}
+	/* Reinitialize the radio driver */
+	nrf_802154_reinit();
 
-		if (s_driver_initialized) {
-			LOG_INF("%s quiescing driver", __func__);
-			err = driver_quiesce();
-			if (err != 0) {
-				LOG_ERR("%s driver_quiesce failed: %d", __func__, err);
-				active_entry_set(prev_entry);
-				k_mutex_unlock(&s_switch_mutex);
-				LOG_INF("%s restored previous entry and unlocked switch mutex", __func__);
-				return err;
+	/* Initialize the new client */
+	if (next_client != NULL && next_client->init != NULL) {
+		next_client->init();
+		if (next_client->get_config != NULL) {
+			struct nrf_802154_radio_client_config *config = next_client->get_config();
+			if (config != NULL) {
+				nrf_802154_pan_id_set(config->pan_id);
+				LOG_INF("Set PAN ID: 0x%04x", config->pan_id[1] << 8 | config->pan_id[0]);
+				nrf_802154_short_address_set(config->short_address);
+				LOG_INF("Set Short Address: 0x%04x", config->short_address[1] << 8 | config->short_address[0]);
+				nrf_802154_extended_address_set(config->mac);
+				LOG_INF("Set Extended Address: 0x%02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x",
+					config->mac[7], config->mac[6], config->mac[5], config->mac[4],
+					config->mac[3], config->mac[2], config->mac[1], config->mac[0]);
 			}
-
-			LOG_INF("%s shutting down driver", __func__);
-			driver_shutdown();
-			s_driver_initialized = false;
-			LOG_INF("%s driver shutdown complete", __func__);
 		}
-
-		if (next_client != NULL) {
-			LOG_INF("%s starting driver for next client %s", __func__,
-				(next_entry != NULL && next_entry->name != NULL) ? next_entry->name : "null");
-			driver_startup();
-			s_driver_initialized = true;
-			LOG_INF("%s driver startup complete", __func__);
-
-			if (next_client->init != NULL) {
-				LOG_INF("%s calling next_client->init for %s", __func__,
-					(next_entry != NULL && next_entry->name != NULL) ? next_entry->name : "null");
-				next_client->init();
-				LOG_INF("%s next_client->init completed", __func__);
-			}
-		} else {
-			LOG_INF("%s no next client, driver remains stopped", __func__);
-		}
-	} else {
-		LOG_INF("%s reinit skipped", __func__);
 	}
 
 	active_entry_set(next_entry);
 	k_mutex_unlock(&s_switch_mutex);
-	LOG_INF("%s active entry updated and switch mutex unlocked", __func__);
 
 	if (next_entry != NULL) {
-		LOG_INF("Switched client: %s (reinit=%d)", next_entry->name, reinit_clients);
+		LOG_INF("Switched client: %s", next_entry->name);
 	} else {
-		LOG_INF("Switched client: none (reinit=%d)", reinit_clients);
+		LOG_INF("Switched client: none");
 	}
 
 	return 0;
@@ -246,7 +156,7 @@ int nrf_802154_callbacks_dispatcher_switch(const char *name, bool reinit_clients
 
 void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -257,9 +167,9 @@ void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 
 void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
-	LOG_INF("%s", __func__);
+	LOG_INF("%s error=%d id=%d", __func__, error, id);
 
 	if (cb != NULL && cb->receive_failed != NULL) {
 		cb->receive_failed(error, id);
@@ -268,7 +178,7 @@ void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 
 void nrf_802154_tx_ack_started(const uint8_t *data)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -279,7 +189,7 @@ void nrf_802154_tx_ack_started(const uint8_t *data)
 
 void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -291,7 +201,7 @@ void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_m
 void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 				const nrf_802154_transmit_done_metadata_t *metadata)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -302,7 +212,7 @@ void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 
 void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -313,7 +223,7 @@ void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 
 void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -325,7 +235,7 @@ void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 #if defined(CONFIG_NRF_802154_SER_HOST)
 void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 {
-	const struct nrf_802154_callbacks *cb = active_client();
+	const struct nrf_802154_callbacks *cb = active_client_callbacks();
 
 	LOG_INF("%s", __func__);
 
@@ -339,8 +249,13 @@ static int nrf_802154_callbacks_dispatcher_init(void)
 {
 	LOG_INF("%s", __func__);
 
-	/* We need to initialize at least one client. Without that OpenThread fails. */
-	return nrf_802154_callbacks_dispatcher_switch("zigbee_nrf_802154_radio", true);
+	/* Initialize the radio driver since it is needed for mpsl to work.
+	 * At this point no client is active, so an user must call
+	 * the switch function to activate a client before using the radio.
+	 */
+	nrf_802154_init();
+
+	return 0;
 }
 
 SYS_INIT(nrf_802154_callbacks_dispatcher_init, POST_KERNEL,
