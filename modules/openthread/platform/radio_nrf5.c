@@ -23,6 +23,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #include <zephyr/device.h>
 #include <zephyr/sys/__assert.h>
 #include <zephyr/sys/byteorder.h>
+#include <string.h>
 
 #include <openthread/ip6.h>
 #include <openthread-system.h>
@@ -31,12 +32,14 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #include <openthread/platform/diag.h>
 #include <openthread/platform/time.h>
 #include <openthread/message.h>
+#include <openthread.h>
 #if defined(CONFIG_OPENTHREAD_NAT64_TRANSLATOR)
 #include <openthread/nat64.h>
 #endif
 
 #include "nrf_802154.h"
 #include "nrf_802154_const.h"
+#include <nrf_802154_callbacks_dispatcher.h>
 
 #if defined(CONFIG_NRF_802154_SER_HOST)
 #include "nrf_802154_serialization_error.h"
@@ -80,8 +83,7 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #define NRF5_VENDOR_OUI (uint32_t)0xF4CE36
 #endif
 
-#define CHANNEL_COUNT		       (OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MAX - \
-					OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN + 1)
+#define CHANNEL_COUNT		       (OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MAX - OT_RADIO_2P4GHZ_OQPSK_CHANNEL_MIN + 1)
 #define DRX_SLOT_RX		       0 /* Delayed reception window ID */
 #define PHR_DURATION_US		       32U
 #define NSEC_PER_TEN_SYMBOLS	       ((uint64_t)PHY_US_PER_SYMBOL * 1000 * 10)
@@ -103,8 +105,8 @@ LOG_MODULE_REGISTER(LOG_MODULE_NAME, CONFIG_OPENTHREAD_PLATFORM_LOG_LEVEL);
 #define PSDU_LENGTH(psdu) ((psdu)[0])
 #define PSDU_DATA(psdu)	  ((psdu) + 1)
 
-#define CSL_IE_SIZE (6) /* Buffer for CSL IE: 2 bytes header + 4 bytes content */
-#define LM_IE_SIZE (32) /* Buffer for LM IE: 2 bytes header + 30 bytes content */
+#define CSL_IE_SIZE (6)	 /* Buffer for CSL IE: 2 bytes header + 4 bytes content */
+#define LM_IE_SIZE  (32) /* Buffer for LM IE: 2 bytes header + 30 bytes content */
 
 enum nrf5_pending_events {
 	PENDING_EVENT_FRAME_RECEIVED,	  /* Radio has received new frame */
@@ -275,6 +277,33 @@ struct nrf5_data {
 };
 
 static struct nrf5_data nrf5_data;
+static bool ot_nrf5_radio_client_reinit_follows_deinit;
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+static struct nrf_802154_radio_client_config radio_client_config;
+#endif /* CONFIG_NRF_802154_CALLBACKS_DISPATCHER */
+
+static void openthread_nrf_802154_release_rx_frames(void)
+{
+	for (size_t i = 0; i < ARRAY_SIZE(nrf5_data.rx.frames); i++) {
+		if (nrf5_data.rx.frames[i].psdu != NULL) {
+			nrf_802154_buffer_free_raw(nrf5_data.rx.frames[i].psdu);
+			nrf5_data.rx.frames[i].psdu = NULL;
+		}
+	}
+
+	if (nrf5_data.ack.desc.psdu != NULL) {
+		nrf_802154_buffer_free_raw(nrf5_data.ack.desc.psdu);
+		nrf5_data.ack.desc.psdu = NULL;
+	}
+}
+
+static void openthread_nrf_802154_pending_events_clear(void)
+{
+	for (size_t i = 0; i < PENDING_EVENT_COUNT; i++) {
+		atomic_clear_bit(nrf5_data.pending_events, i);
+	}
+}
 
 static inline bool is_pending_event_set(enum nrf5_pending_events event)
 {
@@ -591,10 +620,9 @@ static int64_t convert_32bit_us_wrapped_to_64bit_ns(uint32_t target_time_us_wrap
 	__ASSERT_NO_MSG(result <= INT64_MAX / NSEC_PER_USEC);
 	return (int64_t)result * NSEC_PER_USEC;
 }
-
-void platformRadioInit(void)
+static void openthread_nrf_802154_radio_client_init(void)
 {
-	nrf5_data.state = OT_RADIO_STATE_DISABLED;
+	memset(&nrf5_data, 0, sizeof(nrf5_data));
 
 	/* Get the default tx output power from Kconfig */
 	nrf5_data.tx_power = CONFIG_OPENTHREAD_DEFAULT_TX_POWER;
@@ -603,9 +631,9 @@ void platformRadioInit(void)
 		nrf5_data.max_tx_power_table[i] = OT_RADIO_POWER_INVALID;
 	}
 
-	nrf5_data.rx_on_when_idle = true;
-
 	nrf5_get_eui64(nrf5_data.mac);
+
+	nrf5_data.rx_on_when_idle = true;
 
 	k_fifo_init(&nrf5_data.rx.fifo);
 
@@ -616,9 +644,53 @@ void platformRadioInit(void)
 
 	k_sem_init(&nrf5_data.rssi_wait, 0, 1);
 
-	nrf_802154_init();
-
 	nrf5_data.capabilities = nrf5_get_caps();
+
+	nrf5_data.state = OT_RADIO_STATE_SLEEP;
+
+	LOG_INF("OpenThread radio initialized");
+}
+
+static void openthread_nrf_802154_radio_client_deinit(void)
+{
+	ot_nrf5_radio_client_reinit_follows_deinit = true;
+
+	(void)nrf_802154_transmit_at_cancel();
+	(void)nrf_802154_receive_at_cancel(DRX_SLOT_RX);
+	(void)nrf_802154_receive_at_scheduled_cancel(DRX_SLOT_RX);
+
+	nrf_802154_ack_data_remove_all(false, NRF_802154_ACK_DATA_IE);
+	nrf_802154_ack_data_remove_all(true, NRF_802154_ACK_DATA_IE);
+	nrf_802154_csl_writer_period_set(0);
+
+	openthread_nrf_802154_pending_events_clear();
+	openthread_nrf_802154_release_rx_frames();
+
+	nrf5_data.energy_detection.cb = NULL;
+	nrf5_data.ack.frame.mLength = 0;
+	nrf5_data.rx.last_frame_ack_fpb = false;
+	nrf5_data.rx.last_frame_ack_seb = false;
+	nrf5_data.state = OT_RADIO_STATE_SLEEP;
+}
+
+void openthread_nrf_802154_radio_init(void)
+{
+	nrf_802154_init();
+	openthread_nrf_802154_radio_client_init();
+	ot_nrf5_radio_client_reinit_follows_deinit = false;
+}
+
+void openthread_nrf_802154_radio_deinit(void)
+{
+	openthread_nrf_802154_radio_client_deinit();
+	nrf_802154_deinit();
+}
+
+void platformRadioInit(void)
+{
+#ifndef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	openthread_nrf_802154_radio_init();
+#endif /* CONFIG_NRF_802154_CALLBACKS_DISPATCHER */
 }
 
 static void openthread_handle_received_frame(otInstance *instance, struct nrf5_rx_frame *rx_frame)
@@ -669,15 +741,17 @@ static bool nrf5_tx(const otRadioFrame *frame, uint8_t *payload, bool cca)
 	}
 
 	nrf_802154_transmit_metadata_t metadata = {
-		.frame_props = {
-			.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
-			.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
-		},
+		.frame_props =
+			{
+				.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
+				.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
+			},
 		.cca = cca,
-		.tx_power = {
-			.use_metadata_value = true,
-			.power = get_transmit_power_for_channel(frame->mChannel),
-		},
+		.tx_power =
+			{
+				.use_metadata_value = true,
+				.power = get_transmit_power_for_channel(frame->mChannel),
+			},
 	};
 
 	nrf_802154_tx_error_t result = nrf_802154_transmit_raw(payload, &metadata);
@@ -694,14 +768,16 @@ static bool nrf5_tx_csma_ca(otRadioFrame *frame, uint8_t *payload)
 	}
 
 	nrf_802154_transmit_csma_ca_metadata_t metadata = {
-		.frame_props = {
-			.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
-			.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
-		},
-		.tx_power = {
-			.use_metadata_value = true,
-			.power = get_transmit_power_for_channel(frame->mChannel),
-		},
+		.frame_props =
+			{
+				.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
+				.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
+			},
+		.tx_power =
+			{
+				.use_metadata_value = true,
+				.power = get_transmit_power_for_channel(frame->mChannel),
+			},
 	};
 
 	nrf_802154_csma_ca_max_backoffs_set(frame->mInfo.mTxInfo.mMaxCsmaBackoffs);
@@ -720,20 +796,22 @@ static bool nrf5_tx_at(otRadioFrame *frame, uint8_t *payload)
 	}
 
 	nrf_802154_transmit_at_metadata_t metadata = {
-		.frame_props = {
-			.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
-			.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
-		},
+		.frame_props =
+			{
+				.is_secured = frame->mInfo.mTxInfo.mIsSecurityProcessed,
+				.dynamic_data_is_set = frame->mInfo.mTxInfo.mIsHeaderUpdated,
+			},
 		.cca = true,
 #if defined(CONFIG_NRF5_SELECTIVE_TXCHANNEL)
 		.channel = frame->mChannel,
 #else
 		.channel = nrf_802154_channel_get(),
 #endif
-		.tx_power = {
-			.use_metadata_value = true,
-			.power = get_transmit_power_for_channel(frame->mChannel),
-		},
+		.tx_power =
+			{
+				.use_metadata_value = true,
+				.power = get_transmit_power_for_channel(frame->mChannel),
+			},
 	};
 
 	/* The timestamp points to the start of PHR but `nrf_802154_transmit_raw_at`
@@ -1026,8 +1104,12 @@ void otPlatRadioSetPanId(otInstance *aInstance, otPanId aPanId)
 
 	LOG_DBG("PanId: 0x%x", aPanId);
 
-	sys_put_le16(aPanId, pan_id_le);
+	memcpy(pan_id_le, &aPanId, sizeof(pan_id_le));
 	nrf_802154_pan_id_set(pan_id_le);
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	memcpy(radio_client_config.pan_id, pan_id_le, sizeof(radio_client_config.pan_id));
+#endif
 }
 
 void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aExtAddress)
@@ -1039,7 +1121,12 @@ void otPlatRadioSetExtendedAddress(otInstance *aInstance, const otExtAddress *aE
 	LOG_DBG("IEEE address %02x:%02x:%02x:%02x:%02x:%02x:%02x:%02x", ieee_addr[7], ieee_addr[6],
 		ieee_addr[5], ieee_addr[4], ieee_addr[3], ieee_addr[2], ieee_addr[1], ieee_addr[0]);
 
+	memcpy(nrf5_data.mac, ieee_addr, EXTENDED_ADDRESS_SIZE);
 	nrf_802154_extended_address_set(ieee_addr);
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	memcpy(radio_client_config.mac, ieee_addr, sizeof(radio_client_config.mac));
+#endif
 }
 
 void otPlatRadioSetShortAddress(otInstance *aInstance, otShortAddress aShortAddress)
@@ -1050,8 +1137,14 @@ void otPlatRadioSetShortAddress(otInstance *aInstance, otShortAddress aShortAddr
 
 	LOG_DBG("Short Address: 0x%x", aShortAddress);
 
-	sys_put_le16(aShortAddress, short_addr_le);
+	memcpy(short_addr_le, &aShortAddress, sizeof(short_addr_le));
+
 	nrf_802154_short_address_set(short_addr_le);
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+	memcpy(radio_client_config.short_address, short_addr_le,
+	       sizeof(radio_client_config.short_address));
+#endif
 }
 
 otError otPlatRadioGetTransmitPower(otInstance *aInstance, int8_t *aPower)
@@ -1140,10 +1233,10 @@ static void nrf5_key_store(uint8_t *key_value, nrf_802154_key_id_mode_t key_id_m
 	};
 
 	__ASSERT_EVAL((void)nrf_802154_security_key_store(&key),
-		nrf_802154_security_error_t err = nrf_802154_security_key_store(&key),
-		err == NRF_802154_SECURITY_ERROR_NONE ||
-		err == NRF_802154_SECURITY_ERROR_ALREADY_PRESENT,
-		"Storing key failed, err: %d", err);
+		      nrf_802154_security_error_t err = nrf_802154_security_key_store(&key),
+		      err == NRF_802154_SECURITY_ERROR_NONE ||
+			      err == NRF_802154_SECURITY_ERROR_ALREADY_PRESENT,
+		      "Storing key failed, err: %d", err);
 }
 
 void otPlatRadioSetMacKey(otInstance *aInstance, uint8_t aKeyIdMode, uint8_t aKeyId,
@@ -1780,7 +1873,8 @@ otError platformRadioTransmitModulatedCarrier(otInstance *aInstance, bool aEnabl
 
 /* nRF5 radio driver callbacks */
 
-void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
+static void openthread_nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
+							 uint64_t time)
 {
 	for (uint32_t i = 0; i < ARRAY_SIZE(nrf5_data.rx.frames); i++) {
 		if (nrf5_data.rx.frames[i].psdu != NULL) {
@@ -1808,7 +1902,7 @@ void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi,
 	__ASSERT(false, "Not enough rx frames allocated for nrf5 radio");
 }
 
-void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
+static void openthread_nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 {
 #if defined(CONFIG_OPENTHREAD_CSL_RECEIVER)
 	if (id == DRX_SLOT_RX && error == NRF_802154_RX_ERROR_DELAYED_TIMEOUT) {
@@ -1861,7 +1955,7 @@ void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
 	}
 }
 
-void nrf_802154_tx_ack_started(const uint8_t *data)
+static void openthread_nrf_802154_tx_ack_started(const uint8_t *data)
 {
 	nrf5_data.rx.last_frame_ack_fpb = data[FRAME_PENDING_OFFSET] & FRAME_PENDING_BIT;
 	nrf5_data.rx.last_frame_ack_seb = data[SECURITY_ENABLED_OFFSET] & SECURITY_ENABLED_BIT;
@@ -1874,7 +1968,9 @@ static void update_tx_frame_info(otRadioFrame *frame,
 	frame->mInfo.mTxInfo.mIsHeaderUpdated = metadata->frame_props.dynamic_data_is_set;
 }
 
-void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
+static void
+openthread_nrf_802154_transmitted_raw(uint8_t *frame,
+				      const nrf_802154_transmit_done_metadata_t *metadata)
 {
 	ARG_UNUSED(frame);
 
@@ -1918,8 +2014,9 @@ static otError nrf5_tx_error_to_ot_error(nrf_802154_tx_error_t error)
 	}
 }
 
-void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
-				const nrf_802154_transmit_done_metadata_t *metadata)
+static void
+openthread_nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
+				      const nrf_802154_transmit_done_metadata_t *metadata)
 {
 	ARG_UNUSED(frame);
 
@@ -1931,7 +2028,7 @@ void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
 	set_pending_event(PENDING_EVENT_TX_DONE);
 }
 
-void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
+static void openthread_nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 {
 	if (nrf5_data.energy_detection.cb != NULL) {
 		nrf5_energy_detection_done_cb_t callback = nrf5_data.energy_detection.cb;
@@ -1941,7 +2038,7 @@ void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
 	}
 }
 
-void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
+static void openthread_nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 {
 	if (nrf5_data.energy_detection.cb != NULL) {
 		nrf5_energy_detection_done_cb_t callback = nrf5_data.energy_detection.cb;
@@ -1952,7 +2049,7 @@ void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
 }
 
 #if defined(CONFIG_NRF_802154_SER_HOST)
-void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
+static void openthread_nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 {
 	__ASSERT(false, "802.15.4 serialization error: %d", err->reason);
 	k_oops();
@@ -1962,4 +2059,79 @@ void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
 void openthread_platform_radio_set_eui64(uint8_t eui64[EXTENDED_ADDRESS_SIZE])
 {
 	memcpy(nrf5_data.mac, eui64, EXTENDED_ADDRESS_SIZE);
+#if defined(CONFIG_NRF_802154_CALLBACKS_DISPATCHER)
+	memcpy(radio_client_config.mac, eui64, EXTENDED_ADDRESS_SIZE);
+#endif
 }
+
+#ifdef CONFIG_NRF_802154_CALLBACKS_DISPATCHER
+
+static struct nrf_802154_radio_client_config *openthread_nrf_802154_radio_client_get_config(void)
+{
+	return &radio_client_config;
+}
+
+static const struct nrf_802154_callbacks openthread_802154_callbacks = {
+	.init = openthread_nrf_802154_radio_client_init,
+	.deinit = openthread_nrf_802154_radio_client_deinit,
+	.received_timestamp_raw = openthread_nrf_802154_received_timestamp_raw,
+	.receive_failed = openthread_nrf_802154_receive_failed,
+	.tx_ack_started = openthread_nrf_802154_tx_ack_started,
+	.transmitted_raw = openthread_nrf_802154_transmitted_raw,
+	.transmit_failed = openthread_nrf_802154_transmit_failed,
+	.energy_detected = openthread_nrf_802154_energy_detected,
+	.energy_detection_failed = openthread_nrf_802154_energy_detection_failed,
+#if defined(CONFIG_NRF_802154_SER_HOST)
+	.serialization_error = openthread_nrf_802154_serialization_error,
+#endif
+	.get_config = openthread_nrf_802154_radio_client_get_config,
+};
+
+NRF_802154_CALLBACKS_DISPATCHER_REGISTER(openthread, openthread_802154_callbacks);
+
+#else
+
+/* Translate the openthread callbacks to nrf_802154_callbacks for backward compatibility */
+void nrf_802154_received_timestamp_raw(uint8_t *data, int8_t power, uint8_t lqi, uint64_t time)
+{
+	openthread_nrf_802154_received_timestamp_raw(data, power, lqi, time);
+}
+
+void nrf_802154_receive_failed(nrf_802154_rx_error_t error, uint32_t id)
+{
+	openthread_nrf_802154_receive_failed(error, id);
+}
+
+void nrf_802154_tx_ack_started(const uint8_t *data)
+{
+	openthread_nrf_802154_tx_ack_started(data);
+}
+
+void nrf_802154_transmitted_raw(uint8_t *frame, const nrf_802154_transmit_done_metadata_t *metadata)
+{
+	openthread_nrf_802154_transmitted_raw(frame, metadata);
+}
+
+void nrf_802154_transmit_failed(uint8_t *frame, nrf_802154_tx_error_t error,
+				const nrf_802154_transmit_done_metadata_t *metadata)
+{
+	openthread_nrf_802154_transmit_failed(frame, error, metadata);
+}
+
+void nrf_802154_energy_detected(const nrf_802154_energy_detected_t *result)
+{
+	openthread_nrf_802154_energy_detected(result);
+}
+
+void nrf_802154_energy_detection_failed(nrf_802154_ed_error_t error)
+{
+	openthread_nrf_802154_energy_detection_failed(error);
+}
+
+#if defined(CONFIG_NRF_802154_SER_HOST)
+void nrf_802154_serialization_error(const nrf_802154_ser_err_data_t *err)
+{
+	openthread_nrf_802154_serialization_error(err);
+}
+#endif
+#endif /* CONFIG_NRF_802154_CALLBACKS_DISPATCHER */
