@@ -62,21 +62,27 @@ function(setup_nrf700x_xip_data)
       )
   endif()
 
-  # Delegate merging WiFi FW patch to mcuboot because we need to merge signed hex instead of raw
-  # nrf70.hex.
+  # With MCUboot, merge a signed Wi-Fi patch hex; without MCUboot, only the raw nrf70.hex exists.
   if(SB_CONFIG_DFU_MULTI_IMAGE_PACKAGE_WIFI_FW_PATCH OR SB_CONFIG_DFU_ZIP_WIFI_FW_PATCH OR NOT
     SB_CONFIG_PARTITION_MANAGER
   )
-    include(${CMAKE_CURRENT_LIST_DIR}/image_signing_nrf700x.cmake)
-    nrf7x_signing_tasks(${CMAKE_BINARY_DIR}/nrf70.hex ${CMAKE_BINARY_DIR}/nrf70.signed.hex
-      ${CMAKE_BINARY_DIR}/nrf70.signed.bin nrf70_wifi_fw_patch_target
-    )
+    if(SB_CONFIG_BOOTLOADER_MCUBOOT)
+      include(${CMAKE_CURRENT_LIST_DIR}/image_signing_nrf700x.cmake)
+      nrf7x_signing_tasks(${CMAKE_BINARY_DIR}/nrf70.hex ${CMAKE_BINARY_DIR}/nrf70.signed.hex
+        ${CMAKE_BINARY_DIR}/nrf70.signed.bin nrf70_wifi_fw_patch_target
+      )
 
-    if(SB_CONFIG_PARTITION_MANAGER)
-      set_property(
-        GLOBAL PROPERTY
-        nrf70_wifi_fw_PM_HEX_FILE
-        ${CMAKE_BINARY_DIR}/nrf70.signed.hex
+      if(SB_CONFIG_PARTITION_MANAGER)
+        set_property(
+          GLOBAL PROPERTY
+          nrf70_wifi_fw_PM_HEX_FILE
+          ${CMAKE_BINARY_DIR}/nrf70.signed.hex
+        )
+      endif()
+    elseif(NOT SB_CONFIG_PARTITION_MANAGER)
+      # No MCUboot and no partition manager: default build must still produce nrf70.hex for flash.
+      add_custom_target(nrf70_wifi_fw_patch_external_hex ALL
+        DEPENDS nrf70_wifi_fw_patch_target
       )
     endif()
   else()
