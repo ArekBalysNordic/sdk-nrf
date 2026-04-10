@@ -1,0 +1,86 @@
+/*
+ * Copyright (c) 2026 Nordic Semiconductor ASA
+ *
+ * SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
+ */
+
+/delete-node/ &boot_partition;
+/delete-node/ &slot0_partition;
+/delete-node/ &slot1_partition;
+/delete-node/ &storage_partition;
+
+/ {
+	chosen {
+		nordic,pm-ext-flash = &mx25r64;
+	};
+};
+
+&cpuapp_sram {
+	reg = <0x20000000 DT_SIZE_K(256)>;
+	ranges = <0x0 0x20000000 DT_SIZE_K(256)>;
+};
+
+&cpuapp_rram {
+	reg = <0x0 DT_SIZE_K(1524)>;
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		boot_partition: partition@0 {
+			label = "mcuboot";
+			reg = <0x00000000 DT_SIZE_K(32)>;
+		};
+
+		slot0_partition: partition@d000 {
+			label = "image-0";
+			reg = <0x0000d000 DT_SIZE_K(128)>;
+		};
+
+		slot0_ns_partition: partition@2d000 {
+			label = "image-0-nonsecure";
+			reg = <0x0002d000 DT_SIZE_K(1268)>;
+		};
+
+		factory_data_partition: partition@16a000 {
+			label = "factory-data";
+			reg = <0x0016a000 DT_SIZE_K(4)>;
+		};
+
+		storage_partition: partition@16b000 {
+			label = "storage";
+			reg = <0x0016b000 DT_SIZE_K(40)>;
+		};
+
+		tfm_its_partition: partition@175000 {
+			label = "tfm-its";
+			reg = <0x00175000 DT_SIZE_K(16)>;
+		};
+
+		tfm_otp_partition: partition@177000 {
+			label = "tfm-otp";
+			reg = <0x00177000 DT_SIZE_K(8)>;
+		};
+
+		tfm_ps_partition: partition@179000 {
+			label = "tfm-ps";
+			reg = <0x00179000 DT_SIZE_K(8)>;
+		};
+	};
+};
+
+&mx25r64 {
+	status = "okay";
+
+	partitions {
+		compatible = "fixed-partitions";
+		#address-cells = <1>;
+		#size-cells = <1>;
+
+		slot1_partition: partition@0 {
+			label = "image-1";
+			reg = <0x00000000 DT_SIZE_K(1396)>;
+		};
+	};
+};
