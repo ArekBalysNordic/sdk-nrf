@@ -4,6 +4,12 @@
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
 
+# This file contains the common configuration options for the Matter samples.
+# You can use it in your sample's Kconfig file by sourcing it:
+# source "$(ZEPHYR_NRF_MODULE_DIR)/samples/matter/common/src/Kconfig"
+
+menu "Matter nRF Connect SDK sample configuration"
+
 config NCS_SAMPLE_MATTER_APP_TASK_QUEUE_SIZE
 	int "Maximum number of tasks delegated to be run in the application queue"
 	default 10
@@ -96,11 +102,6 @@ config NCS_SAMPLE_MATTER_TEST_SHELL
 	help
 	  Enables support for test - specific shell commands in Matter samples.
 
-config NCS_SAMPLE_MATTER_PERSISTENT_STORAGE
-	bool "Persistent storage support for Matter samples"
-	help
-	  Matter persistent storage support with the configurable backend.
-
 config NCS_SAMPLE_MATTER_ZAP_FILE_PATH
 	string "Path in sample, under which ZAP file is located"
 	help
@@ -123,3 +124,4 @@ config NCS_SAMPLE_MATTER_USE_DEFAULT_BUTTON_HANDLER
 rsource "persistent_storage/Kconfig"
 rsource "watchdog/Kconfig"
 rsource "diagnostic/Kconfig"
+endmenu

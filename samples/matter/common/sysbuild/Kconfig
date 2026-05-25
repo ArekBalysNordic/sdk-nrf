@@ -1,8 +1,12 @@
 #
-# Copyright (c) 2023 Nordic Semiconductor ASA
+# Copyright (c) 2026 Nordic Semiconductor ASA
 #
 # SPDX-License-Identifier: LicenseRef-Nordic-5-Clause
 #
+
+# This file contains the common default values for the Matter samples.
+# You can use it in your sample's Kconfig.sysbuild file by sourcing it:
+# source "$(ZEPHYR_NRF_MODULE_DIR)/samples/matter/common/sysbuild/Kconfig"
 
 #### Radio core selection
 configdefault NRF_DEFAULT_IPC_RADIO
@@ -20,7 +24,7 @@ configdefault NETCORE_IPC_RADIO_BT_HCI_IPC
 
 #### Bootloader
 choice BOOTLOADER
-	default BOOTLOADER_MCUBOOT if !BOARD_NRF21540DK
+	default BOOTLOADER_MCUBOOT
 endchoice
 
 if BOOTLOADER_MCUBOOT
@@ -30,6 +34,9 @@ configdefault DFU_MULTI_IMAGE_PACKAGE_BUILD
 	default y
 
 configdefault DFU_MULTI_IMAGE_PACKAGE_APP
+	default y
+
+configdefault PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY
 	default y
 
 #### DFU network core configuration
@@ -54,44 +61,6 @@ configdefault DFU_MULTI_IMAGE_PACKAGE_NET
 
 endif # SOC_SERIES_NRF53
 
-endif # BOOTLOADER_MCUBOOT
-
-#### Enable generating factory data
-configdefault MATTER_FACTORY_DATA_GENERATE
-	default y if !BOARD_NRF21540DK
-
-# Internal flash only for nRF54L15 tag with compression
-if BOARD_NRF54L15TAG
-
-choice MCUBOOT_MODE
-	default MCUBOOT_MODE_OVERWRITE_ONLY
-endchoice
-
-configdefault MCUBOOT_COMPRESSED_IMAGE_SUPPORT
-	default y
-
-endif
-
-# Partition Manager backwards compatibility
-if PARTITION_MANAGER
-
-if SOC_NRF54L10
-
-configdefault PM_MCUBOOT_PAD
-	default 0x1000
-
-endif # SOC_NRF54L10
-
-if BOARD_NRF54L15TAG
-
-configdefault PM_OVERRIDE_EXTERNAL_DRIVER_CHECK
-	default y
-
-configdefault PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY
-	default y
-
-endif # BOARD_NRF54L15TAG
-
 if BOARD_NRF54L15DK || BOARD_NRF54LM20DK
 
 # Disable checking the external drivers for nRF54L15 and nRF54LM20 DKs.
@@ -100,13 +69,8 @@ configdefault PM_OVERRIDE_EXTERNAL_DRIVER_CHECK
 
 endif # BOARD_NRF54L15DK || BOARD_NRF54LM20DK
 
-if BOOTLOADER_MCUBOOT
-
-configdefault PM_EXTERNAL_FLASH_MCUBOOT_SECONDARY
-	default y
-
 endif # BOOTLOADER_MCUBOOT
 
-endif # PARTITION_MANAGER
-
-source "share/sysbuild/Kconfig"
+#### Enable generating factory data
+configdefault MATTER_FACTORY_DATA_GENERATE
+	default y
