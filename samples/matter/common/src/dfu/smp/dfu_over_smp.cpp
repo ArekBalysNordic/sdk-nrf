@@ -138,11 +138,19 @@ void DFUOverSMP::ConfirmNewImage()
 {
 	/* Check if the image is run in the REVERT mode and eventually */
 	/* confirm it to prevent reverting on the next boot. */
-	VerifyOrReturn(mcuboot_swap_type() == BOOT_SWAP_TYPE_REVERT);
+	ChipLogError(SoftwareUpdate, "mcuboot_swap_type: %d", mcuboot_swap_type());
+	VerifyOrReturn(mcuboot_swap_type() == BOOT_SWAP_TYPE_REVERT
+#if CONFIG_BUILD_WITH_TFM
+	/* While using TF-M, the swap type is always NONE. */
+	|| mcuboot_swap_type() == BOOT_SWAP_TYPE_NONE
+#endif
+	);
+	ChipLogError(SoftwareUpdate, "boot_write_img_confirmed: %d", boot_write_img_confirmed());
 
 	if (boot_write_img_confirmed()) {
 		ChipLogError(SoftwareUpdate, "Failed to confirm firmware image, it will be reverted on the next boot");
 	} else {
+		ChipLogError(SoftwareUpdate, "New firmware image confirmed");
 		ChipLogProgress(SoftwareUpdate, "New firmware image confirmed");
 	}
 }
