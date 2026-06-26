@@ -1,0 +1,57 @@
+name: Matter prebuilt library validation
+
+on:
+  pull_request:
+    branches:
+      - main
+      - 'v*-branch'
+    paths:
+      - 'samples/matter/**'
+      - 'west.yml'
+      - '.github/workflows/matter-prebuilt-lib-validation.yml'
+
+permissions:
+  contents: read
+
+env:
+  BOARD: nrf54l15dk/nrf54l15/cpuapp
+
+jobs:
+  matter-prebuilt-lib-validation:
+    name: Template sample with prebuilt Matter library
+    runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/project-chip/chip-build-nrf-platform:174
+      volumes:
+        - "/:/runner-root-volume"
+
+    steps:
+      - name: Checkout sdk-nrf
+        uses: actions/checkout@v4
+        with:
+          path: ncs-workspace/nrf
+          fetch-depth: 0
+
+      - name: Initialize west workspace
+        working-directory: ncs-workspace/nrf
+        run: |
+          pip3 install west
+          west init -l .
+          west update --narrow -o=--depth=1
+
+      - name: Fetch prebuilt Matter library blobs
+        working-directory: ncs-workspace/modules/lib/matter
+        run: |
+          git lfs install
+          git lfs pull
+
+      - name: Build Matter template with prebuilt library
+        working-directory: ncs-workspace
+        run: |
+          source zephyr/zephyr-env.sh
+          west build -p always -b "${BOARD}" \
+            -d nrf/samples/matter/template/build/prebuilt-lib-validation \
+            nrf/samples/matter/template --sysbuild -- \
+            -DCONFIG_CHIP_USE_PREBUILT_LIB=y \
+            -DCONFIG_NCS_SAMPLE_MATTER_OPERATIONAL_KEYS_MIGRATION_TO_ITS=y
+          test -f nrf/samples/matter/template/build/prebuilt-lib-validation/template/zephyr/zephyr.elf
