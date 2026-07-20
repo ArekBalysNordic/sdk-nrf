@@ -84,10 +84,3 @@ void emberAfPowerSourceClusterInitCallback(EndpointId endpoint)
 	}
 }
 #endif /* CONFIG_CHIP_ICD_DSLS_SUPPORT */
-
-void emberAfPluginSmokeCoAlarmSelfTestRequestCommand(EndpointId endpointId)
-{
-	if (endpointId == AppTask::Instance().kSmokeCoAlarmEndpointId) {
-		AppTask::Instance().SelfTestHandler();
-	}
-}

@@ -51,6 +51,13 @@ constexpr chip::EndpointId kBatteryPowerSourceEndpointId = 1;
 
 Nrf::Matter::IdentifyCluster sIdentifyCluster(AppTask::kSmokeCoAlarmEndpointId);
 
+class SmokeCoAlarmDelegateImpl final : public chip::app::Clusters::SmokeCoAlarmDelegate {
+public:
+	void OnSelfTestRequested() override { AppTask::Instance().SelfTestHandler(); }
+};
+
+SmokeCoAlarmDelegateImpl sSmokeCoAlarmDelegate;
+
 #ifdef CONFIG_CHIP_ICD_UAT_SUPPORT
 #define UAT_BUTTON_MASK DK_BTN3_MSK
 #endif
@@ -384,6 +391,11 @@ CHIP_ERROR AppTask::Init()
 
 	k_timer_init(&mSelfTestLedTimer, &SelfTestLedTimerTimeoutCallback, nullptr);
 	k_timer_init(&mSelfTestTimer, &SelfTestTimerTimeoutCallback, nullptr);
+
+	SmokeCoAlarmCluster::Config smokeCoAlarmConfig;
+	smokeCoAlarmConfig.featureMap.Set(SmokeCoAlarm::Feature::kSmokeAlarm).Set(SmokeCoAlarm::Feature::kCoAlarm);
+	ReturnErrorOnFailure(
+		SmokeCoAlarmServer::Instance().Init(kSmokeCoAlarmEndpointId, smokeCoAlarmConfig, &sSmokeCoAlarmDelegate));
 
 	/* Register Matter event handler that controls the connectivity status LED based on the captured Matter network
 	 * state. */
