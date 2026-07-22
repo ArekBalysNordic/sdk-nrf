@@ -336,8 +336,12 @@ CHIP_ERROR BleBridgedDeviceFactory::CreateDevice(int deviceType, bt_addr_le_t bt
 	 */
 	BLEBridgedDeviceProvider *provider = BLEConnectivityManager::Instance().FindBLEProvider(btAddress);
 	if (provider) {
-		return AddMatterDevices(reinterpret_cast<MatterBridgedDevice::DeviceType *>(&deviceType), 1, uniqueID,
-					nodeLabel, provider, &index, &endpointId);
+		err = AddMatterDevices(reinterpret_cast<MatterBridgedDevice::DeviceType *>(&deviceType), 1, uniqueID,
+				       nodeLabel, provider, &index, &endpointId);
+		if (err == CHIP_NO_ERROR) {
+			err = provider->NotifyReachableStatusChange(false);
+		}
+		return err;
 	}
 
 	ServiceUuid providerType;
@@ -363,6 +367,7 @@ CHIP_ERROR BleBridgedDeviceFactory::CreateDevice(int deviceType, bt_addr_le_t bt
 		return err;
 	}
 
+	ReturnErrorOnFailure(provider->NotifyReachableStatusChange(false));
 	BLEConnectivityManager::Instance().Recover(provider);
 
 exit:

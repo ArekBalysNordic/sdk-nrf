@@ -6,6 +6,9 @@
 
 #include "humidity_sensor.h"
 
+#include <app/clusters/relative-humidity-measurement-server/CodegenIntegration.h>
+#include <app/data-model/Nullable.h>
+
 namespace
 {
 DESCRIPTOR_CLUSTER_ATTRIBUTES(descriptorAttrs);
@@ -54,6 +57,15 @@ HumiditySensorDevice::HumiditySensorDevice(const char *uniqueID, const char *nod
 	mDeviceTypeList = kBridgedHumidityDeviceTypes;
 	mDeviceTypeListSize = ARRAY_SIZE(kBridgedHumidityDeviceTypes);
 	mDataVersion = static_cast<DataVersion *>(chip::Platform::MemoryAlloc(sizeof(DataVersion) * mDataVersionSize));
+}
+
+CHIP_ERROR HumiditySensorDevice::SetMeasuredValue(uint16_t value)
+{
+	ReturnErrorOnFailure(Clusters::RelativeHumidityMeasurement::SetMeasuredValue(
+		GetEndpointId(), DataModel::Nullable<uint16_t>(value)));
+
+	mMeasuredValue = value;
+	return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR HumiditySensorDevice::HandleRead(ClusterId clusterId, AttributeId attributeId, uint8_t *buffer,
@@ -112,7 +124,7 @@ CHIP_ERROR HumiditySensorDevice::HandleAttributeChange(chip::ClusterId clusterId
 	case Clusters::RelativeHumidityMeasurement::Id: {
 		switch (attributeId) {
 		case Clusters::RelativeHumidityMeasurement::Attributes::MeasuredValue::Id: {
-			int16_t value;
+			uint16_t value;
 
 			err = CopyAttribute(data, dataSize, &value, sizeof(value));
 
@@ -120,12 +132,12 @@ CHIP_ERROR HumiditySensorDevice::HandleAttributeChange(chip::ClusterId clusterId
 				return err;
 			}
 
-			SetMeasuredValue(value);
+			err = SetMeasuredValue(value);
 
 			break;
 		}
 		case Clusters::RelativeHumidityMeasurement::Attributes::MinMeasuredValue::Id: {
-			int16_t value;
+			uint16_t value;
 
 			err = CopyAttribute(data, dataSize, &value, sizeof(value));
 
@@ -138,7 +150,7 @@ CHIP_ERROR HumiditySensorDevice::HandleAttributeChange(chip::ClusterId clusterId
 			break;
 		}
 		case Clusters::RelativeHumidityMeasurement::Attributes::MaxMeasuredValue::Id: {
-			int16_t value;
+			uint16_t value;
 
 			err = CopyAttribute(data, dataSize, &value, sizeof(value));
 

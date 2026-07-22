@@ -6,6 +6,9 @@
 
 #include "temperature_sensor.h"
 
+#include <app/clusters/temperature-measurement-server/CodegenIntegration.h>
+#include <app/data-model/Nullable.h>
+
 namespace
 {
 DESCRIPTOR_CLUSTER_ATTRIBUTES(descriptorAttrs);
@@ -50,6 +53,15 @@ TemperatureSensorDevice::TemperatureSensorDevice(const char *uniqueID, const cha
 	mDeviceTypeList = kBridgedTemperatureDeviceTypes;
 	mDeviceTypeListSize = ARRAY_SIZE(kBridgedTemperatureDeviceTypes);
 	mDataVersion = static_cast<DataVersion *>(chip::Platform::MemoryAlloc(sizeof(DataVersion) * mDataVersionSize));
+}
+
+CHIP_ERROR TemperatureSensorDevice::SetMeasuredValue(int16_t value)
+{
+	ReturnErrorOnFailure(Clusters::TemperatureMeasurement::SetMeasuredValue(
+		GetEndpointId(), DataModel::Nullable<int16_t>(value)));
+
+	mMeasuredValue = value;
+	return CHIP_NO_ERROR;
 }
 
 CHIP_ERROR TemperatureSensorDevice::HandleRead(ClusterId clusterId, AttributeId attributeId, uint8_t *buffer,
@@ -116,7 +128,7 @@ CHIP_ERROR TemperatureSensorDevice::HandleAttributeChange(chip::ClusterId cluste
 				return err;
 			}
 
-			SetMeasuredValue(value);
+			err = SetMeasuredValue(value);
 
 			break;
 		}
