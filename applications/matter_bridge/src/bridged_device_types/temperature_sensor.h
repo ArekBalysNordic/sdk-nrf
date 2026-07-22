@@ -43,7 +43,7 @@ public:
 	static constexpr uint32_t GetTemperatureMeasurementFeatureMap() { return 0; }
 
 private:
-	void SetMeasuredValue(int16_t value) { mMeasuredValue = value; }
+	CHIP_ERROR SetMeasuredValue(int16_t value);
 	void SetMinMeasuredValue(int16_t value) { mMinMeasuredValue = value; }
 	void SetMaxMeasuredValue(int16_t value) { mMaxMeasuredValue = value; }
 

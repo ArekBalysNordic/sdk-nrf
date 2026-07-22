@@ -43,9 +43,9 @@ public:
 	static constexpr uint32_t GetRelativeHumidityMeasurementFeatureMap() { return 0; }
 
 private:
-	void SetMeasuredValue(int16_t value) { mMeasuredValue = value; }
-	void SetMinMeasuredValue(int16_t value) { mMinMeasuredValue = value; }
-	void SetMaxMeasuredValue(int16_t value) { mMaxMeasuredValue = value; }
+	CHIP_ERROR SetMeasuredValue(uint16_t value);
+	void SetMinMeasuredValue(uint16_t value) { mMinMeasuredValue = value; }
+	void SetMaxMeasuredValue(uint16_t value) { mMaxMeasuredValue = value; }
 
 	uint16_t mMeasuredValue = 0;
 	uint16_t mMinMeasuredValue = CONFIG_BRIDGE_HUMIDITY_SENSOR_MIN_MEASURED_VALUE;
