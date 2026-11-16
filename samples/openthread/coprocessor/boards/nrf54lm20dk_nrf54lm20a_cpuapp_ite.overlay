@@ -23,3 +23,16 @@
 		ranges = <0x0 0x9000 DT_SIZE_K(471)>;
 	};
 };
+
+
+&uart20 {
+	current-speed = <1000000>;
+	status = "okay";
+	hw-flow-control;
+};
+
+/ {
+	chosen {
+		zephyr,ot-uart = &uart20;
+	};
+};

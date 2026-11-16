@@ -3,22 +3,6 @@ sample:
   description: Test OpenThread Command Line Interface.
 
 tests:
-  sample.openthread.cli.ite:
-    sysbuild: true
-    build_only: true
-    tags:
-      - ci_build
-      - sysbuild
-      - ci_samples_openthread
-    extra_args:
-      - cli_SNIPPET="ot-ci;ot-logging"
-      - EXTRA_CONF_FILE=extra_conf/tcp.conf
-      - CONFIG_OTPERF=y
-      - CONFIG_OPENTHREAD_SOURCES=y
-    platform_allow:
-      - nrf54lm20dk/nrf54lm20a/cpuapp/ite
-    integration_platforms:
-      - nrf54lm20dk/nrf54lm20a/cpuapp/ite
   sample.openthread.cli:
     sysbuild: true
     build_only: true
@@ -249,3 +233,19 @@ tests:
       - nrf54lm20dk/nrf54lm20a/cpuapp
       - nrf54l15dk/nrf54l15/cpuapp/ns
       - nrf54lc10dk/nrf54lc10a/cpuapp
+  sample.openthread.cli.ite:
+    sysbuild: true
+    build_only: true
+    tags:
+      - ci_build
+      - sysbuild
+      - ci_samples_openthread
+    extra_args:
+      - cli_SNIPPET="ot-ci;ot-logging"
+      - EXTRA_CONF_FILE=extra_conf/tcp.conf
+      - CONFIG_OTPERF=y
+      - CONFIG_OPENTHREAD_SOURCES=y
+    platform_allow:
+      - nrf54lm20dk/nrf54lm20a/cpuapp/ite
+    integration_platforms:
+      - nrf54lm20dk/nrf54lm20a/cpuapp/ite
